@@ -1,11 +1,11 @@
-import AllIssues from '@/components/common/issues/all-issues';
-import Header from '@/components/layout/headers/issues/header';
-import MainLayout from '@/components/layout/main-layout';
+import { redirect } from 'next/navigation';
 
-export default function AllIssuesPage() {
-   return (
-      <MainLayout header={<Header />}>
-         <AllIssues />
-      </MainLayout>
-   );
+export default async function AllIssuesPage({
+   params,
+}: {
+   params: Promise<{ orgId: string; teamId: string }>;
+}) {
+   const { orgId } = await params;
+
+   redirect(`/${orgId}/issues`);
 }

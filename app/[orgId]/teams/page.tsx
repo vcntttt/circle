@@ -1,11 +1,7 @@
-import Teams from '@/components/common/teams/teams';
-import Header from '@/components/layout/headers/teams/header';
-import MainLayout from '@/components/layout/main-layout';
+import { redirect } from 'next/navigation';
 
-export default function TeamsPage() {
-   return (
-      <MainLayout header={<Header />}>
-         <Teams />
-      </MainLayout>
-   );
+export default async function TeamsPage({ params }: { params: Promise<{ orgId: string }> }) {
+   const { orgId } = await params;
+
+   redirect(`/${orgId}/projects`);
 }

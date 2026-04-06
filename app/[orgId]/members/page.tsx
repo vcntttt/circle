@@ -1,11 +1,7 @@
-import Members from '@/components/common/members/members';
-import Header from '@/components/layout/headers/members/header';
-import MainLayout from '@/components/layout/main-layout';
+import { redirect } from 'next/navigation';
 
-export default function MembersPage() {
-   return (
-      <MainLayout header={<Header />}>
-         <Members />
-      </MainLayout>
-   );
+export default async function MembersPage({ params }: { params: Promise<{ orgId: string }> }) {
+   const { orgId } = await params;
+
+   redirect(`/${orgId}/projects`);
 }

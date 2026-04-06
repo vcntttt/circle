@@ -1,14 +1,6 @@
 'use client';
 
-import { Layers, LayoutList, MoreHorizontal } from 'lucide-react';
-
-import {
-   DropdownMenu,
-   DropdownMenuContent,
-   DropdownMenuItem,
-   DropdownMenuSeparator,
-   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Layers } from 'lucide-react';
 import {
    SidebarGroup,
    SidebarGroupLabel,
@@ -19,6 +11,17 @@ import {
 import Link from 'next/link';
 import { workspaceItems } from '@/mock-data/side-bar-nav';
 import { RiPresentationLine } from '@remixicon/react';
+
+const secondaryWorkspaceItems = [
+   {
+      name: 'Initiatives',
+      icon: RiPresentationLine,
+   },
+   {
+      name: 'Views',
+      icon: Layers,
+   },
+];
 
 export function NavWorkspace() {
    return (
@@ -35,33 +38,14 @@ export function NavWorkspace() {
                   </SidebarMenuButton>
                </SidebarMenuItem>
             ))}
-            <SidebarMenuItem>
-               <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                     <SidebarMenuButton asChild>
-                        <span>
-                           <MoreHorizontal />
-                           <span>More</span>
-                        </span>
-                     </SidebarMenuButton>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-48 rounded-lg" side="bottom" align="start">
-                     <DropdownMenuItem>
-                        <RiPresentationLine className="text-muted-foreground" />
-                        <span>Initiatives</span>
-                     </DropdownMenuItem>
-                     <DropdownMenuItem>
-                        <Layers className="text-muted-foreground" />
-                        <span>Views</span>
-                     </DropdownMenuItem>
-                     <DropdownMenuSeparator />
-                     <DropdownMenuItem>
-                        <LayoutList className="text-muted-foreground" />
-                        <span>Customize sidebar</span>
-                     </DropdownMenuItem>
-                  </DropdownMenuContent>
-               </DropdownMenu>
-            </SidebarMenuItem>
+            {secondaryWorkspaceItems.map((item) => (
+               <SidebarMenuItem key={item.name}>
+                  <SidebarMenuButton>
+                     <item.icon />
+                     <span>{item.name}</span>
+                  </SidebarMenuButton>
+               </SidebarMenuItem>
+            ))}
          </SidebarMenu>
       </SidebarGroup>
    );

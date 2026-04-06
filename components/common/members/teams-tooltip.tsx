@@ -1,6 +1,5 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ContactRound } from 'lucide-react';
-import { teams } from '@/mock-data/teams';
 
 interface TeamsTooltipProps {
    teamIds: string[];
@@ -21,16 +20,12 @@ export function TeamsTooltip({ teamIds }: TeamsTooltipProps) {
          </TooltipTrigger>
          <TooltipContent className="p-2">
             <div className="flex flex-col gap-1">
-               {teams
-                  .filter((team) => teamIds.includes(team.id))
-                  .map((team) => (
-                     <div key={team.id} className="text-xs flex items-center gap-2">
-                        <div className="inline-flex size-6 bg-muted/50 items-center justify-center rounded shrink-0">
-                           <div className="text-sm">{team.icon}</div>
-                        </div>
-                        <span className="font-medium">{team.name}</span>
-                     </div>
-                  ))}
+               {teamIds.map((teamId) => (
+                  <div key={teamId} className="text-xs flex items-center gap-2">
+                     <ContactRound className="text-muted-foreground size-3.5 shrink-0" />
+                     <span className="font-medium">{teamId}</span>
+                  </div>
+               ))}
             </div>
          </TooltipContent>
       </Tooltip>

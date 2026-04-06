@@ -8,13 +8,8 @@ import {
    DropdownMenuContent,
    DropdownMenuGroup,
    DropdownMenuItem,
-   DropdownMenuLabel,
-   DropdownMenuPortal,
    DropdownMenuSeparator,
    DropdownMenuShortcut,
-   DropdownMenuSub,
-   DropdownMenuSubContent,
-   DropdownMenuSubTrigger,
    DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
@@ -60,31 +55,13 @@ export function OrgSwitcher() {
                            <DropdownMenuShortcut>G then S</DropdownMenuShortcut>
                         </Link>
                      </DropdownMenuItem>
-                     <DropdownMenuItem>Invite and manage members</DropdownMenuItem>
+                     <DropdownMenuItem>Personal workspace</DropdownMenuItem>
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
                   <DropdownMenuGroup>
                      <DropdownMenuItem>Download desktop app</DropdownMenuItem>
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
-                  <DropdownMenuSub>
-                     <DropdownMenuSubTrigger>Switch Workspace</DropdownMenuSubTrigger>
-                     <DropdownMenuPortal>
-                        <DropdownMenuSubContent>
-                           <DropdownMenuLabel>leonelngoya@gmail.com</DropdownMenuLabel>
-                           <DropdownMenuSeparator />
-                           <DropdownMenuItem>
-                              <div className="flex aspect-square size-6 items-center justify-center rounded bg-orange-500 text-sidebar-primary-foreground">
-                                 LN
-                              </div>
-                              lndev-ui
-                           </DropdownMenuItem>
-                           <DropdownMenuSeparator />
-                           <DropdownMenuItem>Create or join workspace</DropdownMenuItem>
-                           <DropdownMenuItem>Add an account</DropdownMenuItem>
-                        </DropdownMenuSubContent>
-                     </DropdownMenuPortal>
-                  </DropdownMenuSub>
                   <DropdownMenuItem>
                      Log out
                      <DropdownMenuShortcut>⌥⇧Q</DropdownMenuShortcut>
