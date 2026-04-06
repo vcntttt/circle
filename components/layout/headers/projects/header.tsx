@@ -1,11 +1,16 @@
 import HeaderNav from './header-nav';
 import HeaderOptions from './header-options';
 
-export default function Header() {
+interface HeaderProps {
+   count: number;
+   isConnected: boolean;
+}
+
+export default function Header({ count, isConnected }: HeaderProps) {
    return (
       <div className="w-full flex flex-col items-center">
-         <HeaderNav />
-         <HeaderOptions />
+         <HeaderNav count={count} isConnected={isConnected} />
+         <HeaderOptions isConnected={isConnected} />
       </div>
    );
 }

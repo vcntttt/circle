@@ -1,60 +1,106 @@
 'use client';
 
-import { projects as allProjects } from '@/mock-data/projects';
 import ProjectLine from '@/components/common/projects/project-line';
-import { useProjectsFilterStore } from '@/store/projects-filter-store';
-import { useMemo } from 'react';
-import { status as statusList } from '@/mock-data/status';
+import { ProjectListItem } from '@/lib/db/projects';
+import { Box } from 'lucide-react';
+import {
+   health,
+   type Project as PresentationProject,
+   projects as mockProjects,
+} from '@/mock-data/projects';
+import { priorities } from '@/mock-data/priorities';
+import { status as projectStatuses } from '@/mock-data/status';
+import { users } from '@/mock-data/users';
 
-export default function Projects() {
-   const { filters, sort } = useProjectsFilterStore();
+interface ProjectsProps {
+   projects: ProjectListItem[];
+   databaseError: string | null;
+}
 
-   const statusIndex = useMemo(() => {
-      const m = new Map<string, number>();
-      statusList.forEach((s, idx) => m.set(s.id, idx));
-      return m;
-   }, []);
+const slugify = (value: string) =>
+   value
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
 
-   const displayed = useMemo(() => {
-      let list = allProjects.slice();
+const statusToPercent: Record<string, number> = {
+   'backlog': 0,
+   'to-do': 10,
+   'in-progress': 55,
+   'technical-review': 75,
+   'paused': 40,
+   'completed': 100,
+};
 
-      // filters
-      if (filters.health.length > 0) {
-         const hs = new Set(filters.health);
-         list = list.filter((p) => hs.has(p.health.id));
-      }
-      if (filters.priority.length > 0) {
-         const ps = new Set(filters.priority);
-         list = list.filter((p) => ps.has(p.priority.id));
-      }
+const statusToHealth = {
+   'backlog': health.find((item) => item.id === 'no-update') ?? health[0],
+   'to-do': health.find((item) => item.id === 'no-update') ?? health[0],
+   'in-progress': health.find((item) => item.id === 'on-track') ?? health[0],
+   'technical-review': health.find((item) => item.id === 'at-risk') ?? health[0],
+   'paused': health.find((item) => item.id === 'off-track') ?? health[0],
+   'completed': health.find((item) => item.id === 'on-track') ?? health[0],
+};
 
-      // sorting
-      const compare = (a: (typeof list)[number], b: (typeof list)[number]) => {
-         switch (sort) {
-            case 'title-asc':
-               return a.name.localeCompare(b.name);
-            case 'title-desc':
-               return b.name.localeCompare(a.name);
-            case 'date-asc':
-               return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
-            case 'date-desc':
-               return new Date(b.startDate).getTime() - new Date(a.startDate).getTime();
-            case 'status-asc': {
-               const ai = statusIndex.get(a.status.id) ?? 0;
-               const bi = statusIndex.get(b.status.id) ?? 0;
-               return ai - bi;
-            }
-            case 'status-desc': {
-               const ai = statusIndex.get(a.status.id) ?? 0;
-               const bi = statusIndex.get(b.status.id) ?? 0;
-               return bi - ai;
-            }
-            default:
-               return 0;
-         }
+const toPresentationProject = (project: ProjectListItem): PresentationProject => {
+   const matchedMockProject = mockProjects.find((item) => slugify(item.name) === project.slug);
+
+   if (matchedMockProject) {
+      return {
+         ...matchedMockProject,
+         id: project.id,
+         name: project.name,
+         startDate: new Date(project.createdAt).toISOString(),
+         status:
+            projectStatuses.find((item) => item.id === project.status) ?? matchedMockProject.status,
+         percentComplete: statusToPercent[project.status] ?? matchedMockProject.percentComplete,
       };
-      return list.sort(compare);
-   }, [filters, sort, statusIndex]);
+   }
+
+   return {
+      id: project.id,
+      name: project.name,
+      icon: Box,
+      status: projectStatuses.find((item) => item.id === project.status) ?? projectStatuses[0],
+      percentComplete: statusToPercent[project.status] ?? 0,
+      startDate: new Date(project.createdAt).toISOString(),
+      lead: users[0],
+      priority: priorities[0],
+      health: statusToHealth[project.status as keyof typeof statusToHealth] ?? health[0],
+   };
+};
+
+export default function Projects({ projects, databaseError }: ProjectsProps) {
+   if (databaseError) {
+      return (
+         <div className="w-full p-6">
+            <div className="rounded-lg border bg-container p-6 max-w-2xl">
+               <h2 className="text-sm font-semibold">Database unavailable</h2>
+               <p className="mt-2 text-sm text-muted-foreground">{databaseError}</p>
+               <div className="mt-4 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground font-mono">
+                  cd ~/dev/postgres && docker compose up -d
+               </div>
+            </div>
+         </div>
+      );
+   }
+
+   if (projects.length === 0) {
+      return (
+         <div className="w-full p-6">
+            <div className="rounded-lg border bg-container p-6 max-w-2xl">
+               <h2 className="text-sm font-semibold">No projects yet</h2>
+               <p className="mt-2 text-sm text-muted-foreground">
+                  The schema is ready, but the database is empty. Seed the sample projects or start
+                  adding your own data next.
+               </p>
+               <div className="mt-4 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground font-mono">
+                  pnpm db:seed
+               </div>
+            </div>
+         </div>
+      );
+   }
 
    return (
       <div className="w-full">
@@ -68,8 +114,8 @@ export default function Projects() {
          </div>
 
          <div className="w-full">
-            {displayed.map((project) => (
-               <ProjectLine key={project.id} project={project} />
+            {projects.map((project) => (
+               <ProjectLine key={project.id} project={toPresentationProject(project)} />
             ))}
          </div>
       </div>
