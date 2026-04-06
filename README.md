@@ -35,8 +35,12 @@ pnpm install
 ### Start the development server
 
 ```shell
+pnpm db:migrate
+pnpm db:seed
 pnpm dev
 ```
+
+This repo expects a shared local PostgreSQL server running separately in `~/dev/postgres`.
 
 ## Star History
 

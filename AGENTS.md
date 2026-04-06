@@ -1,0 +1,46 @@
+# AGENTS.md
+
+## Commands
+
+- Use `pnpm`, not npm or yarn. The lockfile is `pnpm-lock.yaml`.
+- Dev server: `pnpm dev` (runs `next dev --turbopack`).
+- Build check: `pnpm build`.
+- Lint: `pnpm lint`.
+- Format whole repo: `pnpm format`.
+
+## Verification
+
+- There is no test suite and no `typecheck` script in `package.json`.
+- The only configured pre-commit check is formatting staged files via `lint-staged`.
+- `.husky/pre-commit` runs `npx lint-staged`, and `.lintstagedrc.json` runs `prettier --write`.
+- Local PostgreSQL is expected to come from the shared stack in `~/dev/postgres`.
+
+## Architecture
+
+- This is a single Next.js App Router app, not a monorepo.
+- App entrypoints live under `app/`; shared layout wiring is in `app/layout.tsx` and `components/layout/main-layout.tsx`.
+- Most product state is client-side Zustand state under `store/`.
+- Domain data is still largely seeded from `mock-data/`, but projects now read from PostgreSQL via Drizzle.
+- `store/issues-store.ts` is the main issue data store and initializes from `mock-data/issues`.
+- `store/view-store.ts` is one of the few persisted stores; it uses `localStorage`.
+
+## Current Product Reality
+
+- Treat this repo as a polished UI demo with an in-progress PostgreSQL migration.
+- Root routing now points to the personal projects/issues flow instead of the old team-based entrypoints.
+- Sidebar/workspace navigation still depends on hardcoded mock URLs and labels in `mock-data/side-bar-nav.ts`.
+- Before adding features, check whether the behavior belongs in real app state/data or is still demo-only mock behavior.
+
+## Editing Guidance
+
+- Prefer updating the existing App Router + Zustand structure instead of introducing a second state model.
+- If you are making the app more real, remove or replace `mock-data` dependencies deliberately; do not leave half-mock / half-real flows.
+- Avoid spending time on inbox/settings/multi-team polish unless the task explicitly requires it; much of that surface is placeholder UI.
+- Do not alter the current visual style or invent a new UI direction. This repo already has an established design system; preserve existing layout, spacing, components, and styling patterns unless the user explicitly asks for a design change.
+- If a refactor weakens the UI, use `/home/vrivera/git-packages/circle` as the visual reference for the original project layout.
+
+## Style
+
+- Prettier is the source of truth for formatting.
+- Repo-specific Prettier settings include `singleQuote: true`, `tabWidth: 3`, and `printWidth: 100`.
+- Shadcn UI is configured in `components.json` with aliases rooted at `@/`.
