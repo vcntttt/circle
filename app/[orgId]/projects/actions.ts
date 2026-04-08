@@ -20,7 +20,6 @@ const initialStatuses = [
 ] as const;
 
 const createProjectSchema = z.object({
-   orgId: z.string().min(1),
    name: z.string().trim().min(2).max(120),
    description: z.string().trim().max(500).optional(),
    status: z.enum(initialStatuses),
@@ -45,7 +44,6 @@ export async function createProjectAction(
    }
 
    const parsed = createProjectSchema.safeParse({
-      orgId: formData.get('orgId'),
       name: formData.get('name'),
       description: formData.get('description') ?? '',
       status: formData.get('status'),
@@ -58,7 +56,7 @@ export async function createProjectAction(
       };
    }
 
-   const { orgId, name, description, status } = parsed.data;
+   const { name, description, status } = parsed.data;
    const slug = toSlug(name);
 
    if (!slug) {
@@ -88,7 +86,7 @@ export async function createProjectAction(
       status,
    });
 
-   revalidatePath(`/${orgId}/projects`);
+   revalidatePath('/projects');
 
    return {
       success: true,

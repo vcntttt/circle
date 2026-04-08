@@ -1,17 +1,7 @@
-import type { Metadata } from 'next';
-import AllIssues from '@/components/common/issues/all-issues';
-import Header from '@/components/layout/headers/issues/header';
-import MainLayout from '@/components/layout/main-layout';
+import { redirect } from 'next/navigation';
 
-export const metadata: Metadata = {
-   title: 'Issues',
-   description: 'Issue tracking for the personal Circle workspace.',
-};
+export default async function LegacyIssuesPage({ params }: { params: Promise<{ orgId: string }> }) {
+   await params;
 
-export default function IssuesPage() {
-   return (
-      <MainLayout header={<Header />}>
-         <AllIssues />
-      </MainLayout>
-   );
+   redirect('/issues');
 }

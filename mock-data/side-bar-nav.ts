@@ -18,12 +18,12 @@ import {
 export const inboxItems = [
    {
       name: 'Inbox',
-      url: '/lndev-ui/inbox',
+      url: '/inbox',
       icon: Inbox,
    },
    {
       name: 'My issues',
-      url: '/lndev-ui/issues',
+      url: '/issues',
       icon: FolderKanban,
    },
 ];
@@ -31,12 +31,12 @@ export const inboxItems = [
 export const workspaceItems = [
    {
       name: 'Issues',
-      url: '/lndev-ui/issues',
+      url: '/issues',
       icon: FolderKanban,
    },
    {
       name: 'Projects',
-      url: '/lndev-ui/projects',
+      url: '/projects',
       icon: Box,
    },
 ];

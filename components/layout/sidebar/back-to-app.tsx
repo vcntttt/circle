@@ -7,7 +7,7 @@ export function BackToApp() {
    return (
       <div className="w-full flex items-center justify-between gap-2">
          <Button className="w-fit" size="xs" variant="outline" asChild>
-            <Link href="/lndev-ui/projects">
+            <Link href="/projects">
                <ChevronLeft className="size-4" />
                Back to app
             </Link>

@@ -5,7 +5,7 @@ export default async function AllIssuesPage({
 }: {
    params: Promise<{ orgId: string; teamId: string }>;
 }) {
-   const { orgId } = await params;
+   await params;
 
-   redirect(`/${orgId}/issues`);
+   redirect('/issues');
 }

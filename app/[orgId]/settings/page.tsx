@@ -1,11 +1,11 @@
-import MainLayout from '@/components/layout/main-layout';
-import Settings from '@/components/common/settings/settings';
-import Header from '@/components/layout/headers/settings/header';
+import { redirect } from 'next/navigation';
 
-export default function SettingsPage() {
-   return (
-      <MainLayout header={<Header />} headersNumber={1}>
-         <Settings />
-      </MainLayout>
-   );
+export default async function LegacySettingsPage({
+   params,
+}: {
+   params: Promise<{ orgId: string }>;
+}) {
+   await params;
+
+   redirect('/settings');
 }

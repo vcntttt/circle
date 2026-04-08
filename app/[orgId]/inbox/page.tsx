@@ -1,10 +1,7 @@
-import MainLayout from '@/components/layout/main-layout';
-import Inbox from '@/components/common/inbox/inbox';
+import { redirect } from 'next/navigation';
 
-export default function InboxPage() {
-   return (
-      <MainLayout>
-         <Inbox />
-      </MainLayout>
-   );
+export default async function LegacyInboxPage({ params }: { params: Promise<{ orgId: string }> }) {
+   await params;
+
+   redirect('/inbox');
 }

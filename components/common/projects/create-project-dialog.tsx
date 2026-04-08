@@ -1,7 +1,6 @@
 'use client';
 
 import { useActionState, useEffect, useRef, useState } from 'react';
-import { useParams } from 'next/navigation';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,7 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { createProjectAction, type CreateProjectActionState } from '@/app/[orgId]/projects/actions';
+import { createProjectAction, type CreateProjectActionState } from '@/app/projects/actions';
 
 const initialState: CreateProjectActionState = {
    success: false,
@@ -31,8 +30,6 @@ export function CreateProjectDialog({ disabled = false }: CreateProjectDialogPro
    const [open, setOpen] = useState(false);
    const [state, formAction, isPending] = useActionState(createProjectAction, initialState);
    const formRef = useRef<HTMLFormElement>(null);
-   const params = useParams<{ orgId: string }>();
-   const orgId = typeof params.orgId === 'string' ? params.orgId : '';
 
    useEffect(() => {
       if (!state.success) return;
@@ -59,8 +56,6 @@ export function CreateProjectDialog({ disabled = false }: CreateProjectDialogPro
             </DialogHeader>
 
             <form ref={formRef} action={formAction} className="space-y-4">
-               <input type="hidden" name="orgId" value={orgId} />
-
                <div className="space-y-2">
                   <Label htmlFor="name">Name</Label>
                   <Input id="name" name="name" placeholder="Personal tracker MVP" required />
