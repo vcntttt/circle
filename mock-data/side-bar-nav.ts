@@ -1,32 +1,4 @@
-import {
-   Inbox,
-   FolderKanban,
-   Box,
-   Settings,
-   Bell,
-   KeyRound,
-   Users,
-   Tag,
-   Layers,
-   FileText,
-   MessageSquare,
-   Clock,
-   Zap,
-   UserRound,
-} from 'lucide-react';
-
-export const inboxItems = [
-   {
-      name: 'Inbox',
-      url: '/inbox',
-      icon: Inbox,
-   },
-   {
-      name: 'My issues',
-      url: '/issues',
-      icon: FolderKanban,
-   },
-];
+import { FolderKanban, Box, Settings, Layers, Zap, UserRound } from 'lucide-react';
 
 export const workspaceItems = [
    {
@@ -43,81 +15,36 @@ export const workspaceItems = [
 
 export const accountItems = [
    {
-      name: 'Account',
-      url: '/settings/account',
+      name: 'General',
+      url: '/settings#general',
       icon: UserRound,
    },
    {
-      name: 'Preferences',
-      url: '/settings/preferences',
+      name: 'Core setup',
+      url: '/settings#general',
       icon: Settings,
    },
    {
-      name: 'Profile',
-      url: '/settings/profile',
-      icon: UserRound,
-   },
-   {
-      name: 'Notifications',
-      url: '/settings/notifications',
-      icon: Bell,
-   },
-   {
-      name: 'Security & access',
-      url: '/settings/security',
-      icon: KeyRound,
-   },
-   {
-      name: 'Connected accounts',
-      url: '/settings/connected-accounts',
-      icon: Users,
+      name: 'Integrations',
+      url: '/settings#integrations',
+      icon: Zap,
    },
 ];
 
 export const featuresItems = [
    {
-      name: 'Labels',
-      url: '/settings/labels',
-      icon: Tag,
-   },
-   {
       name: 'Projects',
-      url: '/settings/projects',
+      url: '/settings#general',
       icon: Box,
    },
    {
-      name: 'Initiatives',
-      url: '/settings/initiatives',
+      name: 'Database',
+      url: '/settings#database',
       icon: Layers,
    },
    {
-      name: 'Customer requests',
-      url: '/settings/customer-requests',
-      icon: Inbox,
-   },
-   {
-      name: 'Templates',
-      url: '/settings/templates',
-      icon: FileText,
-   },
-   {
-      name: 'Asks',
-      url: '/settings/asks',
-      icon: MessageSquare,
-   },
-   {
-      name: 'SLAs',
-      url: '/settings/slas',
-      icon: Clock,
-   },
-   {
-      name: 'Emojis',
-      url: '/settings/emojis',
-      icon: MessageSquare,
-   },
-   {
       name: 'Integrations',
-      url: '/settings/integrations',
+      url: '/settings#integrations',
       icon: Zap,
    },
 ];

@@ -1,10 +1,11 @@
-import MainLayout from '@/components/layout/main-layout';
-import Inbox from '@/components/common/inbox/inbox';
+import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
+
+export const metadata: Metadata = {
+   title: 'Inbox',
+   description: 'Legacy inbox route redirected to issues.',
+};
 
 export default function InboxPage() {
-   return (
-      <MainLayout>
-         <Inbox />
-      </MainLayout>
-   );
+   redirect('/issues');
 }
