@@ -2,28 +2,20 @@
 
 import { ReactNode } from 'react';
 import {
-   LifeBuoy,
-   Package,
-   BarChart3,
+   Database,
+   Eye,
+   FolderKanban,
+   Github,
+   KeyRound,
    Layers,
-   FileText,
-   BookOpen,
-   GraduationCap,
-   ArrowRight,
-   CheckCircle2,
+   Palette,
+   Server,
+   Shield,
+   Tag,
+   UserRound,
 } from 'lucide-react';
-import {
-   SiZendesk,
-   SiGooglesheets,
-   SiZapier,
-   SiSlack,
-   SiGithub,
-   SiGitlab,
-   SiFigma,
-   SiSentry,
-   SiTablecheck,
-} from 'react-icons/si';
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/layout/theme-toggle';
 
 interface Feature {
    icon: ReactNode;
@@ -31,7 +23,7 @@ interface Feature {
    description: string;
    actionLabel?: string;
    activated?: boolean;
-   teamsActivated?: number;
+   meta?: string;
 }
 
 interface Integration {
@@ -44,131 +36,115 @@ interface Integration {
 
 interface Guide {
    icon: ReactNode;
-   iconBg: string;
-   iconColor: string;
    title: string;
    description: string;
+   actionLabel: string;
 }
 
 const features: Feature[] = [
    {
-      icon: <LifeBuoy className="" size={20} />,
-      title: 'Customer requests',
-      description: "Track and manage customer requests alongside your team's work",
-      actionLabel: 'Try Customer requests',
-   },
-   {
-      icon: <SiTablecheck className="" size={20} />,
-      title: 'Initiatives',
-      description: 'Plan strategic product work and monitor progress at scale',
-      actionLabel: 'Learn more',
+      icon: <FolderKanban size={20} />,
+      title: 'Projects',
+      description: 'Projects are part of the main product flow and already use PostgreSQL.',
+      actionLabel: 'Open projects',
       activated: true,
    },
    {
-      icon: <Package className="" size={20} />,
-      title: 'Cycles',
-      description: "Track your team's workload and velocity with Cycles",
-      actionLabel: 'Learn more',
-      teamsActivated: 6,
+      icon: <Tag size={20} />,
+      title: 'Labels',
+      description: 'Labels are now loaded from the database and used by real issue workflows.',
+      actionLabel: 'Manage labels',
+      activated: true,
    },
    {
-      icon: <BarChart3 className="" size={20} />,
-      title: 'Views',
-      description: 'Create filtered views that you can save and share with others',
-      actionLabel: 'Open views',
+      icon: <Palette size={20} />,
+      title: 'Appearance',
+      description: 'Keep the original Circle design system while allowing light local preferences.',
+      meta: 'Theme stays local',
    },
    {
-      icon: <Layers className="" size={20} />,
-      title: 'Triage',
+      icon: <Shield size={20} />,
+      title: 'Privacy',
       description:
-         'Prioritize issues created from multiple your team and customer support integrations',
-      actionLabel: 'Learn more',
-      teamsActivated: 4,
-   },
-];
-
-const guides: Guide[] = [
-   {
-      icon: <BookOpen size={20} />,
-      iconBg: 'bg-blue-50',
-      iconColor: 'text-blue-600',
-      title: 'Start guide',
-      description: 'Quick tips for beginners',
+         'This fork is being prepared for private self-hosted usage, without reopening team features.',
+      meta: 'Personal-only flow',
    },
    {
-      icon: <FileText size={20} />,
-      iconBg: 'bg-indigo-50',
-      iconColor: 'text-indigo-600',
-      title: 'Feature guide',
-      description: 'How Linear works',
+      icon: <KeyRound size={20} />,
+      title: 'Authentication roadmap',
+      description:
+         'Authentication will come later to protect the self-hosted instance, not to rebuild a workspace model.',
+      meta: 'Not implemented yet',
    },
    {
-      icon: <GraduationCap size={20} />,
-      iconBg: 'bg-purple-50',
-      iconColor: 'text-purple-600',
-      title: 'Linear method',
-      description: 'Best practices for building',
-   },
-   {
-      icon: <SiSlack size={20} />,
-      iconBg: 'bg-blue-50',
-      iconColor: 'text-blue-600',
-      title: 'Join our Slack community',
-      description: 'Ask questions and meet others',
+      icon: <Database size={20} />,
+      title: 'Database',
+      description:
+         'Projects, issues and labels already rely on the shared PostgreSQL stack in ~/dev/postgres.',
+      activated: true,
    },
 ];
 
 const integrations: Integration[] = [
    {
-      icon: <SiGithub size={24} />,
-      title: 'GitHub',
-      description: 'Link pull requests, commits and automate workflows',
+      icon: <Github size={24} />,
+      title: 'GitHub repository',
+      description:
+         'Keep a direct link to the repo while deeper integrations stay out of scope for now.',
       enabled: true,
       actionLabel: 'Enabled',
    },
    {
-      icon: <SiGitlab size={24} />,
-      title: 'GitLab',
-      description: 'Link merge requests and automate workflows',
-      actionLabel: 'Open',
-   },
-   {
-      icon: <SiSlack size={24} />,
-      title: 'Slack',
-      description: 'Send notifications to channels and create issues from messages',
+      icon: <Server size={24} />,
+      title: 'Shared PostgreSQL',
+      description:
+         'The app expects the shared local server from ~/dev/postgres during development.',
       enabled: true,
       actionLabel: 'Enabled',
    },
    {
-      icon: <SiFigma size={24} />,
-      title: 'Figma',
-      description: 'Embed file previews in issues',
-      enabled: true,
-      actionLabel: 'Enabled',
+      icon: <UserRound size={24} />,
+      title: 'Current user model',
+      description:
+         'The product still assumes a single personal user and avoids reintroducing teams or orgs.',
+      actionLabel: 'Planned',
    },
    {
-      icon: <SiSentry size={24} />,
-      title: 'Sentry',
-      description: 'Link exceptions to issues',
-      actionLabel: 'Open',
+      icon: <Eye size={24} />,
+      title: 'View preferences',
+      description:
+         'List and board preferences remain local to the browser through lightweight persistence.',
+      actionLabel: 'Local only',
+   },
+];
+
+const guides: Guide[] = [
+   {
+      icon: <FolderKanban size={20} />,
+      title: 'Personal scope',
+      description: 'This fork is intentionally focused on projects, issues and labels.',
+      actionLabel: 'Keep scope small',
    },
    {
-      icon: <SiZapier size={20} />,
-      title: 'Zapier',
-      description: 'Build custom automations and integrations with other apps',
-      actionLabel: 'Open',
+      icon: <Layers size={20} />,
+      title: 'Design system',
+      description:
+         'Preserve the original layout language instead of simplifying pages into generic panels.',
+      actionLabel: 'Use original UI as reference',
    },
    {
-      icon: <SiZendesk size={20} />,
-      title: 'Zendesk',
-      description: 'Link and automate Zendesk tickets with Linear',
-      actionLabel: 'Open',
+      icon: <Database size={20} />,
+      title: 'Data migration',
+      description:
+         'Prefer real persistence over adding new product behavior on top of mock-only state.',
+      actionLabel: 'Keep moving to Postgres',
    },
    {
-      icon: <SiGooglesheets size={20} />,
-      title: 'Google Sheets',
-      description: 'Export issues and build custom analytics',
-      actionLabel: 'Open',
+      icon: <Shield size={20} />,
+      title: 'Future auth',
+      description:
+         'Authentication should protect the personal deployment without forcing a multi-workspace product model.',
+      actionLabel: 'Add later, not now',
    },
 ];
 
@@ -186,14 +162,14 @@ const FeatureCard = ({ feature }: { feature: Feature }) => {
             {feature.activated && (
                <div className="flex items-center text-xs text-muted-foreground gap-1">
                   <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                  <span>Activated</span>
+                  <span>Ready</span>
                </div>
             )}
-            {feature.teamsActivated && (
-               <div className="flex items-center text-xs text-muted-foreground gap-1">
-                  <CheckCircle2 size={14} />
-                  <span>{feature.teamsActivated} teams activated</span>
-               </div>
+            {feature.meta && <span className="text-xs text-muted-foreground">{feature.meta}</span>}
+            {feature.actionLabel && (
+               <Button variant="outline" size="sm" className="ml-auto text-sm">
+                  {feature.actionLabel}
+               </Button>
             )}
          </div>
       </div>
@@ -219,15 +195,21 @@ const IntegrationCard = ({ integration }: { integration: Integration }) => {
 
 const GuideCard = ({ guide }: { guide: Guide }) => {
    return (
-      <div className="bg-card rounded-lg border p-5 flex items-start gap-3">
-         <div className="shrink-0">{guide.icon}</div>
-         <div className="w-full -mt-1">
-            <h3 className="font-medium text-sm text-card-foreground">{guide.title}</h3>
-            <p className="text-xs line-clamp-1 text-muted-foreground mt-1">{guide.description}</p>
+      <div className="bg-card rounded-lg border p-5 flex flex-col min-h-36">
+         <div className="flex items-start gap-3">
+            <div className="shrink-0 mt-0.5">{guide.icon}</div>
+            <div className="min-w-0 flex-1">
+               <h3 className="font-medium text-sm text-card-foreground leading-5">{guide.title}</h3>
+               <p className="text-xs text-muted-foreground mt-1 leading-5 text-balance">
+                  {guide.description}
+               </p>
+            </div>
          </div>
-         <Button variant="ghost" size="icon" className="shrink-0">
-            <ArrowRight size={16} />
-         </Button>
+         <div className="mt-auto pt-4">
+            <Button variant="ghost" size="sm" className="h-7 px-0 text-xs pointer-events-none">
+               {guide.actionLabel}
+            </Button>
+         </div>
       </div>
    );
 };
@@ -238,14 +220,15 @@ export default function Settings() {
          <div className="mb-10">
             <h1 className="text-2xl font-semibold mb-1">Workspace</h1>
             <p className="text-muted-foreground">
-               Manage your workspace settings. Your workspace is in the{' '}
-               <span className="font-medium">United States</span> region
+               Personal configuration for this Circle fork. The goal is to keep the product small,
+               usable and visually aligned with the original design system.
             </p>
          </div>
 
-         <div className="mb-10">
+         <div className="mb-10" id="general">
             <div className="flex items-center justify-between mb-6">
-               <h2 className="text-xl font-semibold">Explore features</h2>
+               <h2 className="text-xl font-semibold">Core setup</h2>
+               <ThemeToggle />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                {features.map((feature, index) => (
@@ -254,11 +237,11 @@ export default function Settings() {
             </div>
          </div>
 
-         <div className="mb-10">
+         <div className="mb-10" id="integrations">
             <div className="flex items-center justify-between mb-6">
-               <h2 className="text-xl font-semibold">Integrations</h2>
-               <Button variant="outline" size="sm" className="text-sm">
-                  Browse all
+               <h2 className="text-xl font-semibold">Current integrations</h2>
+               <Button variant="outline" size="sm" className="text-sm" disabled>
+                  Minimal by design
                </Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -268,9 +251,9 @@ export default function Settings() {
             </div>
          </div>
 
-         <div className="mb-10">
+         <div className="mb-10" id="database">
             <div className="flex items-center justify-between mb-6">
-               <h2 className="text-xl font-semibold">Go further</h2>
+               <h2 className="text-xl font-semibold">Guidance</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                {guides.map((guide, index) => (
