@@ -1,23 +1,71 @@
 'use client';
 
+import { IssueListItem } from '@/lib/db/issues';
+import { toPresentationIssue } from '@/lib/issues-presentation';
+import { Issue } from '@/mock-data/issues';
 import { status } from '@/mock-data/status';
 import { useIssuesStore } from '@/store/issues-store';
 import { useSearchStore } from '@/store/search-store';
 import { useViewStore } from '@/store/view-store';
 import { useFilterStore } from '@/store/filter-store';
-import { FC, useMemo } from 'react';
+import { FC, useLayoutEffect, useMemo } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { GroupIssues } from './group-issues';
 import { SearchIssues } from './search-issues';
 import { CustomDragLayer } from './issue-grid';
 import { cn } from '@/lib/utils';
-import { Issue } from '@/mock-data/issues';
 
-export default function AllIssues() {
+interface AllIssuesProps {
+   initialIssues: IssueListItem[];
+   databaseError: string | null;
+}
+
+export default function AllIssues({ initialIssues, databaseError }: AllIssuesProps) {
+   const { replaceIssues } = useIssuesStore();
    const { isSearchOpen, searchQuery } = useSearchStore();
    const { viewType } = useViewStore();
    const { hasActiveFilters } = useFilterStore();
+
+   const hydratedIssues = useMemo(
+      () => initialIssues.map((issue) => toPresentationIssue(issue)),
+      [initialIssues]
+   );
+
+   useLayoutEffect(() => {
+      replaceIssues(hydratedIssues);
+   }, [hydratedIssues, replaceIssues]);
+
+   if (databaseError) {
+      return (
+         <div className="w-full p-6">
+            <div className="rounded-lg border bg-container p-6 max-w-2xl">
+               <h2 className="text-sm font-semibold">Database unavailable</h2>
+               <p className="mt-2 text-sm text-muted-foreground">{databaseError}</p>
+               <div className="mt-4 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground font-mono">
+                  cd ~/dev/postgres && docker compose up -d
+               </div>
+            </div>
+         </div>
+      );
+   }
+
+   if (hydratedIssues.length === 0) {
+      return (
+         <div className="w-full p-6">
+            <div className="rounded-lg border bg-container p-6 max-w-2xl">
+               <h2 className="text-sm font-semibold">No issues yet</h2>
+               <p className="mt-2 text-sm text-muted-foreground">
+                  The database is ready, but there are no issues yet. Seed the sample data to
+                  restore the current board and list views.
+               </p>
+               <div className="mt-4 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground font-mono">
+                  pnpm db:seed
+               </div>
+            </div>
+         </div>
+      );
+   }
 
    const isSearching = isSearchOpen && searchQuery.trim() !== '';
    const isViewTypeGrid = viewType === 'grid';

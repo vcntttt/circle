@@ -6,6 +6,30 @@ import { Status } from '@/mock-data/status';
 import { User } from '@/mock-data/users';
 import { create } from 'zustand';
 
+const persistIssuePatch = async (
+   issueId: string,
+   payload: {
+      status?: string;
+      priority?: string;
+      assigneeId?: string | null;
+      dueDate?: string | null;
+      projectName?: string | null;
+      labelNames?: string[];
+   }
+) => {
+   const response = await fetch(`/api/issues/${issueId}`, {
+      method: 'PATCH',
+      headers: {
+         'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+   });
+
+   if (!response.ok) {
+      throw new Error('Issue update request failed.');
+   }
+};
+
 interface FilterOptions {
    status?: string[];
    assignee?: string[];
@@ -23,6 +47,7 @@ interface IssuesState {
    getAllIssues: () => Issue[];
 
    // Actions
+   replaceIssues: (issues: Issue[]) => void;
    addIssue: (issue: Issue) => void;
    updateIssue: (id: string, updatedIssue: Partial<Issue>) => void;
    deleteIssue: (id: string) => void;
@@ -52,6 +77,9 @@ interface IssuesState {
    // Project management
    updateIssueProject: (issueId: string, newProject: Project | undefined) => void;
 
+   // Due date management
+   updateIssueDueDate: (issueId: string, dueDate: string | undefined) => void;
+
    // Utility functions
    getIssueById: (id: string) => Issue | undefined;
 }
@@ -65,6 +93,13 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
    getAllIssues: () => get().issues,
 
    // Actions
+   replaceIssues: (issues: Issue[]) => {
+      set({
+         issues: issues.sort((a, b) => b.rank.localeCompare(a.rank)),
+         issuesByStatus: groupIssuesByStatus(issues),
+      });
+   },
+
    addIssue: (issue: Issue) => {
       set((state) => {
          const newIssues = [...state.issues, issue];
@@ -182,16 +217,25 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
    // Status management
    updateIssueStatus: (issueId: string, newStatus: Status) => {
       get().updateIssue(issueId, { status: newStatus });
+      void persistIssuePatch(issueId, { status: newStatus.id }).catch((error) => {
+         console.error('Failed to persist issue status.', error);
+      });
    },
 
    // Priority management
    updateIssuePriority: (issueId: string, newPriority: Priority) => {
       get().updateIssue(issueId, { priority: newPriority });
+      void persistIssuePatch(issueId, { priority: newPriority.id }).catch((error) => {
+         console.error('Failed to persist issue priority.', error);
+      });
    },
 
    // Assignee management
    updateIssueAssignee: (issueId: string, newAssignee: User | null) => {
       get().updateIssue(issueId, { assignee: newAssignee });
+      void persistIssuePatch(issueId, { assigneeId: newAssignee?.id ?? null }).catch((error) => {
+         console.error('Failed to persist issue assignee.', error);
+      });
    },
 
    // Labels management
@@ -200,6 +244,11 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
       if (issue) {
          const updatedLabels = [...issue.labels, label];
          get().updateIssue(issueId, { labels: updatedLabels });
+         void persistIssuePatch(issueId, {
+            labelNames: updatedLabels.map((item) => item.name),
+         }).catch((error) => {
+            console.error('Failed to persist issue labels.', error);
+         });
       }
    },
 
@@ -208,12 +257,27 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
       if (issue) {
          const updatedLabels = issue.labels.filter((label) => label.id !== labelId);
          get().updateIssue(issueId, { labels: updatedLabels });
+         void persistIssuePatch(issueId, {
+            labelNames: updatedLabels.map((item) => item.name),
+         }).catch((error) => {
+            console.error('Failed to persist issue labels.', error);
+         });
       }
    },
 
    // Project management
    updateIssueProject: (issueId: string, newProject: Project | undefined) => {
       get().updateIssue(issueId, { project: newProject });
+      void persistIssuePatch(issueId, { projectName: newProject?.name ?? null }).catch((error) => {
+         console.error('Failed to persist issue project.', error);
+      });
+   },
+
+   updateIssueDueDate: (issueId: string, dueDate: string | undefined) => {
+      get().updateIssue(issueId, { dueDate });
+      void persistIssuePatch(issueId, { dueDate: dueDate ?? null }).catch((error) => {
+         console.error('Failed to persist issue due date.', error);
+      });
    },
 
    // Utility functions

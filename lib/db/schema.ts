@@ -12,12 +12,15 @@ export const projects = pgTable('projects', {
 
 export const issues = pgTable('issues', {
    id: uuid('id').defaultRandom().primaryKey(),
-   projectId: uuid('project_id')
-      .notNull()
-      .references(() => projects.id, { onDelete: 'cascade' }),
+   identifier: text('identifier').notNull().unique(),
+   projectId: uuid('project_id').references(() => projects.id, { onDelete: 'set null' }),
    title: text('title').notNull(),
    description: text('description'),
    status: text('status').notNull().default('backlog'),
+   priority: text('priority').notNull().default('no-priority'),
+   assigneeId: text('assignee_id'),
+   rank: text('rank').notNull(),
+   dueDate: timestamp('due_date', { withTimezone: true }),
    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });

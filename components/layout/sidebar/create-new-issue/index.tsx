@@ -2,6 +2,9 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { IssueListItem } from '@/lib/db/issues';
+import { toPresentationIssue } from '@/lib/issues-presentation';
+import { LexoRank } from '@/lib/utils';
 import { Heart } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -19,7 +22,6 @@ import { PrioritySelector } from './priority-selector';
 import { AssigneeSelector } from './assignee-selector';
 import { ProjectSelector } from './project-selector';
 import { LabelSelector } from './label-selector';
-import { ranks } from '@/mock-data/issues';
 import { DialogTitle } from '@radix-ui/react-dialog';
 
 export function CreateNewIssue() {
@@ -42,6 +44,12 @@ export function CreateNewIssue() {
 
    const createDefaultData = useCallback(() => {
       const identifier = generateUniqueIdentifier();
+      const currentIssues = getAllIssues();
+      const latestRank = currentIssues
+         .map((issue) => issue.rank)
+         .sort((a, b) => a.localeCompare(b))
+         .at(-1);
+
       return {
          id: uuidv4(),
          identifier: `LNUI-${identifier}`,
@@ -55,9 +63,11 @@ export function CreateNewIssue() {
          cycleId: '',
          project: undefined,
          subissues: [],
-         rank: ranks[ranks.length - 1],
+         rank: latestRank
+            ? LexoRank.from(latestRank).increment().toString()
+            : new LexoRank('a3c').toString(),
       };
-   }, [defaultStatus, generateUniqueIdentifier]);
+   }, [defaultStatus, generateUniqueIdentifier, getAllIssues]);
 
    const [addIssueForm, setAddIssueForm] = useState<Issue>(createDefaultData());
 
@@ -65,17 +75,49 @@ export function CreateNewIssue() {
       setAddIssueForm(createDefaultData());
    }, [createDefaultData]);
 
-   const createIssue = () => {
+   const createIssue = async () => {
       if (!addIssueForm.title) {
          toast.error('Title is required');
          return;
       }
-      toast.success('Issue created');
-      addIssue(addIssueForm);
-      if (!createMore) {
-         closeModal();
+
+      try {
+         const response = await fetch('/api/issues', {
+            method: 'POST',
+            headers: {
+               'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+               identifier: addIssueForm.identifier,
+               title: addIssueForm.title,
+               description: addIssueForm.description,
+               status: addIssueForm.status.id,
+               priority: addIssueForm.priority.id,
+               assigneeId: addIssueForm.assignee?.id ?? null,
+               rank: addIssueForm.rank,
+               dueDate: addIssueForm.dueDate ?? null,
+               projectName: addIssueForm.project?.name ?? null,
+               labelNames: addIssueForm.labels.map((label) => label.name),
+            }),
+         });
+
+         if (!response.ok) {
+            throw new Error('Create issue request failed.');
+         }
+
+         const createdIssue = (await response.json()) as IssueListItem;
+         addIssue(toPresentationIssue(createdIssue));
+         toast.success('Issue created');
+
+         if (!createMore) {
+            closeModal();
+         }
+
+         setAddIssueForm(createDefaultData());
+      } catch (error) {
+         console.error('Failed to create issue.', error);
+         toast.error('Issue could not be created');
       }
-      setAddIssueForm(createDefaultData());
    };
 
    return (
@@ -161,7 +203,7 @@ export function CreateNewIssue() {
                <Button
                   size="sm"
                   onClick={() => {
-                     createIssue();
+                     void createIssue();
                   }}
                >
                   Create issue

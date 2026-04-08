@@ -8,6 +8,13 @@
          "when": 1775514497452,
          "tag": "0000_short_the_initiative",
          "breakpoints": true
+      },
+      {
+         "idx": 1,
+         "version": "7",
+         "when": 1775520387606,
+         "tag": "0001_lame_agent_zero",
+         "breakpoints": true
       }
    ]
 }

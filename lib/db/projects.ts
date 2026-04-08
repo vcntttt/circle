@@ -17,6 +17,25 @@ interface ProjectsPageData {
    isConnected: boolean;
 }
 
+export async function getAllProjects(): Promise<ProjectListItem[]> {
+   if (!db) {
+      return [];
+   }
+
+   return db
+      .select({
+         id: schema.projects.id,
+         name: schema.projects.name,
+         slug: schema.projects.slug,
+         description: schema.projects.description,
+         status: schema.projects.status,
+         createdAt: schema.projects.createdAt,
+         updatedAt: schema.projects.updatedAt,
+      })
+      .from(schema.projects)
+      .orderBy(desc(schema.projects.updatedAt), desc(schema.projects.createdAt));
+}
+
 export async function getProjectsPageData(): Promise<ProjectsPageData> {
    if (!db) {
       return {
@@ -28,18 +47,7 @@ export async function getProjectsPageData(): Promise<ProjectsPageData> {
    }
 
    try {
-      const projects = await db
-         .select({
-            id: schema.projects.id,
-            name: schema.projects.name,
-            slug: schema.projects.slug,
-            description: schema.projects.description,
-            status: schema.projects.status,
-            createdAt: schema.projects.createdAt,
-            updatedAt: schema.projects.updatedAt,
-         })
-         .from(schema.projects)
-         .orderBy(desc(schema.projects.updatedAt), desc(schema.projects.createdAt));
+      const projects = await getAllProjects();
 
       return {
          projects,

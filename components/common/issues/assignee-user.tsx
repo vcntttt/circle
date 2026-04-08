@@ -9,16 +9,19 @@ import {
    DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { statusUserColors, User, users } from '@/mock-data/users';
+import { useIssuesStore } from '@/store/issues-store';
 import { CheckIcon, CircleUserRound, Send, UserIcon } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 interface AssigneeUserProps {
    user: User | null;
+   issueId: string;
 }
 
-export function AssigneeUser({ user }: AssigneeUserProps) {
+export function AssigneeUser({ user, issueId }: AssigneeUserProps) {
    const [open, setOpen] = useState(false);
    const [currentAssignee, setCurrentAssignee] = useState<User | null>(user);
+   const { updateIssueAssignee } = useIssuesStore();
 
    useEffect(() => {
       setCurrentAssignee(user);
@@ -62,6 +65,7 @@ export function AssigneeUser({ user }: AssigneeUserProps) {
                onClick={(e) => {
                   e.stopPropagation();
                   setCurrentAssignee(null);
+                  updateIssueAssignee(issueId, null);
                   setOpen(false);
                }}
             >
@@ -72,27 +76,26 @@ export function AssigneeUser({ user }: AssigneeUserProps) {
                {!currentAssignee && <CheckIcon className="ml-auto h-4 w-4" />}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            {users
-               .filter((user) => user.teamIds.includes('CORE'))
-               .map((user) => (
-                  <DropdownMenuItem
-                     key={user.id}
-                     onClick={(e) => {
-                        e.stopPropagation();
-                        setCurrentAssignee(user);
-                        setOpen(false);
-                     }}
-                  >
-                     <div className="flex items-center gap-2">
-                        <Avatar className="h-5 w-5">
-                           <AvatarImage src={user.avatarUrl} alt={user.name} />
-                           <AvatarFallback>{user.name[0]}</AvatarFallback>
-                        </Avatar>
-                        <span>{user.name}</span>
-                     </div>
-                     {currentAssignee?.id === user.id && <CheckIcon className="ml-auto h-4 w-4" />}
-                  </DropdownMenuItem>
-               ))}
+            {users.map((user) => (
+               <DropdownMenuItem
+                  key={user.id}
+                  onClick={(e) => {
+                     e.stopPropagation();
+                     setCurrentAssignee(user);
+                     updateIssueAssignee(issueId, user);
+                     setOpen(false);
+                  }}
+               >
+                  <div className="flex items-center gap-2">
+                     <Avatar className="h-5 w-5">
+                        <AvatarImage src={user.avatarUrl} alt={user.name} />
+                        <AvatarFallback>{user.name[0]}</AvatarFallback>
+                     </Avatar>
+                     <span>{user.name}</span>
+                  </div>
+                  {currentAssignee?.id === user.id && <CheckIcon className="ml-auto h-4 w-4" />}
+               </DropdownMenuItem>
+            ))}
             <DropdownMenuSeparator />
             <DropdownMenuLabel>New user</DropdownMenuLabel>
             <DropdownMenuItem>
