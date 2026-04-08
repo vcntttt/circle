@@ -28,7 +28,8 @@
 
 - Treat this repo as a polished UI demo with an in-progress PostgreSQL migration.
 - Root routing now points to the personal projects/issues flow instead of the old team-based entrypoints.
-- Sidebar/workspace navigation still depends on hardcoded mock URLs and labels in `mock-data/side-bar-nav.ts`.
+- Canonical app routes are now `/projects`, `/issues`, `/inbox`, and `/settings`; legacy `app/[orgId]/*` routes only redirect for compatibility.
+- There is no real multi-workspace model anymore; keep the sidebar header as a single personal workspace label, not a functional workspace switcher.
 - Before adding features, check whether the behavior belongs in real app state/data or is still demo-only mock behavior.
 
 ## Editing Guidance

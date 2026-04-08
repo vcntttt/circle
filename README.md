@@ -1,53 +1,39 @@
-# Circle
+# Circle Personal Fork
 
-<br />
-<a href="https://vercel.com/oss">
-  <img alt="Vercel OSS Program" src="https://vercel.com/oss/program-badge.svg" />
-</a>
+Este repositorio es un fork de Circle, una interfaz de gestion de proyectos inspirada en Linear.
 
-<br />
-<br />
+Esta version esta siendo adaptada para uso personal. El objetivo no es reconstruir Linear completo, sino convertir la base visual original en una herramienta simple y usable para gestionar proyectos, issues y etiquetas.
 
-Project management interface inspired by Linear. Built with Next.js and shadcn/ui, this application allows tracking of issues, projects and teams with a modern, responsive UI.
+## Enfoque de esta version
 
-> The BaseUI code is available on [Square UI Pro](https://pro.lndev.me/templates).
+Se recorto el producto para priorizar un flujo personal:
 
-## 🛠️ Technologies
+- proyectos
+- issues
+- etiquetas
+- persistencia real con PostgreSQL
 
-- **Framework**: [Next.js](https://nextjs.org/)
-- **Langage**: [TypeScript](https://www.typescriptlang.org/)
-- **UI Components**: [shadcn/ui](https://ui.shadcn.com/)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+Y se dejaron fuera, o en segundo plano, las funciones orientadas a trabajo en equipo que no aportan al caso de uso personal.
 
-### 📦 Installation
+## Desarrollo local
 
-```shell
-git clone https://github.com/ln-dev7/circle.git
-cd circle
-```
+Este proyecto espera una instancia compartida de PostgreSQL corriendo fuera del repo.
 
-### Install dependencies
+Comandos principales:
 
-```shell
+```bash
 pnpm install
-```
-
-### Start the development server
-
-```shell
 pnpm db:migrate
 pnpm db:seed
 pnpm dev
 ```
 
-This repo expects a shared local PostgreSQL server running separately in `~/dev/postgres`.
+## Estado actual
 
-## Star History
+Este fork esta en transicion desde una UI demo basada en mocks hacia una app personal con datos reales.
 
-<a href="https://www.star-history.com/#ln-dev7/circle&Date">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=ln-dev7/circle&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=ln-dev7/circle&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=ln-dev7/circle&type=Date" />
- </picture>
-</a>
+La prioridad actual es mantener la calidad visual original de Circle mientras se reemplazan gradualmente los datos mock por persistencia real.
+
+## Credito
+
+Basado en Circle, proyecto original de UI inspirado en Linear.
