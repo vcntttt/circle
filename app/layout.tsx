@@ -13,44 +13,42 @@ const geistMono = Geist_Mono({
    subsets: ['latin'],
 });
 
-const siteUrl = 'https://circle.lndev.me';
+const siteUrl = 'https://github.com/vcntttt/circle';
 
 export const metadata: Metadata = {
    title: {
-      template: '%s | Circle by lndev-ui',
-      default: 'Circle by lndev-ui',
+      template: '%s | Circle Personal Fork',
+      default: 'Circle Personal Fork',
    },
    description:
-      'Project management interface inspired by Linear. Built with Next.js and shadcn/ui, this application allows tracking of issues, projects and teams with a modern, responsive UI.',
+      'Fork personal de Circle, una UI inspirada en Linear, recortada para gestionar proyectos, issues y etiquetas.',
    openGraph: {
       type: 'website',
       locale: 'en_US',
       url: siteUrl,
-      siteName: 'Circle',
+      siteName: 'Circle Personal Fork',
       images: [
          {
             url: `${siteUrl}/banner.png`,
             width: 2560,
             height: 1440,
-            alt: 'lndev/ui',
+            alt: 'Circle Personal Fork',
          },
       ],
    },
    twitter: {
       card: 'summary_large_image',
-      site: '@ln_dev7',
-      creator: '@ln_dev7',
       images: [
          {
             url: `${siteUrl}/banner.png`,
             width: 2560,
             height: 1440,
-            alt: 'Circle',
+            alt: 'Circle Personal Fork',
          },
       ],
    },
-   authors: [{ name: 'Leonel NGOYA', url: 'https://lndev.me/' }],
-   keywords: ['ui', 'lndev', 'components', 'template'],
+   authors: [{ name: 'vcntttt', url: 'https://github.com/vcntttt/circle' }],
+   keywords: ['circle', 'linear-inspired', 'personal tracker', 'issues', 'projects'],
 };
 
 import { ThemeProvider } from '@/components/layout/theme-provider';

@@ -112,7 +112,7 @@ export const inboxItems: InboxItem[] = [
       cycleId: '42',
       project: projects[0],
 
-      content: 'https://github.com/ln-dev7/circle',
+      content: 'https://github.com/vcntttt/circle',
       type: 'comment',
       user: users[3],
       timestamp: '13d',
