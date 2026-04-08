@@ -10,8 +10,9 @@ import {
    CommandList,
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useLabelOptions } from '@/hooks/use-label-options';
 import { useIssuesStore } from '@/store/issues-store';
-import { LabelInterface, labels } from '@/mock-data/labels';
+import { LabelInterface } from '@/mock-data/labels';
 import { CheckIcon, TagIcon } from 'lucide-react';
 import { useId, useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -24,6 +25,7 @@ interface LabelSelectorProps {
 export function LabelSelector({ selectedLabels, onChange }: LabelSelectorProps) {
    const id = useId();
    const [open, setOpen] = useState<boolean>(false);
+   const labels = useLabelOptions();
 
    const { filterByLabel } = useIssuesStore();
 
@@ -54,6 +56,7 @@ export function LabelSelector({ selectedLabels, onChange }: LabelSelectorProps) 
                   variant="secondary"
                   role="combobox"
                   aria-expanded={open}
+                  aria-controls={`${id}-content`}
                >
                   <TagIcon className="size-4" />
                   {selectedLabels.length > 0 && (
@@ -70,6 +73,7 @@ export function LabelSelector({ selectedLabels, onChange }: LabelSelectorProps) 
                </Button>
             </PopoverTrigger>
             <PopoverContent
+               id={`${id}-content`}
                className="border-input w-full min-w-[var(--radix-popper-anchor-width)] p-0"
                align="start"
             >

@@ -122,6 +122,43 @@ async function selectIssueRows(issueId?: string): Promise<IssueRow[]> {
    return baseQuery.orderBy(asc(schema.issues.rank), asc(schema.issues.createdAt));
 }
 
+async function selectIssueRowsByIdentifier(identifier: string): Promise<IssueRow[]> {
+   if (!db) {
+      return [];
+   }
+
+   return db
+      .select({
+         id: schema.issues.id,
+         identifier: schema.issues.identifier,
+         title: schema.issues.title,
+         description: schema.issues.description,
+         status: schema.issues.status,
+         priority: schema.issues.priority,
+         assigneeId: schema.issues.assigneeId,
+         rank: schema.issues.rank,
+         dueDate: schema.issues.dueDate,
+         createdAt: schema.issues.createdAt,
+         updatedAt: schema.issues.updatedAt,
+         projectId: schema.projects.id,
+         projectName: schema.projects.name,
+         projectSlug: schema.projects.slug,
+         projectStatus: schema.projects.status,
+         projectDescription: schema.projects.description,
+         projectCreatedAt: schema.projects.createdAt,
+         projectUpdatedAt: schema.projects.updatedAt,
+         labelId: schema.labels.id,
+         labelName: schema.labels.name,
+         labelColor: schema.labels.color,
+      })
+      .from(schema.issues)
+      .leftJoin(schema.projects, eq(schema.issues.projectId, schema.projects.id))
+      .leftJoin(schema.issueLabels, eq(schema.issueLabels.issueId, schema.issues.id))
+      .leftJoin(schema.labels, eq(schema.issueLabels.labelId, schema.labels.id))
+      .where(eq(schema.issues.identifier, identifier))
+      .orderBy(asc(schema.issues.rank));
+}
+
 function mapIssueRows(rows: IssueRow[]): IssueListItem[] {
    const issuesMap = new Map<string, IssueListItem>();
 
@@ -169,6 +206,11 @@ function mapIssueRows(rows: IssueRow[]): IssueListItem[] {
 
 export async function getIssueById(issueId: string): Promise<IssueListItem | null> {
    const rows = await selectIssueRows(issueId);
+   return mapIssueRows(rows)[0] ?? null;
+}
+
+export async function getIssueByIdentifier(identifier: string): Promise<IssueListItem | null> {
+   const rows = await selectIssueRowsByIdentifier(identifier);
    return mapIssueRows(rows)[0] ?? null;
 }
 

@@ -2,6 +2,7 @@
 
 import { Issue } from '@/mock-data/issues';
 import { format } from 'date-fns';
+import Link from 'next/link';
 import { AssigneeUser } from './assignee-user';
 import { LabelBadge } from './label-badge';
 import { PrioritySelector } from './priority-selector';
@@ -18,7 +19,6 @@ export function IssueLine({ issue, layoutId = false }: { issue: Issue; layoutId?
          <ContextMenuTrigger asChild>
             <motion.div
                {...(layoutId && { layoutId: `issue-line-${issue.identifier}` })}
-               //href={`/issue/${issue.identifier}`}
                className="w-full flex items-center justify-start h-11 px-6 hover:bg-sidebar/50"
             >
                <div className="flex items-center gap-0.5">
@@ -28,11 +28,14 @@ export function IssueLine({ issue, layoutId = false }: { issue: Issue; layoutId?
                   </span>
                   <StatusSelector status={issue.status} issueId={issue.id} />
                </div>
-               <span className="min-w-0 flex items-center justify-start mr-1 ml-0.5">
-                  <span className="text-xs sm:text-sm font-medium sm:font-semibold truncate">
+               <Link
+                  href={`/issues/${issue.identifier}`}
+                  className="min-w-0 flex items-center justify-start mr-1 ml-0.5"
+               >
+                  <span className="text-xs sm:text-sm font-medium sm:font-semibold truncate hover:underline">
                      {issue.title}
                   </span>
-               </span>
+               </Link>
                <div className="flex items-center justify-end gap-2 ml-auto sm:w-fit">
                   <div className="w-3 shrink-0"></div>
                   <div className="-space-x-5 hover:space-x-1 lg:space-x-1 items-center justify-end hidden sm:flex duration-200 transition-all">
