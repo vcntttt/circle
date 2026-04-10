@@ -1,10 +1,26 @@
-import { groupIssuesByStatus, Issue, issues as mockIssues } from '@/mock-data/issues';
+import { Issue } from '@/mock-data/issues';
 import { LabelInterface } from '@/mock-data/labels';
 import { Priority } from '@/mock-data/priorities';
 import { Project } from '@/mock-data/projects';
-import { Status } from '@/mock-data/status';
+import { status, Status } from '@/mock-data/status';
 import { User } from '@/mock-data/users';
 import { create } from 'zustand';
+
+const createEmptyIssuesByStatus = () =>
+   status.reduce<Record<string, Issue[]>>((acc, statusItem) => {
+      acc[statusItem.id] = [];
+      return acc;
+   }, {});
+
+const groupIssuesByStatus = (issues: Issue[]) => {
+   const grouped = createEmptyIssuesByStatus();
+
+   issues.forEach((issue) => {
+      grouped[issue.status.id] = [...(grouped[issue.status.id] ?? []), issue];
+   });
+
+   return grouped;
+};
 
 const persistIssuePatch = async (
    issueId: string,
@@ -86,8 +102,8 @@ interface IssuesState {
 
 export const useIssuesStore = create<IssuesState>((set, get) => ({
    // Initial state
-   issues: mockIssues.sort((a, b) => b.rank.localeCompare(a.rank)),
-   issuesByStatus: groupIssuesByStatus(mockIssues),
+   issues: [],
+   issuesByStatus: createEmptyIssuesByStatus(),
 
    //
    getAllIssues: () => get().issues,

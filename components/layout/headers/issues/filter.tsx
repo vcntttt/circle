@@ -11,13 +11,13 @@ import {
    CommandSeparator,
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { currentUser, personalAssigneeOptions } from '@/lib/current-user';
 import { useLabelOptions } from '@/hooks/use-label-options';
 import { useProjectOptions } from '@/hooks/use-project-options';
 import { useIssuesStore } from '@/store/issues-store';
 import { useFilterStore } from '@/store/filter-store';
 import { status as allStatus } from '@/mock-data/status';
 import { priorities } from '@/mock-data/priorities';
-import { users } from '@/mock-data/users';
 import {
    CheckIcon,
    ChevronRight,
@@ -236,7 +236,7 @@ export function Filter() {
                               {filterByAssignee(null).length}
                            </span>
                         </CommandItem>
-                        {users.map((user) => (
+                        {personalAssigneeOptions.map((user) => (
                            <CommandItem
                               key={user.id}
                               value={user.id}
@@ -258,6 +258,15 @@ export function Filter() {
                               </span>
                            </CommandItem>
                         ))}
+                        <CommandItem value="me-label" disabled>
+                           <div className="flex items-center gap-2 text-muted-foreground">
+                              <Avatar className="size-5">
+                                 <AvatarImage src={currentUser.avatarUrl} alt={currentUser.name} />
+                                 <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
+                              </Avatar>
+                              Personal mode uses a single current user.
+                           </div>
+                        </CommandItem>
                      </CommandGroup>
                   </CommandList>
                </Command>

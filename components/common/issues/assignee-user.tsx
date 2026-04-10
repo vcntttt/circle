@@ -8,10 +8,11 @@ import {
    DropdownMenuSeparator,
    DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { statusUserColors, User, users } from '@/mock-data/users';
+import { currentUser, personalAssigneeOptions, statusUserColors } from '@/lib/current-user';
 import { useIssuesStore } from '@/store/issues-store';
-import { CheckIcon, CircleUserRound, Send, UserIcon } from 'lucide-react';
+import { CheckIcon, CircleUserRound, UserIcon } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import type { User } from '@/mock-data/users';
 
 interface AssigneeUserProps {
    user: User | null;
@@ -76,7 +77,7 @@ export function AssigneeUser({ user, issueId }: AssigneeUserProps) {
                {!currentAssignee && <CheckIcon className="ml-auto h-4 w-4" />}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            {users.map((user) => (
+            {personalAssigneeOptions.map((user) => (
                <DropdownMenuItem
                   key={user.id}
                   onClick={(e) => {
@@ -97,13 +98,7 @@ export function AssigneeUser({ user, issueId }: AssigneeUserProps) {
                </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
-            <DropdownMenuLabel>New user</DropdownMenuLabel>
-            <DropdownMenuItem>
-               <div className="flex items-center gap-2">
-                  <Send className="h-4 w-4" />
-                  <span>Invite and assign...</span>
-               </div>
-            </DropdownMenuItem>
+            <DropdownMenuLabel>{currentUser.name}</DropdownMenuLabel>
          </DropdownMenuContent>
       </DropdownMenu>
    );

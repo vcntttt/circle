@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { IssueListItem } from '@/lib/db/issues';
 import { toPresentationIssue } from '@/lib/issues-presentation';
+import { currentUser } from '@/lib/current-user';
 import { LexoRank } from '@/lib/utils';
 import { Heart } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
@@ -56,7 +57,7 @@ export function CreateNewIssue() {
          title: '',
          description: '',
          status: defaultStatus || status.find((s) => s.id === 'to-do')!,
-         assignee: null,
+         assignee: currentUser,
          priority: priorities.find((p) => p.id === 'no-priority')!,
          labels: [],
          createdAt: new Date().toISOString(),

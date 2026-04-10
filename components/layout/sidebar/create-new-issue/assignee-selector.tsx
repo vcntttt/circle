@@ -10,8 +10,9 @@ import {
    CommandList,
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { currentUser, personalAssigneeOptions } from '@/lib/current-user';
 import { useIssuesStore } from '@/store/issues-store';
-import { User, users } from '@/mock-data/users';
+import { User } from '@/mock-data/users';
 import { CheckIcon, UserCircle } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -38,7 +39,7 @@ export function AssigneeSelector({ assignee, onChange }: AssigneeSelectorProps) 
          onChange(null);
       } else {
          setValue(userId);
-         const newAssignee = users.find((u) => u.id === userId);
+         const newAssignee = personalAssigneeOptions.find((u) => u.id === userId);
          if (newAssignee) {
             onChange(newAssignee);
          }
@@ -60,7 +61,9 @@ export function AssigneeSelector({ assignee, onChange }: AssigneeSelectorProps) 
                >
                   {value ? (
                      (() => {
-                        const selectedUser = users.find((user) => user.id === value);
+                        const selectedUser = personalAssigneeOptions.find(
+                           (user) => user.id === value
+                        );
                         if (selectedUser) {
                            return (
                               <Avatar className="size-5">
@@ -77,9 +80,7 @@ export function AssigneeSelector({ assignee, onChange }: AssigneeSelectorProps) 
                   ) : (
                      <UserCircle className="size-5" />
                   )}
-                  <span>
-                     {value ? users.find((user) => user.id === value)?.name : 'Unassigned'}
-                  </span>
+                  <span>{value ? currentUser.name : 'Unassigned'}</span>
                </Button>
             </PopoverTrigger>
             <PopoverContent
@@ -105,7 +106,7 @@ export function AssigneeSelector({ assignee, onChange }: AssigneeSelectorProps) 
                               {filterByAssignee(null).length}
                            </span>
                         </CommandItem>
-                        {users.map((user) => (
+                        {personalAssigneeOptions.map((user) => (
                            <CommandItem
                               key={user.id}
                               value={user.id}
