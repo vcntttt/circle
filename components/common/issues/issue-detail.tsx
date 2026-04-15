@@ -3,30 +3,39 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { format } from 'date-fns';
-import { ArrowLeft, Paperclip, Send, Trash2 } from 'lucide-react';
+import { Archive, ArrowLeft, Paperclip, Send, Trash2 } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { LabelBadge } from './label-badge';
-import { ProjectBadge } from './project-badge';
+import { LabelSelector } from './label-selector';
 import { PrioritySelector } from './priority-selector';
 import { StatusSelector } from './status-selector';
 import { AssigneeUser } from './assignee-user';
 import { useIssuesStore } from '@/store/issues-store';
 import { toast } from 'sonner';
+import type { Issue } from '@/mock-data/issues';
+import { ProjectSelector } from '@/components/layout/sidebar/create-new-issue/project-selector';
 
 export function IssueDetail({
    issueId,
+   initialIssue,
    onDelete,
+   onArchive,
    mobileBack = false,
 }: {
    issueId: string;
+   initialIssue?: Issue;
    onDelete?: (issueId: string) => void;
+   onArchive?: (issueId: string) => void;
    mobileBack?: boolean;
 }) {
    const navigate = useNavigate();
-   const { getIssueById, updateIssueContent, deleteIssue } = useIssuesStore();
-   const presentationIssue = useMemo(() => getIssueById(issueId) ?? null, [getIssueById, issueId]);
+   const { getIssueById, updateIssueContent, deleteIssue, archiveIssue, updateIssueProject } =
+      useIssuesStore();
+   const presentationIssue = useMemo(
+      () => getIssueById(issueId) ?? initialIssue ?? null,
+      [getIssueById, issueId, initialIssue]
+   );
    const [title, setTitle] = useState(presentationIssue?.title ?? '');
    const [description, setDescription] = useState(presentationIssue?.description ?? '');
 
@@ -72,6 +81,24 @@ export function IssueDetail({
       toast.success('Description updated');
    };
 
+   const handleEditorShortcuts = (
+      event: React.KeyboardEvent<HTMLTextAreaElement>,
+      callback: () => void
+   ) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+         event.preventDefault();
+         callback();
+         return;
+      }
+
+      if (event.key === 'Escape') {
+         event.preventDefault();
+         setTitle(presentationIssue.title);
+         setDescription(presentationIssue.description);
+         event.currentTarget.blur();
+      }
+   };
+
    const handleDelete = () => {
       if (!window.confirm(`Delete ${presentationIssue.identifier}? This cannot be undone.`)) {
          return;
@@ -80,6 +107,13 @@ export function IssueDetail({
       deleteIssue(issueId);
       toast.success('Issue deleted');
       onDelete?.(issueId);
+      void navigate({ to: '/issues', replace: true });
+   };
+
+   const handleArchive = () => {
+      archiveIssue(issueId);
+      toast.success('Issue archived');
+      onArchive?.(issueId);
       void navigate({ to: '/issues', replace: true });
    };
 
@@ -97,6 +131,9 @@ export function IssueDetail({
                   </Button>
                )}
                <span className="text-sm font-medium truncate">{presentationIssue.identifier}</span>
+               <span className="text-xs text-muted-foreground hidden sm:inline-block">
+                  Created {format(new Date(presentationIssue.createdAt), 'MMM dd, yyyy')}
+               </span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -105,31 +142,24 @@ export function IssueDetail({
                   issueId={presentationIssue.id}
                />
                <StatusSelector status={presentationIssue.status} issueId={presentationIssue.id} />
+               <Button variant="ghost" size="icon" className="size-7" onClick={handleArchive}>
+                  <Archive className="size-4 text-muted-foreground" />
+               </Button>
                <Button variant="ghost" size="icon" className="size-7" onClick={handleDelete}>
                   <Trash2 className="size-4 text-muted-foreground" />
                </Button>
             </div>
          </div>
 
-         <div className="pt-10 pb-6 px-4 space-y-6 w-full max-w-4xl mx-auto overflow-y-auto h-full">
-            <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
-               <span className="text-sm font-medium text-muted-foreground">
-                  {presentationIssue.identifier}
-               </span>
-               <div className="flex items-center gap-2 ml-auto">
-                  <span className="text-xs text-muted-foreground">
-                     Created {format(new Date(presentationIssue.createdAt), 'MMM dd, yyyy')}
-                  </span>
-               </div>
-            </div>
-
+         <div className="pt-8 pb-6 px-5 space-y-6 w-full max-w-4xl mx-auto overflow-y-auto h-full">
             <div className="space-y-3">
                <Textarea
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                   onBlur={persistTitle}
+                  onKeyDown={(event) => handleEditorShortcuts(event, persistTitle)}
                   rows={1}
-                  className="min-h-0 resize-none border-none bg-transparent px-0 text-2xl font-semibold shadow-none focus-visible:ring-0"
+                  className="min-h-0 resize-none border-none bg-transparent px-0 text-[26px] font-semibold leading-tight shadow-none focus-visible:ring-0"
                />
                <div className="flex flex-wrap items-center gap-2">
                   <PrioritySelector
@@ -141,21 +171,32 @@ export function IssueDetail({
                      issueId={presentationIssue.id}
                   />
                   <AssigneeUser user={presentationIssue.assignee} issueId={presentationIssue.id} />
-                  {presentationIssue.project && (
-                     <ProjectBadge project={presentationIssue.project} />
+                  <ProjectSelector
+                     project={presentationIssue.project}
+                     onChange={(project) => updateIssueProject(presentationIssue.id, project)}
+                  />
+                  <LabelSelector issueId={presentationIssue.id} />
+                  {presentationIssue.dueDate && (
+                     <span className="text-xs text-muted-foreground rounded-full border px-2.5 py-1 bg-background">
+                        Due {format(new Date(presentationIssue.dueDate), 'MMM dd')}
+                     </span>
                   )}
-                  <LabelBadge label={presentationIssue.labels} />
                </div>
             </div>
 
             <div className="prose prose-sm max-w-none">
+               <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Description</span>
+                  <span>Save with Cmd/Ctrl+Enter</span>
+               </div>
                <Textarea
                   value={description}
                   onChange={(event) => setDescription(event.target.value)}
                   onBlur={persistDescription}
+                  onKeyDown={(event) => handleEditorShortcuts(event, persistDescription)}
                   placeholder="Add a description..."
-                  rows={10}
-                  className="min-h-[220px] resize-none rounded-lg border bg-card px-4 py-3 text-sm leading-relaxed"
+                  rows={12}
+                  className="min-h-[260px] resize-none rounded-lg border bg-card px-4 py-4 text-sm leading-relaxed"
                />
             </div>
 
