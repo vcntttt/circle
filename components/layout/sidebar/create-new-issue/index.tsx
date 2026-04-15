@@ -18,6 +18,7 @@ import { useIssuesStore } from '@/store/issues-store';
 import { useCreateIssueStore } from '@/store/create-issue-store';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
+import { createIssue as createIssueMutation } from '@/src/server/issues';
 import { StatusSelector } from './status-selector';
 import { PrioritySelector } from './priority-selector';
 import { AssigneeSelector } from './assignee-selector';
@@ -83,12 +84,8 @@ export function CreateNewIssue() {
       }
 
       try {
-         const response = await fetch('/api/issues', {
-            method: 'POST',
-            headers: {
-               'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
+         const createdIssue = await createIssueMutation({
+            data: {
                identifier: addIssueForm.identifier,
                title: addIssueForm.title,
                description: addIssueForm.description,
@@ -99,15 +96,10 @@ export function CreateNewIssue() {
                dueDate: addIssueForm.dueDate ?? null,
                projectName: addIssueForm.project?.name ?? null,
                labelNames: addIssueForm.labels.map((label) => label.name),
-            }),
+            },
          });
 
-         if (!response.ok) {
-            throw new Error('Create issue request failed.');
-         }
-
-         const createdIssue = (await response.json()) as IssueListItem;
-         addIssue(toPresentationIssue(createdIssue));
+         addIssue(toPresentationIssue(createdIssue as IssueListItem));
          toast.success('Issue created');
 
          if (!createMore) {

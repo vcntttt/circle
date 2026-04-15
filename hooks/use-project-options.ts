@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { ProjectLike, toPresentationProject } from '@/lib/projects-presentation';
 import { projects as mockProjects } from '@/mock-data/projects';
+import { getProjectOptions } from '@/src/server/projects';
 
 export function useProjectOptions() {
    const [projects, setProjects] = useState(() => mockProjects);
@@ -10,15 +11,10 @@ export function useProjectOptions() {
    useEffect(() => {
       let isMounted = true;
 
-      void fetch('/api/projects')
-         .then(async (response) => {
-            if (!response.ok) {
-               throw new Error('Project request failed.');
-            }
-
-            const result = (await response.json()) as ProjectLike[];
+      void getProjectOptions()
+         .then((result) => {
             if (!isMounted) return;
-            setProjects(result.map((project) => toPresentationProject(project)));
+            setProjects((result as ProjectLike[]).map((project) => toPresentationProject(project)));
          })
          .catch((error) => {
             console.error('Failed to load project options.', error);

@@ -1,4 +1,4 @@
-import { desc } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import { db, schema } from './index';
 
 export interface ProjectListItem {
@@ -15,6 +15,12 @@ interface ProjectsPageData {
    projects: ProjectListItem[];
    databaseError: string | null;
    isConnected: boolean;
+}
+
+export interface CreateProjectInput {
+   name: string;
+   description?: string;
+   status: string;
 }
 
 export async function getAllProjects(): Promise<ProjectListItem[]> {
@@ -64,4 +70,66 @@ export async function getProjectsPageData(): Promise<ProjectsPageData> {
          isConnected: false,
       };
    }
+}
+
+export async function createProjectRecord(input: CreateProjectInput): Promise<ProjectListItem> {
+   if (!db) {
+      throw new Error('Database unavailable.');
+   }
+
+   const slug = input.name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+   if (!slug) {
+      throw new Error('Project name must contain letters or numbers so a slug can be generated.');
+   }
+
+   const existingProject = await db
+      .select({ id: schema.projects.id })
+      .from(schema.projects)
+      .where(eq(schema.projects.slug, slug))
+      .limit(1);
+
+   if (existingProject.length > 0) {
+      throw new Error(`A project with the slug "${slug}" already exists. Choose a different name.`);
+   }
+
+   const inserted = await db
+      .insert(schema.projects)
+      .values({
+         name: input.name,
+         slug,
+         description: input.description || null,
+         status: input.status,
+      })
+      .returning({ id: schema.projects.id });
+
+   const projectId = inserted[0]?.id;
+
+   if (!projectId) {
+      throw new Error('Project could not be created.');
+   }
+
+   const project = await db
+      .select({
+         id: schema.projects.id,
+         name: schema.projects.name,
+         slug: schema.projects.slug,
+         description: schema.projects.description,
+         status: schema.projects.status,
+         createdAt: schema.projects.createdAt,
+         updatedAt: schema.projects.updatedAt,
+      })
+      .from(schema.projects)
+      .where(eq(schema.projects.id, projectId))
+      .limit(1);
+
+   if (!project[0]) {
+      throw new Error('Created project could not be reloaded.');
+   }
+
+   return project[0];
 }

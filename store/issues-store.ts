@@ -5,6 +5,7 @@ import { Project } from '@/mock-data/projects';
 import { status, Status } from '@/mock-data/status';
 import { User } from '@/mock-data/users';
 import { create } from 'zustand';
+import { updateIssue } from '@/src/server/issues';
 
 const createEmptyIssuesByStatus = () =>
    status.reduce<Record<string, Issue[]>>((acc, statusItem) => {
@@ -33,15 +34,9 @@ const persistIssuePatch = async (
       labelNames?: string[];
    }
 ) => {
-   const response = await fetch(`/api/issues/${issueId}`, {
-      method: 'PATCH',
-      headers: {
-         'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-   });
+   const response = await updateIssue({ data: { issueId, ...payload } });
 
-   if (!response.ok) {
+   if (!response) {
       throw new Error('Issue update request failed.');
    }
 };

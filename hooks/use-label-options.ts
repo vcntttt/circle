@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { LabelInterface } from '@/mock-data/labels';
+import { getLabelOptions } from '@/src/server/labels';
 
 export function useLabelOptions() {
    const [labels, setLabels] = useState<LabelInterface[]>([]);
@@ -9,16 +10,10 @@ export function useLabelOptions() {
    useEffect(() => {
       let isMounted = true;
 
-      void fetch('/api/labels')
-         .then(async (response) => {
-            if (!response.ok) {
-               throw new Error('Label request failed.');
-            }
-
-            const result = (await response.json()) as LabelInterface[];
-
+      void getLabelOptions()
+         .then((result) => {
             if (!isMounted) return;
-            setLabels(result);
+            setLabels(result as LabelInterface[]);
          })
          .catch((error) => {
             console.error('Failed to load label options.', error);
