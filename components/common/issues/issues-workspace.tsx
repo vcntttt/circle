@@ -1,0 +1,212 @@
+'use client';
+
+import { useLayoutEffect, useMemo } from 'react';
+import { useNavigate } from '@tanstack/react-router';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import { IssueListItem } from '@/lib/db/issues';
+import { toPresentationIssue } from '@/lib/issues-presentation';
+import { cn } from '@/lib/utils';
+import { Issue } from '@/mock-data/issues';
+import { useFilterStore } from '@/store/filter-store';
+import { useIssuesStore } from '@/store/issues-store';
+import { useSearchStore } from '@/store/search-store';
+import { useViewStore } from '@/store/view-store';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import { status } from '@/mock-data/status';
+import { CustomDragLayer } from './issue-grid';
+import { GroupIssues } from './group-issues';
+import { IssueDetail } from './issue-detail';
+import { SearchIssues } from './search-issues';
+
+interface IssuesWorkspaceProps {
+   initialIssues: IssueListItem[];
+   databaseError: string | null;
+   selectedIssueIdentifier?: string;
+}
+
+export function IssuesWorkspace({
+   initialIssues,
+   databaseError,
+   selectedIssueIdentifier,
+}: IssuesWorkspaceProps) {
+   const { replaceIssues, issues, filterIssues } = useIssuesStore();
+   const { isSearchOpen, searchQuery } = useSearchStore();
+   const { filters, hasActiveFilters } = useFilterStore();
+   const navigate = useNavigate();
+
+   const hydratedIssues = useMemo(
+      () => initialIssues.map((issue) => toPresentationIssue(issue)),
+      [initialIssues]
+   );
+
+   useLayoutEffect(() => {
+      replaceIssues(hydratedIssues);
+   }, [hydratedIssues, replaceIssues]);
+
+   const selectedIssue = useMemo(
+      () => hydratedIssues.find((issue) => issue.identifier === selectedIssueIdentifier),
+      [hydratedIssues, selectedIssueIdentifier]
+   );
+
+   const isSearching = isSearchOpen && searchQuery.trim() !== '';
+   const isFiltering = hasActiveFilters();
+   const filteredIssues = isFiltering ? filterIssues(filters) : issues;
+
+   if (databaseError) {
+      return (
+         <div className="w-full p-6">
+            <div className="rounded-lg border bg-container p-6 max-w-2xl">
+               <h2 className="text-sm font-semibold">Database unavailable</h2>
+               <p className="mt-2 text-sm text-muted-foreground">{databaseError}</p>
+               <div className="mt-4 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground font-mono">
+                  cd ~/dev/postgres && docker compose up -d
+               </div>
+            </div>
+         </div>
+      );
+   }
+
+   if (hydratedIssues.length === 0) {
+      return (
+         <div className="w-full p-6">
+            <div className="rounded-lg border bg-container p-6 max-w-2xl">
+               <h2 className="text-sm font-semibold">No issues yet</h2>
+               <p className="mt-2 text-sm text-muted-foreground">
+                  The database is ready, but there are no issues yet. Seed the sample data or create
+                  your first issue from the sidebar composer.
+               </p>
+               <div className="mt-4 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground font-mono">
+                  pnpm db:seed
+               </div>
+            </div>
+         </div>
+      );
+   }
+
+   return (
+      <DndProvider backend={HTML5Backend}>
+         <CustomDragLayer />
+         <div className="h-full w-full">
+            <div className={cn('h-full lg:hidden', selectedIssue ? 'hidden' : 'block')}>
+               <IssuesListPanel
+                  issues={filteredIssues}
+                  isSearching={isSearching}
+                  selectedIssueIdentifier={selectedIssueIdentifier}
+                  onSelectIssue={handleSelectIssue}
+               />
+            </div>
+
+            <div className={cn('h-full lg:hidden', selectedIssue ? 'block' : 'hidden')}>
+               {selectedIssue ? (
+                  <IssueDetail issueId={selectedIssue.id} onDelete={handleDelete} mobileBack />
+               ) : null}
+            </div>
+
+            <ResizablePanelGroup direction="horizontal" className="hidden lg:flex h-full w-full">
+               <ResizablePanel defaultSize={43} minSize={32}>
+                  <IssuesListPanel
+                     issues={filteredIssues}
+                     isSearching={isSearching}
+                     selectedIssueIdentifier={selectedIssueIdentifier}
+                     onSelectIssue={handleSelectIssue}
+                  />
+               </ResizablePanel>
+               <ResizableHandle withHandle />
+               <ResizablePanel defaultSize={57} minSize={35}>
+                  {selectedIssue ? (
+                     <IssueDetail issueId={selectedIssue.id} onDelete={handleDelete} />
+                  ) : (
+                     <EmptyPreview />
+                  )}
+               </ResizablePanel>
+            </ResizablePanelGroup>
+         </div>
+      </DndProvider>
+   );
+
+   function handleDelete(deletedIssueId: string) {
+      const currentIndex = filteredIssues.findIndex((issue) => issue.id === deletedIssueId);
+      const nextIssue = filteredIssues[currentIndex + 1] ?? filteredIssues[currentIndex - 1];
+
+      if (nextIssue) {
+         void navigate({
+            to: '/issues/$issueIdentifier',
+            params: { issueIdentifier: nextIssue.identifier },
+            replace: true,
+         });
+         return;
+      }
+
+      void navigate({ to: '/issues', replace: true });
+   }
+
+   function handleSelectIssue(issue: Issue) {
+      void navigate({
+         to: '/issues/$issueIdentifier',
+         params: { issueIdentifier: issue.identifier },
+      });
+   }
+}
+
+function IssuesListPanel({
+   issues,
+   isSearching,
+   selectedIssueIdentifier,
+   onSelectIssue,
+}: {
+   issues: ReturnType<typeof useIssuesStore.getState>['issues'];
+   isSearching: boolean;
+   selectedIssueIdentifier?: string;
+   onSelectIssue: (issue: Issue) => void;
+}) {
+   const { viewType } = useViewStore();
+   const isViewTypeGrid = viewType === 'grid';
+
+   return (
+      <div className="h-full w-full overflow-hidden border-r border-border/60 bg-container">
+         {isSearching ? (
+            <div className="px-6 pb-6 overflow-y-auto h-full">
+               <SearchIssues
+                  selectedIssueIdentifier={selectedIssueIdentifier}
+                  onSelectIssue={onSelectIssue}
+               />
+            </div>
+         ) : (
+            <div className={cn('h-full overflow-auto', isViewTypeGrid && 'overflow-x-auto')}>
+               <div className={cn(isViewTypeGrid && 'flex h-full gap-3 px-2 py-2 min-w-max')}>
+                  {status.map((statusItem) => {
+                     const issuesByStatus = issues.filter(
+                        (issue) => issue.status.id === statusItem.id
+                     );
+
+                     return (
+                        <GroupIssues
+                           key={statusItem.id}
+                           status={statusItem}
+                           issues={issuesByStatus}
+                           count={issuesByStatus.length}
+                           selectedIssueIdentifier={selectedIssueIdentifier}
+                           onSelectIssue={onSelectIssue}
+                        />
+                     );
+                  })}
+               </div>
+            </div>
+         )}
+      </div>
+   );
+}
+
+function EmptyPreview() {
+   return (
+      <div className="flex h-full items-center justify-center p-8 text-center bg-background">
+         <div className="max-w-sm space-y-2">
+            <h3 className="text-lg font-semibold text-foreground">Select an issue</h3>
+            <p className="text-sm text-muted-foreground">
+               Pick an issue from the list to preview and edit it without leaving the workspace.
+            </p>
+         </div>
+      </div>
+   );
+}
