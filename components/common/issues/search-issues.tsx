@@ -4,8 +4,15 @@ import { useIssuesStore } from '@/store/issues-store';
 import { useSearchStore } from '@/store/search-store';
 import { useEffect, useState } from 'react';
 import { IssueLine } from './issue-line';
+import { Issue } from '@/mock-data/issues';
 
-export function SearchIssues() {
+export function SearchIssues({
+   selectedIssueIdentifier,
+   onSelectIssue,
+}: {
+   selectedIssueIdentifier?: string;
+   onSelectIssue?: (issue: Issue) => void;
+}) {
    const [searchResults, setSearchResults] = useState<
       ReturnType<typeof useIssuesStore.getState>['issues']
    >([]);
@@ -37,7 +44,13 @@ export function SearchIssues() {
                      </div>
                      <div className="divide-y">
                         {searchResults.map((issue) => (
-                           <IssueLine key={issue.id} issue={issue} layoutId={false} />
+                           <IssueLine
+                              key={issue.id}
+                              issue={issue}
+                              layoutId={false}
+                              isSelected={selectedIssueIdentifier === issue.identifier}
+                              onSelect={onSelectIssue}
+                           />
                         ))}
                      </div>
                   </div>

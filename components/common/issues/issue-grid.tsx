@@ -2,7 +2,6 @@
 
 import { Issue } from '@/mock-data/issues';
 import { format } from 'date-fns';
-import Link from 'next/link';
 import { motion } from 'motion/react';
 import { useEffect, useRef } from 'react';
 import { DragSourceMonitor, useDrag, useDragLayer, useDrop } from 'react-dnd';
@@ -14,10 +13,14 @@ import { ProjectBadge } from './project-badge';
 import { StatusSelector } from './status-selector';
 import { ContextMenu, ContextMenuTrigger } from '@/components/ui/context-menu';
 import { IssueContextMenu } from './issue-context-menu';
+import { cn } from '@/lib/utils';
+import { useViewStore } from '@/store/view-store';
 
 export const IssueDragType = 'ISSUE';
 type IssueGridProps = {
    issue: Issue;
+   isSelected?: boolean;
+   onSelect?: (issue: Issue) => void;
 };
 
 // Custom DragLayer component to render the drag preview
@@ -32,9 +35,9 @@ function IssueDragPreview({ issue }: { issue: Issue }) {
             <StatusSelector status={issue.status} issueId={issue.id} />
          </div>
 
-         <Link href={`/issues/${issue.identifier}`} className="block mb-3">
+         <div className="block mb-3">
             <h3 className="text-sm font-semibold line-clamp-2 hover:underline">{issue.title}</h3>
-         </Link>
+         </div>
 
          <div className="flex flex-wrap gap-1.5 mb-3 min-h-[1.5rem]">
             <LabelBadge label={issue.labels} />
@@ -77,8 +80,9 @@ export function CustomDragLayer() {
    );
 }
 
-export function IssueGrid({ issue }: IssueGridProps) {
+export function IssueGrid({ issue, isSelected = false, onSelect }: IssueGridProps) {
    const ref = useRef<HTMLDivElement>(null);
+   const { visibleProperties } = useViewStore();
 
    // Set up drag functionality.
    const [{ isDragging }, drag, preview] = useDrag(() => ({
@@ -107,7 +111,19 @@ export function IssueGrid({ issue }: IssueGridProps) {
          <ContextMenuTrigger asChild>
             <motion.div
                ref={ref}
-               className="w-full p-3 bg-background rounded-md shadow-xs border border-border/50 cursor-default"
+               onClick={() => onSelect?.(issue)}
+               onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                     event.preventDefault();
+                     onSelect?.(issue);
+                  }
+               }}
+               role="button"
+               tabIndex={0}
+               className={cn(
+                  'w-full p-3 bg-background rounded-md shadow-xs border border-border/50 cursor-pointer',
+                  isSelected && 'border-primary/60 bg-accent/30'
+               )}
                layoutId={`issue-grid-${issue.identifier}`}
                style={{
                   opacity: isDragging ? 0.5 : 1,
@@ -115,24 +131,41 @@ export function IssueGrid({ issue }: IssueGridProps) {
                }}
             >
                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-1.5">
+                  <div
+                     className="flex items-center gap-1.5"
+                     onMouseDownCapture={(event) => event.stopPropagation()}
+                  >
                      <PrioritySelector priority={issue.priority} issueId={issue.id} />
                      <span className="text-xs text-muted-foreground font-medium">
                         {issue.identifier}
                      </span>
                   </div>
-                  <StatusSelector status={issue.status} issueId={issue.id} />
+                  <div onMouseDownCapture={(event) => event.stopPropagation()}>
+                     <StatusSelector status={issue.status} issueId={issue.id} />
+                  </div>
                </div>
                <h3 className="text-sm font-semibold mb-3 line-clamp-2">{issue.title}</h3>
-               <div className="flex flex-wrap gap-1.5 mb-3 min-h-[1.5rem]">
-                  <LabelBadge label={issue.labels} />
-                  {issue.project && <ProjectBadge project={issue.project} />}
-               </div>
+               {(visibleProperties.labels || visibleProperties.project) && (
+                  <div className="flex flex-wrap gap-1.5 mb-3 min-h-[1.5rem]">
+                     {visibleProperties.labels && <LabelBadge label={issue.labels} />}
+                     {visibleProperties.project && issue.project && (
+                        <ProjectBadge project={issue.project} />
+                     )}
+                  </div>
+               )}
                <div className="flex items-center justify-between mt-auto pt-2">
-                  <span className="text-xs text-muted-foreground">
-                     {format(new Date(issue.createdAt), 'MMM dd')}
-                  </span>
-                  <AssigneeUser user={issue.assignee} issueId={issue.id} />
+                  {visibleProperties.createdAt ? (
+                     <span className="text-xs text-muted-foreground">
+                        {format(new Date(issue.createdAt), 'MMM dd')}
+                     </span>
+                  ) : (
+                     <span />
+                  )}
+                  {visibleProperties.assignee && (
+                     <div onMouseDownCapture={(event) => event.stopPropagation()}>
+                        <AssigneeUser user={issue.assignee} issueId={issue.id} />
+                     </div>
+                  )}
                </div>
             </motion.div>
          </ContextMenuTrigger>

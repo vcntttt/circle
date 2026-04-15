@@ -1,10 +1,29 @@
-import { groupIssuesByStatus, Issue, issues as mockIssues } from '@/mock-data/issues';
+import { Issue } from '@/mock-data/issues';
 import { LabelInterface } from '@/mock-data/labels';
 import { Priority } from '@/mock-data/priorities';
 import { Project } from '@/mock-data/projects';
-import { Status } from '@/mock-data/status';
+import { archivedStatus, status, Status } from '@/mock-data/status';
 import { User } from '@/mock-data/users';
 import { create } from 'zustand';
+import { deleteIssue as deleteIssueMutation, updateIssue } from '@/src/server/issues';
+
+const createEmptyIssuesByStatus = () =>
+   status.reduce<Record<string, Issue[]>>((acc, statusItem) => {
+      acc[statusItem.id] = [];
+      return acc;
+   }, {});
+
+const isArchivedIssue = (issue: Issue) => issue.status.id === archivedStatus.id;
+
+const groupIssuesByStatus = (issues: Issue[]) => {
+   const grouped = createEmptyIssuesByStatus();
+
+   issues.forEach((issue) => {
+      grouped[issue.status.id] = [...(grouped[issue.status.id] ?? []), issue];
+   });
+
+   return grouped;
+};
 
 const persistIssuePatch = async (
    issueId: string,
@@ -17,15 +36,9 @@ const persistIssuePatch = async (
       labelNames?: string[];
    }
 ) => {
-   const response = await fetch(`/api/issues/${issueId}`, {
-      method: 'PATCH',
-      headers: {
-         'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-   });
+   const response = await updateIssue({ data: { issueId, ...payload } });
 
-   if (!response.ok) {
+   if (!response) {
       throw new Error('Issue update request failed.');
    }
 };
@@ -51,6 +64,8 @@ interface IssuesState {
    addIssue: (issue: Issue) => void;
    updateIssue: (id: string, updatedIssue: Partial<Issue>) => void;
    deleteIssue: (id: string) => void;
+   archiveIssue: (id: string) => void;
+   updateIssueContent: (issueId: string, content: { title?: string; description?: string }) => void;
 
    // Filters
    filterByStatus: (statusId: string) => Issue[];
@@ -86,8 +101,8 @@ interface IssuesState {
 
 export const useIssuesStore = create<IssuesState>((set, get) => ({
    // Initial state
-   issues: mockIssues.sort((a, b) => b.rank.localeCompare(a.rank)),
-   issuesByStatus: groupIssuesByStatus(mockIssues),
+   issues: [],
+   issuesByStatus: createEmptyIssuesByStatus(),
 
    //
    getAllIssues: () => get().issues,
@@ -131,6 +146,24 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
             issuesByStatus: groupIssuesByStatus(newIssues),
          };
       });
+
+      void deleteIssueMutation({ data: { issueId: id } }).catch((error) => {
+         console.error('Failed to delete issue.', error);
+      });
+   },
+
+   archiveIssue: (id: string) => {
+      get().updateIssue(id, { status: archivedStatus });
+      void persistIssuePatch(id, { status: archivedStatus.id }).catch((error) => {
+         console.error('Failed to archive issue.', error);
+      });
+   },
+
+   updateIssueContent: (issueId: string, content: { title?: string; description?: string }) => {
+      get().updateIssue(issueId, content);
+      void updateIssue({ data: { issueId, ...content } }).catch((error) => {
+         console.error('Failed to persist issue content.', error);
+      });
    },
 
    // Filters
@@ -161,13 +194,14 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
       const lowerCaseQuery = query.toLowerCase();
       return get().issues.filter(
          (issue) =>
-            issue.title.toLowerCase().includes(lowerCaseQuery) ||
-            issue.identifier.toLowerCase().includes(lowerCaseQuery)
+            !isArchivedIssue(issue) &&
+            (issue.title.toLowerCase().includes(lowerCaseQuery) ||
+               issue.identifier.toLowerCase().includes(lowerCaseQuery))
       );
    },
 
    filterIssues: (filters: FilterOptions) => {
-      let filteredIssues = get().issues;
+      let filteredIssues = get().issues.filter((issue) => !isArchivedIssue(issue));
 
       // Filter by status
       if (filters.status && filters.status.length > 0) {
@@ -242,7 +276,9 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
    addIssueLabel: (issueId: string, label: LabelInterface) => {
       const issue = get().getIssueById(issueId);
       if (issue) {
-         const updatedLabels = [...issue.labels, label];
+         const labelMap = new Map(issue.labels.map((item) => [item.id, item]));
+         labelMap.set(label.id, label);
+         const updatedLabels = Array.from(labelMap.values());
          get().updateIssue(issueId, { labels: updatedLabels });
          void persistIssuePatch(issueId, {
             labelNames: updatedLabels.map((item) => item.name),

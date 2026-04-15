@@ -73,6 +73,8 @@ export interface CreateIssueInput {
 }
 
 export interface UpdateIssueInput {
+   title?: string;
+   description?: string | null;
    status?: string;
    priority?: string;
    assigneeId?: string | null;
@@ -292,6 +294,8 @@ export async function updateIssueRecord(
    await db
       .update(schema.issues)
       .set({
+         ...(input.title !== undefined ? { title: input.title } : {}),
+         ...(input.description !== undefined ? { description: input.description } : {}),
          ...(input.status ? { status: input.status } : {}),
          ...(input.priority ? { priority: input.priority } : {}),
          ...(input.assigneeId !== undefined ? { assigneeId: input.assigneeId } : {}),
@@ -327,6 +331,21 @@ export async function updateIssueRecord(
    }
 
    return getIssueById(issueId);
+}
+
+export async function deleteIssueRecord(issueId: string): Promise<boolean> {
+   if (!db) {
+      throw new Error('Database unavailable.');
+   }
+
+   await db.delete(schema.issueLabels).where(eq(schema.issueLabels.issueId, issueId));
+
+   const deleted = await db
+      .delete(schema.issues)
+      .where(eq(schema.issues.id, issueId))
+      .returning({ id: schema.issues.id });
+
+   return deleted.length > 0;
 }
 
 export async function getIssuesPageData(): Promise<IssuesPageData> {

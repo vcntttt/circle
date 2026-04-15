@@ -1,6 +1,7 @@
 'use client';
 
-import { useActionState, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useRouter } from '@tanstack/react-router';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,28 +16,54 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { createProjectAction, type CreateProjectActionState } from '@/app/projects/actions';
-
-const initialState: CreateProjectActionState = {
-   success: false,
-   error: null,
-};
+import { toast } from 'sonner';
+import { createProject as createProjectMutation } from '@/src/server/projects';
 
 interface CreateProjectDialogProps {
    disabled?: boolean;
 }
 
 export function CreateProjectDialog({ disabled = false }: CreateProjectDialogProps) {
+   const router = useRouter();
    const [open, setOpen] = useState(false);
-   const [state, formAction, isPending] = useActionState(createProjectAction, initialState);
+   const [isPending, setIsPending] = useState(false);
+   const [error, setError] = useState<string | null>(null);
    const formRef = useRef<HTMLFormElement>(null);
 
    useEffect(() => {
-      if (!state.success) return;
+      if (open) {
+         setError(null);
+      }
+   }, [open]);
 
-      formRef.current?.reset();
-      setOpen(false);
-   }, [state.success]);
+   const createProject = async (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      setIsPending(true);
+      setError(null);
+
+      const formData = new FormData(event.currentTarget);
+
+      try {
+         await createProjectMutation({
+            data: {
+               name: formData.get('name'),
+               description: formData.get('description') ?? '',
+               status: formData.get('status'),
+            },
+         });
+
+         formRef.current?.reset();
+         setOpen(false);
+         await router.invalidate();
+         toast.success('Project created');
+      } catch (createError) {
+         const message =
+            createError instanceof Error ? createError.message : 'Failed to create project.';
+         setError(message);
+      } finally {
+         setIsPending(false);
+      }
+   };
 
    return (
       <Dialog open={open} onOpenChange={setOpen}>
@@ -55,7 +82,7 @@ export function CreateProjectDialog({ disabled = false }: CreateProjectDialogPro
                </DialogDescription>
             </DialogHeader>
 
-            <form ref={formRef} action={formAction} className="space-y-4">
+            <form ref={formRef} onSubmit={createProject} className="space-y-4">
                <div className="space-y-2">
                   <Label htmlFor="name">Name</Label>
                   <Input id="name" name="name" placeholder="Personal tracker MVP" required />
@@ -88,7 +115,7 @@ export function CreateProjectDialog({ disabled = false }: CreateProjectDialogPro
                   </select>
                </div>
 
-               {state.error && <p className="text-sm text-destructive">{state.error}</p>}
+               {error && <p className="text-sm text-destructive">{error}</p>}
 
                <DialogFooter>
                   <Button type="submit" disabled={isPending}>

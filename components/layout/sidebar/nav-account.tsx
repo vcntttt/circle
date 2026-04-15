@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { Link } from '@tanstack/react-router';
 
 import {
    SidebarGroup,
@@ -19,7 +19,7 @@ export function NavAccount() {
             {accountItems.map((item) => (
                <SidebarMenuItem key={item.name}>
                   <SidebarMenuButton asChild>
-                     <Link href={item.url}>
+                     <Link to={item.url}>
                         <item.icon className="size-4" />
                         <span>{item.name}</span>
                      </Link>

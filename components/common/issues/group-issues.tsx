@@ -19,9 +19,17 @@ interface GroupIssuesProps {
    status: Status;
    issues: Issue[];
    count: number;
+   selectedIssueIdentifier?: string;
+   onSelectIssue?: (issue: Issue) => void;
 }
 
-export function GroupIssues({ status, issues, count }: GroupIssuesProps) {
+export function GroupIssues({
+   status,
+   issues,
+   count,
+   selectedIssueIdentifier,
+   onSelectIssue,
+}: GroupIssuesProps) {
    const { viewType } = useViewStore();
    const isViewTypeGrid = viewType === 'grid';
    const { openModal } = useCreateIssueStore();
@@ -74,17 +82,33 @@ export function GroupIssues({ status, issues, count }: GroupIssuesProps) {
          {viewType === 'list' ? (
             <div className="space-y-0">
                {sortedIssues.map((issue) => (
-                  <IssueLine key={issue.id} issue={issue} layoutId={true} />
+                  <IssueLine
+                     key={issue.id}
+                     issue={issue}
+                     layoutId={true}
+                     isSelected={selectedIssueIdentifier === issue.identifier}
+                     onSelect={onSelectIssue}
+                  />
                ))}
             </div>
          ) : (
-            <IssueGridList issues={issues} status={status} />
+            <IssueGridList
+               issues={issues}
+               status={status}
+               selectedIssueIdentifier={selectedIssueIdentifier}
+               onSelectIssue={onSelectIssue}
+            />
          )}
       </div>
    );
 }
 
-const IssueGridList: FC<{ issues: Issue[]; status: Status }> = ({ issues, status }) => {
+const IssueGridList: FC<{
+   issues: Issue[];
+   status: Status;
+   selectedIssueIdentifier?: string;
+   onSelectIssue?: (issue: Issue) => void;
+}> = ({ issues, status, selectedIssueIdentifier, onSelectIssue }) => {
    const ref = useRef<HTMLDivElement>(null);
    const { updateIssueStatus } = useIssuesStore();
 
@@ -130,7 +154,12 @@ const IssueGridList: FC<{ issues: Issue[]; status: Status }> = ({ issues, status
             )}
          </AnimatePresence>
          {sortedIssues.map((issue) => (
-            <IssueGrid key={issue.id} issue={issue} />
+            <IssueGrid
+               key={issue.id}
+               issue={issue}
+               isSelected={selectedIssueIdentifier === issue.identifier}
+               onSelect={onSelectIssue}
+            />
          ))}
       </div>
    );

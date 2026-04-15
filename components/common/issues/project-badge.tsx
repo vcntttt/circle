@@ -1,10 +1,14 @@
 import { Badge } from '@/components/ui/badge';
 import { Project } from '@/mock-data/projects';
-import Link from 'next/link';
+import { Link } from '@tanstack/react-router';
 
 export function ProjectBadge({ project }: { project: Project }) {
    return (
-      <Link href="/projects" className="flex items-center justify-center gap-.5">
+      <Link
+         to="/issues"
+         search={{ projectId: project.id }}
+         className="flex items-center justify-center gap-.5"
+      >
          <Badge
             variant="outline"
             className="gap-1.5 rounded-full text-muted-foreground bg-background"

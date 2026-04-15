@@ -2,50 +2,85 @@
 
 import { Issue } from '@/mock-data/issues';
 import { format } from 'date-fns';
-import Link from 'next/link';
 import { AssigneeUser } from './assignee-user';
 import { LabelBadge } from './label-badge';
 import { PrioritySelector } from './priority-selector';
 import { ProjectBadge } from './project-badge';
 import { StatusSelector } from './status-selector';
 import { motion } from 'motion/react';
+import { cn } from '@/lib/utils';
+import { useViewStore } from '@/store/view-store';
 
 import { ContextMenu, ContextMenuTrigger } from '@/components/ui/context-menu';
 import { IssueContextMenu } from './issue-context-menu';
 
-export function IssueLine({ issue, layoutId = false }: { issue: Issue; layoutId?: boolean }) {
+export function IssueLine({
+   issue,
+   layoutId = false,
+   isSelected = false,
+   onSelect,
+}: {
+   issue: Issue;
+   layoutId?: boolean;
+   isSelected?: boolean;
+   onSelect?: (issue: Issue) => void;
+}) {
+   const { visibleProperties } = useViewStore();
+
    return (
       <ContextMenu>
          <ContextMenuTrigger asChild>
             <motion.div
                {...(layoutId && { layoutId: `issue-line-${issue.identifier}` })}
-               className="w-full flex items-center justify-start h-11 px-6 hover:bg-sidebar/50"
+               onClick={() => onSelect?.(issue)}
+               onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                     event.preventDefault();
+                     onSelect?.(issue);
+                  }
+               }}
+               role="button"
+               tabIndex={0}
+               className={cn(
+                  'w-full flex items-center justify-start h-11 px-6 hover:bg-sidebar/50 cursor-pointer',
+                  isSelected && 'bg-accent/70 hover:bg-accent/70'
+               )}
             >
-               <div className="flex items-center gap-0.5">
+               <div
+                  className="flex items-center gap-0.5"
+                  onMouseDownCapture={(event) => event.stopPropagation()}
+               >
                   <PrioritySelector priority={issue.priority} issueId={issue.id} />
                   <span className="text-sm hidden sm:inline-block text-muted-foreground font-medium w-[66px] truncate shrink-0 mr-0.5">
                      {issue.identifier}
                   </span>
                   <StatusSelector status={issue.status} issueId={issue.id} />
                </div>
-               <Link
-                  href={`/issues/${issue.identifier}`}
-                  className="min-w-0 flex items-center justify-start mr-1 ml-0.5"
-               >
+               <div className="min-w-0 flex items-center justify-start mr-1 ml-0.5">
                   <span className="text-xs sm:text-sm font-medium sm:font-semibold truncate hover:underline">
                      {issue.title}
                   </span>
-               </Link>
+               </div>
                <div className="flex items-center justify-end gap-2 ml-auto sm:w-fit">
                   <div className="w-3 shrink-0"></div>
-                  <div className="-space-x-5 hover:space-x-1 lg:space-x-1 items-center justify-end hidden sm:flex duration-200 transition-all">
-                     <LabelBadge label={issue.labels} />
-                     {issue.project && <ProjectBadge project={issue.project} />}
-                  </div>
-                  <span className="text-xs text-muted-foreground shrink-0 hidden sm:inline-block">
-                     {format(new Date(issue.createdAt), 'MMM dd')}
-                  </span>
-                  <AssigneeUser user={issue.assignee} issueId={issue.id} />
+                  {(visibleProperties.labels || visibleProperties.project) && (
+                     <div className="-space-x-5 hover:space-x-1 lg:space-x-1 items-center justify-end hidden sm:flex duration-200 transition-all">
+                        {visibleProperties.labels && <LabelBadge label={issue.labels} />}
+                        {visibleProperties.project && issue.project && (
+                           <ProjectBadge project={issue.project} />
+                        )}
+                     </div>
+                  )}
+                  {visibleProperties.createdAt && (
+                     <span className="text-xs text-muted-foreground shrink-0 hidden sm:inline-block">
+                        {format(new Date(issue.createdAt), 'MMM dd')}
+                     </span>
+                  )}
+                  {visibleProperties.assignee && (
+                     <div onMouseDownCapture={(event) => event.stopPropagation()}>
+                        <AssigneeUser user={issue.assignee} issueId={issue.id} />
+                     </div>
+                  )}
                </div>
             </motion.div>
          </ContextMenuTrigger>

@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import Link from 'next/link';
 import { RiGithubLine } from '@remixicon/react';
 
 export function HelpButton() {
@@ -41,15 +40,16 @@ export function HelpButton() {
             <DropdownMenuSeparator />
             <DropdownMenuLabel>Resources</DropdownMenuLabel>
             <DropdownMenuItem asChild>
-               <Link
+               <a
                   href="https://github.com/vcntttt/circle"
                   target="_blank"
+                  rel="noopener noreferrer"
                   className="flex items-center"
                >
                   <RiGithubLine className="mr-2 h-4 w-4" />
                   <span>GitHub</span>
                   <ExternalLink className="ml-2 h-3 w-3 text-muted-foreground" />
-               </Link>
+               </a>
             </DropdownMenuItem>
          </DropdownMenuContent>
       </DropdownMenu>

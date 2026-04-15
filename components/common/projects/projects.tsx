@@ -1,7 +1,7 @@
 'use client';
 
 import ProjectLine from '@/components/common/projects/project-line';
-import { ProjectListItem } from '@/lib/db/projects';
+import { ProjectLike } from '@/lib/projects-presentation';
 import { Box } from 'lucide-react';
 import {
    health,
@@ -13,7 +13,7 @@ import { status as projectStatuses } from '@/mock-data/status';
 import { users } from '@/mock-data/users';
 
 interface ProjectsProps {
-   projects: ProjectListItem[];
+   projects: ProjectLike[];
    databaseError: string | null;
 }
 
@@ -42,7 +42,7 @@ const statusToHealth = {
    'completed': health.find((item) => item.id === 'on-track') ?? health[0],
 };
 
-const toPresentationProject = (project: ProjectListItem): PresentationProject => {
+const toPresentationProject = (project: ProjectLike): PresentationProject => {
    const matchedMockProject = mockProjects.find((item) => slugify(item.name) === project.slug);
 
    if (matchedMockProject) {

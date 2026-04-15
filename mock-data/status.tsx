@@ -176,6 +176,23 @@ export const CompletedIcon: React.FC = () => {
    );
 };
 
+export const ArchivedIcon: React.FC = () => {
+   return (
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+         <rect
+            x="2.25"
+            y="3.25"
+            width="9.5"
+            height="7.5"
+            rx="1.25"
+            stroke="#71717a"
+            strokeWidth="1.5"
+         />
+         <path d="M4.5 6.5H9.5" stroke="#71717a" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+   );
+};
+
 export const status: Status[] = [
    { id: 'in-progress', name: 'In Progress', color: '#facc15', icon: InProgressIcon },
    {
@@ -190,8 +207,17 @@ export const status: Status[] = [
    { id: 'backlog', name: 'Backlog', color: '#ec4899', icon: BacklogIcon },
 ];
 
+export const archivedStatus: Status = {
+   id: 'archived',
+   name: 'Archived',
+   color: '#71717a',
+   icon: ArchivedIcon,
+};
+
+export const issueStatusOptions: Status[] = [...status, archivedStatus];
+
 export const StatusIcon: React.FC<{ statusId: string }> = ({ statusId }) => {
-   const currentStatus = status.find((s) => s.id === statusId);
+   const currentStatus = issueStatusOptions.find((s) => s.id === statusId);
    if (!currentStatus) return null;
 
    const IconComponent = currentStatus.icon;

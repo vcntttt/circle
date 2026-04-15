@@ -18,12 +18,11 @@ import {
    SidebarMenuButton,
    SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { Link, useRouterState } from '@tanstack/react-router';
 import { BackToApp } from '@/components/layout/sidebar/back-to-app';
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-   const pathname = usePathname();
+   const pathname = useRouterState({ select: (state) => state.location.pathname });
    const isSettings = pathname.includes('/settings');
    return (
       <Sidebar collapsible="offcanvas" {...props}>
@@ -45,7 +44,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                <SidebarMenu>
                   <SidebarMenuItem>
                      <SidebarMenuButton asChild>
-                        <Link href="/settings">
+                        <Link to="/settings">
                            <Settings className="size-4" />
                            <span>Settings</span>
                         </Link>
@@ -55,13 +54,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                <div className="w-full flex items-center justify-between">
                   <HelpButton />
                   <Button size="icon" variant="secondary" asChild>
-                     <Link
+                     <a
                         href="https://github.com/vcntttt/circle"
                         target="_blank"
                         rel="noopener noreferrer"
                      >
                         <RiGithubLine className="size-4" />
-                     </Link>
+                     </a>
                   </Button>
                </div>
             </div>
