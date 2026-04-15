@@ -2,18 +2,28 @@
 
 import { Button } from '@/components/ui/button';
 import {
+   DropdownMenuCheckboxItem,
    DropdownMenu,
    DropdownMenuContent,
    DropdownMenuItem,
+   DropdownMenuLabel,
+   DropdownMenuSeparator,
    DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { useViewStore, ViewType } from '@/store/view-store';
+import { IssueDisplayProperty, useViewStore, ViewType } from '@/store/view-store';
 import { LayoutGrid, LayoutList, SlidersHorizontal } from 'lucide-react';
 import { Filter } from './filter';
 
+const propertyLabels: Record<IssueDisplayProperty, string> = {
+   labels: 'Tags',
+   project: 'Project',
+   assignee: 'Assignee',
+   createdAt: 'Created',
+};
+
 export default function HeaderOptions() {
-   const { viewType, setViewType } = useViewStore();
+   const { viewType, setViewType, visibleProperties, toggleProperty } = useViewStore();
 
    const handleViewChange = (type: ViewType) => {
       setViewType(type);
@@ -32,27 +42,46 @@ export default function HeaderOptions() {
                   )}
                </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-72 flex p-3 gap-2" align="end">
-               <DropdownMenuItem
-                  onClick={() => handleViewChange('list')}
-                  className={cn(
-                     'w-full text-xs border border-accent flex flex-col gap-1',
-                     viewType === 'list' ? 'bg-accent' : ''
-                  )}
-               >
-                  <LayoutList className="size-4" />
-                  List
-               </DropdownMenuItem>
-               <DropdownMenuItem
-                  onClick={() => handleViewChange('grid')}
-                  className={cn(
-                     'w-full text-xs border border-accent flex flex-col gap-1',
-                     viewType === 'grid' ? 'bg-accent' : ''
-                  )}
-               >
-                  <LayoutGrid className="size-4" />
-                  Board
-               </DropdownMenuItem>
+            <DropdownMenuContent className="w-72 p-3 space-y-3" align="end">
+               <div className="flex gap-2">
+                  <DropdownMenuItem
+                     onClick={() => handleViewChange('list')}
+                     className={cn(
+                        'w-full text-xs border border-accent flex flex-col gap-1',
+                        viewType === 'list' ? 'bg-accent' : ''
+                     )}
+                  >
+                     <LayoutList className="size-4" />
+                     List
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                     onClick={() => handleViewChange('grid')}
+                     className={cn(
+                        'w-full text-xs border border-accent flex flex-col gap-1',
+                        viewType === 'grid' ? 'bg-accent' : ''
+                     )}
+                  >
+                     <LayoutGrid className="size-4" />
+                     Board
+                  </DropdownMenuItem>
+               </div>
+
+               <DropdownMenuSeparator />
+
+               <div className="space-y-1">
+                  <DropdownMenuLabel className="px-2 text-xs text-muted-foreground">
+                     Display properties
+                  </DropdownMenuLabel>
+                  {(Object.keys(propertyLabels) as IssueDisplayProperty[]).map((property) => (
+                     <DropdownMenuCheckboxItem
+                        key={property}
+                        checked={visibleProperties[property]}
+                        onCheckedChange={() => toggleProperty(property)}
+                     >
+                        {propertyLabels[property]}
+                     </DropdownMenuCheckboxItem>
+                  ))}
+               </div>
             </DropdownMenuContent>
          </DropdownMenu>
       </div>

@@ -14,6 +14,7 @@ import { StatusSelector } from './status-selector';
 import { ContextMenu, ContextMenuTrigger } from '@/components/ui/context-menu';
 import { IssueContextMenu } from './issue-context-menu';
 import { cn } from '@/lib/utils';
+import { useViewStore } from '@/store/view-store';
 
 export const IssueDragType = 'ISSUE';
 type IssueGridProps = {
@@ -81,6 +82,7 @@ export function CustomDragLayer() {
 
 export function IssueGrid({ issue, isSelected = false, onSelect }: IssueGridProps) {
    const ref = useRef<HTMLDivElement>(null);
+   const { visibleProperties } = useViewStore();
 
    // Set up drag functionality.
    const [{ isDragging }, drag, preview] = useDrag(() => ({
@@ -143,17 +145,27 @@ export function IssueGrid({ issue, isSelected = false, onSelect }: IssueGridProp
                   </div>
                </div>
                <h3 className="text-sm font-semibold mb-3 line-clamp-2">{issue.title}</h3>
-               <div className="flex flex-wrap gap-1.5 mb-3 min-h-[1.5rem]">
-                  <LabelBadge label={issue.labels} />
-                  {issue.project && <ProjectBadge project={issue.project} />}
-               </div>
-               <div className="flex items-center justify-between mt-auto pt-2">
-                  <span className="text-xs text-muted-foreground">
-                     {format(new Date(issue.createdAt), 'MMM dd')}
-                  </span>
-                  <div onMouseDownCapture={(event) => event.stopPropagation()}>
-                     <AssigneeUser user={issue.assignee} issueId={issue.id} />
+               {(visibleProperties.labels || visibleProperties.project) && (
+                  <div className="flex flex-wrap gap-1.5 mb-3 min-h-[1.5rem]">
+                     {visibleProperties.labels && <LabelBadge label={issue.labels} />}
+                     {visibleProperties.project && issue.project && (
+                        <ProjectBadge project={issue.project} />
+                     )}
                   </div>
+               )}
+               <div className="flex items-center justify-between mt-auto pt-2">
+                  {visibleProperties.createdAt ? (
+                     <span className="text-xs text-muted-foreground">
+                        {format(new Date(issue.createdAt), 'MMM dd')}
+                     </span>
+                  ) : (
+                     <span />
+                  )}
+                  {visibleProperties.assignee && (
+                     <div onMouseDownCapture={(event) => event.stopPropagation()}>
+                        <AssigneeUser user={issue.assignee} issueId={issue.id} />
+                     </div>
+                  )}
                </div>
             </motion.div>
          </ContextMenuTrigger>

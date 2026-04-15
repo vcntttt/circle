@@ -9,6 +9,7 @@ import { ProjectBadge } from './project-badge';
 import { StatusSelector } from './status-selector';
 import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
+import { useViewStore } from '@/store/view-store';
 
 import { ContextMenu, ContextMenuTrigger } from '@/components/ui/context-menu';
 import { IssueContextMenu } from './issue-context-menu';
@@ -24,6 +25,8 @@ export function IssueLine({
    isSelected?: boolean;
    onSelect?: (issue: Issue) => void;
 }) {
+   const { visibleProperties } = useViewStore();
+
    return (
       <ContextMenu>
          <ContextMenuTrigger asChild>
@@ -60,16 +63,24 @@ export function IssueLine({
                </div>
                <div className="flex items-center justify-end gap-2 ml-auto sm:w-fit">
                   <div className="w-3 shrink-0"></div>
-                  <div className="-space-x-5 hover:space-x-1 lg:space-x-1 items-center justify-end hidden sm:flex duration-200 transition-all">
-                     <LabelBadge label={issue.labels} />
-                     {issue.project && <ProjectBadge project={issue.project} />}
-                  </div>
-                  <span className="text-xs text-muted-foreground shrink-0 hidden sm:inline-block">
-                     {format(new Date(issue.createdAt), 'MMM dd')}
-                  </span>
-                  <div onMouseDownCapture={(event) => event.stopPropagation()}>
-                     <AssigneeUser user={issue.assignee} issueId={issue.id} />
-                  </div>
+                  {(visibleProperties.labels || visibleProperties.project) && (
+                     <div className="-space-x-5 hover:space-x-1 lg:space-x-1 items-center justify-end hidden sm:flex duration-200 transition-all">
+                        {visibleProperties.labels && <LabelBadge label={issue.labels} />}
+                        {visibleProperties.project && issue.project && (
+                           <ProjectBadge project={issue.project} />
+                        )}
+                     </div>
+                  )}
+                  {visibleProperties.createdAt && (
+                     <span className="text-xs text-muted-foreground shrink-0 hidden sm:inline-block">
+                        {format(new Date(issue.createdAt), 'MMM dd')}
+                     </span>
+                  )}
+                  {visibleProperties.assignee && (
+                     <div onMouseDownCapture={(event) => event.stopPropagation()}>
+                        <AssigneeUser user={issue.assignee} issueId={issue.id} />
+                     </div>
+                  )}
                </div>
             </motion.div>
          </ContextMenuTrigger>
