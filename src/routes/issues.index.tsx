@@ -9,6 +9,13 @@ export const Route = createFileRoute('/issues/')({
 
 function IssuesIndexPage() {
    const { issues, databaseError } = Route.useLoaderData();
+   const { projectId } = Route.useSearch();
 
-   return <IssuesWorkspace initialIssues={issues} databaseError={databaseError} />;
+   return (
+      <IssuesWorkspace
+         initialIssues={issues}
+         databaseError={databaseError}
+         projectFilterId={projectId}
+      />
+   );
 }

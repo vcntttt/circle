@@ -8,6 +8,7 @@ import { IssueListItem } from '@/lib/db/issues';
 import { toPresentationIssue } from '@/lib/issues-presentation';
 import { cn } from '@/lib/utils';
 import { Issue } from '@/mock-data/issues';
+import { archivedStatus } from '@/mock-data/status';
 import { useFilterStore } from '@/store/filter-store';
 import { useIssuesStore } from '@/store/issues-store';
 import { useSearchStore } from '@/store/search-store';
@@ -23,12 +24,14 @@ interface IssuesWorkspaceProps {
    initialIssues: IssueListItem[];
    databaseError: string | null;
    selectedIssueIdentifier?: string;
+   projectFilterId?: string;
 }
 
 export function IssuesWorkspace({
    initialIssues,
    databaseError,
    selectedIssueIdentifier,
+   projectFilterId,
 }: IssuesWorkspaceProps) {
    const { replaceIssues, issues, filterIssues } = useIssuesStore();
    const { isSearchOpen, searchQuery } = useSearchStore();
@@ -51,7 +54,11 @@ export function IssuesWorkspace({
 
    const isSearching = isSearchOpen && searchQuery.trim() !== '';
    const isFiltering = hasActiveFilters();
-   const filteredIssues = isFiltering ? filterIssues(filters) : issues;
+   const visibleIssues = issues.filter((issue) => issue.status.id !== archivedStatus.id);
+   const storeFilteredIssues = isFiltering ? filterIssues(filters) : visibleIssues;
+   const filteredIssues = projectFilterId
+      ? storeFilteredIssues.filter((issue) => issue.project?.id === projectFilterId)
+      : storeFilteredIssues;
 
    if (databaseError) {
       return (
@@ -99,12 +106,18 @@ export function IssuesWorkspace({
 
             <div className={cn('h-full lg:hidden', selectedIssue ? 'block' : 'hidden')}>
                {selectedIssue ? (
-                  <IssueDetail issueId={selectedIssue.id} onDelete={handleDelete} mobileBack />
+                  <IssueDetail
+                     issueId={selectedIssue.id}
+                     initialIssue={selectedIssue}
+                     onDelete={handleDelete}
+                     onArchive={handleArchive}
+                     mobileBack
+                  />
                ) : null}
             </div>
 
             <ResizablePanelGroup direction="horizontal" className="hidden lg:flex h-full w-full">
-               <ResizablePanel defaultSize={43} minSize={32}>
+               <ResizablePanel defaultSize={60} minSize={32}>
                   <IssuesListPanel
                      issues={filteredIssues}
                      isSearching={isSearching}
@@ -113,9 +126,14 @@ export function IssuesWorkspace({
                   />
                </ResizablePanel>
                <ResizableHandle withHandle />
-               <ResizablePanel defaultSize={57} minSize={35}>
+               <ResizablePanel defaultSize={40} minSize={28}>
                   {selectedIssue ? (
-                     <IssueDetail issueId={selectedIssue.id} onDelete={handleDelete} />
+                     <IssueDetail
+                        issueId={selectedIssue.id}
+                        initialIssue={selectedIssue}
+                        onDelete={handleDelete}
+                        onArchive={handleArchive}
+                     />
                   ) : (
                      <EmptyPreview />
                   )}
@@ -126,25 +144,38 @@ export function IssuesWorkspace({
    );
 
    function handleDelete(deletedIssueId: string) {
-      const currentIndex = filteredIssues.findIndex((issue) => issue.id === deletedIssueId);
+      navigateToAdjacentIssue(deletedIssueId);
+   }
+
+   function handleArchive(archivedIssueId: string) {
+      navigateToAdjacentIssue(archivedIssueId);
+   }
+
+   function navigateToAdjacentIssue(issueId: string) {
+      const currentIndex = filteredIssues.findIndex((issue) => issue.id === issueId);
       const nextIssue = filteredIssues[currentIndex + 1] ?? filteredIssues[currentIndex - 1];
 
       if (nextIssue) {
          void navigate({
             to: '/issues/$issueIdentifier',
             params: { issueIdentifier: nextIssue.identifier },
+            search: projectFilterId ? { projectId: projectFilterId } : {},
             replace: true,
          });
          return;
       }
 
-      void navigate({ to: '/issues', replace: true });
+      void navigate({
+         to: '/issues',
+         search: projectFilterId ? { projectId: projectFilterId } : {},
+      });
    }
 
    function handleSelectIssue(issue: Issue) {
       void navigate({
          to: '/issues/$issueIdentifier',
          params: { issueIdentifier: issue.identifier },
+         search: projectFilterId ? { projectId: projectFilterId } : {},
       });
    }
 }
