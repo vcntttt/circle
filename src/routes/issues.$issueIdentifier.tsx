@@ -1,17 +1,17 @@
 import { createFileRoute, notFound } from '@tanstack/react-router';
-import { IssueDetail } from '@/components/common/issues/issue-detail';
-import MainLayout from '@/components/layout/main-layout';
-import { getIssueDetail } from '@/src/server/issues';
+import { IssuesWorkspace } from '@/components/common/issues/issues-workspace';
+import { getIssuesPage } from '@/src/server/issues';
 
 export const Route = createFileRoute('/issues/$issueIdentifier')({
    loader: async ({ params }) => {
-      const issue = await getIssueDetail({ data: { issueIdentifier: params.issueIdentifier } });
+      const result = await getIssuesPage();
+      const issue = result.issues.find((item) => item.identifier === params.issueIdentifier);
 
       if (!issue) {
          throw notFound();
       }
 
-      return issue;
+      return result;
    },
    head: ({ params }) => ({
       meta: [{ title: `${params.issueIdentifier} | Circle Personal Fork` }],
@@ -20,11 +20,14 @@ export const Route = createFileRoute('/issues/$issueIdentifier')({
 });
 
 function IssueDetailPage() {
-   const issue = Route.useLoaderData();
+   const { issues, databaseError } = Route.useLoaderData();
+   const { issueIdentifier } = Route.useParams();
 
    return (
-      <MainLayout headersNumber={1}>
-         <IssueDetail issue={issue} />
-      </MainLayout>
+      <IssuesWorkspace
+         initialIssues={issues}
+         databaseError={databaseError}
+         selectedIssueIdentifier={issueIdentifier}
+      />
    );
 }

@@ -1,26 +1,21 @@
-import { createFileRoute } from '@tanstack/react-router';
-import AllIssues from '@/components/common/issues/all-issues';
+import { Outlet, createFileRoute } from '@tanstack/react-router';
 import Header from '@/components/layout/headers/issues/header';
 import MainLayout from '@/components/layout/main-layout';
-import { getIssuesPage } from '@/src/server/issues';
 
 export const Route = createFileRoute('/issues')({
-   loader: () => getIssuesPage(),
    head: () => ({
       meta: [
          { title: 'Issues | Circle Personal Fork' },
          { name: 'description', content: 'Issue tracking for the personal Circle workspace.' },
       ],
    }),
-   component: IssuesPage,
+   component: IssuesLayout,
 });
 
-function IssuesPage() {
-   const { issues, databaseError } = Route.useLoaderData();
-
+function IssuesLayout() {
    return (
       <MainLayout header={<Header />}>
-         <AllIssues initialIssues={issues} databaseError={databaseError} />
+         <Outlet />
       </MainLayout>
    );
 }
