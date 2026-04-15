@@ -5,7 +5,7 @@ import { Project } from '@/mock-data/projects';
 import { status, Status } from '@/mock-data/status';
 import { User } from '@/mock-data/users';
 import { create } from 'zustand';
-import { updateIssue } from '@/src/server/issues';
+import { deleteIssue as deleteIssueMutation, updateIssue } from '@/src/server/issues';
 
 const createEmptyIssuesByStatus = () =>
    status.reduce<Record<string, Issue[]>>((acc, statusItem) => {
@@ -62,6 +62,7 @@ interface IssuesState {
    addIssue: (issue: Issue) => void;
    updateIssue: (id: string, updatedIssue: Partial<Issue>) => void;
    deleteIssue: (id: string) => void;
+   updateIssueContent: (issueId: string, content: { title?: string; description?: string }) => void;
 
    // Filters
    filterByStatus: (statusId: string) => Issue[];
@@ -141,6 +142,17 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
             issues: newIssues,
             issuesByStatus: groupIssuesByStatus(newIssues),
          };
+      });
+
+      void deleteIssueMutation({ data: { issueId: id } }).catch((error) => {
+         console.error('Failed to delete issue.', error);
+      });
+   },
+
+   updateIssueContent: (issueId: string, content: { title?: string; description?: string }) => {
+      get().updateIssue(issueId, content);
+      void updateIssue({ data: { issueId, ...content } }).catch((error) => {
+         console.error('Failed to persist issue content.', error);
       });
    },
 

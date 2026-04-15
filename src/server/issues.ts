@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import {
    createIssueRecord,
+   deleteIssueRecord,
    getIssueByIdentifier,
    getIssuesPageData,
    updateIssueRecord,
@@ -23,6 +24,8 @@ const createIssueSchema = z.object({
 const updateIssueSchema = z
    .object({
       issueId: z.string().trim().min(1),
+      title: z.string().trim().min(1).max(240).optional(),
+      description: z.string().nullable().optional(),
       status: z.string().trim().min(1).optional(),
       priority: z.string().trim().min(1).optional(),
       assigneeId: z.string().trim().nullable().optional(),
@@ -32,6 +35,8 @@ const updateIssueSchema = z
    })
    .refine(
       (value) =>
+         value.title !== undefined ||
+         value.description !== undefined ||
          value.status !== undefined ||
          value.priority !== undefined ||
          value.assigneeId !== undefined ||
@@ -54,6 +59,12 @@ export const updateIssue = createServerFn({ method: 'POST' })
    .handler(async ({ data }) => {
       const { issueId, ...payload } = data;
       return updateIssueRecord(issueId, payload);
+   });
+
+export const deleteIssue = createServerFn({ method: 'POST' })
+   .inputValidator((data: unknown) => z.object({ issueId: z.string().trim().min(1) }).parse(data))
+   .handler(async ({ data }) => {
+      return deleteIssueRecord(data.issueId);
    });
 
 export const getIssuesPage = createServerFn({ method: 'GET' }).handler(async () => {
