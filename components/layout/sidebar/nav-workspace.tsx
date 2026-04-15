@@ -8,7 +8,7 @@ import {
    SidebarMenuButton,
    SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import Link from 'next/link';
+import { Link } from '@tanstack/react-router';
 import { workspaceItems } from '@/mock-data/side-bar-nav';
 import { RiPresentationLine } from '@remixicon/react';
 
@@ -31,7 +31,7 @@ export function NavWorkspace() {
             {workspaceItems.map((item) => (
                <SidebarMenuItem key={item.name}>
                   <SidebarMenuButton asChild>
-                     <Link href={item.url}>
+                     <Link to={item.url}>
                         <item.icon />
                         <span>{item.name}</span>
                      </Link>

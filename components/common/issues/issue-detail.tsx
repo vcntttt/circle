@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { Link } from '@tanstack/react-router';
 import { format } from 'date-fns';
 import { ArrowLeft, MessageSquare, Paperclip, Send } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -23,7 +23,7 @@ export function IssueDetail({ issue }: { issue: IssueListItem }) {
             <div className="flex items-center gap-3 min-w-0">
                <SidebarTrigger className="inline-flex lg:hidden" />
                <Button variant="ghost" size="xs" asChild>
-                  <Link href="/issues">
+                  <Link to="/issues">
                      <ArrowLeft className="size-4" />
                      Back
                   </Link>

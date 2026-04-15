@@ -2,7 +2,7 @@
 
 import { Issue } from '@/mock-data/issues';
 import { format } from 'date-fns';
-import Link from 'next/link';
+import { Link } from '@tanstack/react-router';
 import { motion } from 'motion/react';
 import { useEffect, useRef } from 'react';
 import { DragSourceMonitor, useDrag, useDragLayer, useDrop } from 'react-dnd';
@@ -32,7 +32,11 @@ function IssueDragPreview({ issue }: { issue: Issue }) {
             <StatusSelector status={issue.status} issueId={issue.id} />
          </div>
 
-         <Link href={`/issues/${issue.identifier}`} className="block mb-3">
+         <Link
+            to="/issues/$issueIdentifier"
+            params={{ issueIdentifier: issue.identifier }}
+            className="block mb-3"
+         >
             <h3 className="text-sm font-semibold line-clamp-2 hover:underline">{issue.title}</h3>
          </Link>
 

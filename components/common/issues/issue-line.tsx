@@ -2,7 +2,7 @@
 
 import { Issue } from '@/mock-data/issues';
 import { format } from 'date-fns';
-import Link from 'next/link';
+import { Link } from '@tanstack/react-router';
 import { AssigneeUser } from './assignee-user';
 import { LabelBadge } from './label-badge';
 import { PrioritySelector } from './priority-selector';
@@ -29,7 +29,8 @@ export function IssueLine({ issue, layoutId = false }: { issue: Issue; layoutId?
                   <StatusSelector status={issue.status} issueId={issue.id} />
                </div>
                <Link
-                  href={`/issues/${issue.identifier}`}
+                  to="/issues/$issueIdentifier"
+                  params={{ issueIdentifier: issue.identifier }}
                   className="min-w-0 flex items-center justify-start mr-1 ml-0.5"
                >
                   <span className="text-xs sm:text-sm font-medium sm:font-semibold truncate hover:underline">
