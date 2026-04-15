@@ -38,7 +38,7 @@ import { currentUser, personalAssigneeOptions } from '@/lib/current-user';
 import { useIssuesStore } from '@/store/issues-store';
 import { useLabelOptions } from '@/hooks/use-label-options';
 import { useProjectOptions } from '@/hooks/use-project-options';
-import { status } from '@/mock-data/status';
+import { archivedStatus, issueStatusOptions } from '@/mock-data/status';
 import { priorities } from '@/mock-data/priorities';
 import { toast } from 'sonner';
 
@@ -60,12 +60,14 @@ export function IssueContextMenu({ issueId }: IssueContextMenuProps) {
       removeIssueLabel,
       updateIssueProject,
       updateIssueDueDate,
+      archiveIssue,
+      deleteIssue,
       getIssueById,
    } = useIssuesStore();
 
    const handleStatusChange = (statusId: string) => {
       if (!issueId) return;
-      const newStatus = status.find((s) => s.id === statusId);
+      const newStatus = issueStatusOptions.find((s) => s.id === statusId);
       if (newStatus) {
          updateIssueStatus(issueId, newStatus);
          toast.success(`Status updated to ${newStatus.name}`);
@@ -143,6 +145,18 @@ export function IssueContextMenu({ issueId }: IssueContextMenuProps) {
       toast.success('Issue moved');
    };
 
+   const handleArchive = () => {
+      if (!issueId) return;
+      archiveIssue(issueId);
+      toast.success('Issue archived');
+   };
+
+   const handleDelete = () => {
+      if (!issueId) return;
+      deleteIssue(issueId);
+      toast.success('Issue deleted');
+   };
+
    const handleSubscribe = () => {
       setIsSubscribed(!isSubscribed);
       toast.success(isSubscribed ? 'Unsubscribed from issue' : 'Subscribed to issue');
@@ -174,7 +188,7 @@ export function IssueContextMenu({ issueId }: IssueContextMenuProps) {
                   <CircleCheck className="mr-2 size-4" /> Status
                </ContextMenuSubTrigger>
                <ContextMenuSubContent className="w-48">
-                  {status.map((s) => {
+                  {issueStatusOptions.map((s) => {
                      const Icon = s.icon;
                      return (
                         <ContextMenuItem key={s.id} onClick={() => handleStatusChange(s.id)}>
@@ -346,7 +360,14 @@ export function IssueContextMenu({ issueId }: IssueContextMenuProps) {
 
          <ContextMenuSeparator />
 
-         <ContextMenuItem variant="destructive">
+         <ContextMenuItem onClick={handleArchive}>
+            <span className="size-4 inline-flex items-center justify-center">
+               <archivedStatus.icon />
+            </span>
+            Archive
+         </ContextMenuItem>
+
+         <ContextMenuItem onClick={handleDelete} variant="destructive">
             <Trash2 className="size-4" /> Delete...
             <ContextMenuShortcut>⌘⌫</ContextMenuShortcut>
          </ContextMenuItem>
