@@ -15,6 +15,7 @@ import { Route as IssuesRouteImport } from './routes/issues'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as OrgIdRouteImport } from './routes/$orgId'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as IssuesIndexRouteImport } from './routes/issues.index'
 import { Route as IssuesIssueIdentifierRouteImport } from './routes/issues.$issueIdentifier'
 import { Route as OrgIdTeamsRouteImport } from './routes/$orgId.teams'
 import { Route as OrgIdSettingsRouteImport } from './routes/$orgId.settings'
@@ -54,6 +55,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const IssuesIndexRoute = IssuesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => IssuesRoute,
 } as any)
 const IssuesIssueIdentifierRoute = IssuesIssueIdentifierRouteImport.update({
   id: '/$issueIdentifier',
@@ -116,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/$orgId/settings': typeof OrgIdSettingsRoute
   '/$orgId/teams': typeof OrgIdTeamsRoute
   '/issues/$issueIdentifier': typeof IssuesIssueIdentifierRoute
+  '/issues/': typeof IssuesIndexRoute
   '/$orgId/issues/$issueIdentifier': typeof OrgIdIssuesIssueIdentifierRoute
   '/$orgId/team/$teamId/all': typeof OrgIdTeamTeamIdAllRoute
 }
@@ -123,7 +130,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$orgId': typeof OrgIdRouteWithChildren
   '/inbox': typeof InboxRoute
-  '/issues': typeof IssuesRouteWithChildren
   '/projects': typeof ProjectsRoute
   '/settings': typeof SettingsRoute
   '/$orgId/inbox': typeof OrgIdInboxRoute
@@ -133,6 +139,7 @@ export interface FileRoutesByTo {
   '/$orgId/settings': typeof OrgIdSettingsRoute
   '/$orgId/teams': typeof OrgIdTeamsRoute
   '/issues/$issueIdentifier': typeof IssuesIssueIdentifierRoute
+  '/issues': typeof IssuesIndexRoute
   '/$orgId/issues/$issueIdentifier': typeof OrgIdIssuesIssueIdentifierRoute
   '/$orgId/team/$teamId/all': typeof OrgIdTeamTeamIdAllRoute
 }
@@ -151,6 +158,7 @@ export interface FileRoutesById {
   '/$orgId/settings': typeof OrgIdSettingsRoute
   '/$orgId/teams': typeof OrgIdTeamsRoute
   '/issues/$issueIdentifier': typeof IssuesIssueIdentifierRoute
+  '/issues/': typeof IssuesIndexRoute
   '/$orgId/issues/$issueIdentifier': typeof OrgIdIssuesIssueIdentifierRoute
   '/$orgId/team/$teamId/all': typeof OrgIdTeamTeamIdAllRoute
 }
@@ -170,6 +178,7 @@ export interface FileRouteTypes {
     | '/$orgId/settings'
     | '/$orgId/teams'
     | '/issues/$issueIdentifier'
+    | '/issues/'
     | '/$orgId/issues/$issueIdentifier'
     | '/$orgId/team/$teamId/all'
   fileRoutesByTo: FileRoutesByTo
@@ -177,7 +186,6 @@ export interface FileRouteTypes {
     | '/'
     | '/$orgId'
     | '/inbox'
-    | '/issues'
     | '/projects'
     | '/settings'
     | '/$orgId/inbox'
@@ -187,6 +195,7 @@ export interface FileRouteTypes {
     | '/$orgId/settings'
     | '/$orgId/teams'
     | '/issues/$issueIdentifier'
+    | '/issues'
     | '/$orgId/issues/$issueIdentifier'
     | '/$orgId/team/$teamId/all'
   id:
@@ -204,6 +213,7 @@ export interface FileRouteTypes {
     | '/$orgId/settings'
     | '/$orgId/teams'
     | '/issues/$issueIdentifier'
+    | '/issues/'
     | '/$orgId/issues/$issueIdentifier'
     | '/$orgId/team/$teamId/all'
   fileRoutesById: FileRoutesById
@@ -260,6 +270,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/issues/': {
+      id: '/issues/'
+      path: '/'
+      fullPath: '/issues/'
+      preLoaderRoute: typeof IssuesIndexRouteImport
+      parentRoute: typeof IssuesRoute
     }
     '/issues/$issueIdentifier': {
       id: '/issues/$issueIdentifier'
@@ -363,10 +380,12 @@ const OrgIdRouteWithChildren = OrgIdRoute._addFileChildren(OrgIdRouteChildren)
 
 interface IssuesRouteChildren {
   IssuesIssueIdentifierRoute: typeof IssuesIssueIdentifierRoute
+  IssuesIndexRoute: typeof IssuesIndexRoute
 }
 
 const IssuesRouteChildren: IssuesRouteChildren = {
   IssuesIssueIdentifierRoute: IssuesIssueIdentifierRoute,
+  IssuesIndexRoute: IssuesIndexRoute,
 }
 
 const IssuesRouteWithChildren =
