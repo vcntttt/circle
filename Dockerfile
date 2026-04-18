@@ -31,6 +31,17 @@ COPY package.json pnpm-lock.yaml ./
 
 RUN pnpm install --prod --frozen-lockfile --ignore-scripts
 
+FROM base AS migrator
+
+ENV NODE_ENV=production
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY package.json pnpm-lock.yaml drizzle.config.ts ./
+COPY drizzle ./drizzle
+COPY lib ./lib
+
+CMD ["pnpm", "db:migrate"]
+
 FROM base AS runtime
 
 ENV NODE_ENV=production
@@ -44,14 +55,3 @@ COPY package.json ./
 EXPOSE 3000
 
 CMD ["node", "dist/server/server.js"]
-
-FROM base AS migrator
-
-ENV NODE_ENV=production
-
-COPY --from=deps /app/node_modules ./node_modules
-COPY package.json pnpm-lock.yaml drizzle.config.ts ./
-COPY drizzle ./drizzle
-COPY lib ./lib
-
-CMD ["pnpm", "db:migrate"]
