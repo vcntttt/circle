@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useIssuesStore } from '@/store/issues-store';
-import { issueStatusOptions as allStatus, Status } from '@/mock-data/status';
+import { issueStatusOptions as allStatus, type Status } from '@/lib/ui-catalog';
 import { CheckIcon } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 import { renderStatusIcon } from '@/lib/status-utils';

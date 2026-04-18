@@ -12,7 +12,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useLabelOptions } from '@/hooks/use-label-options';
 import { useIssuesStore } from '@/store/issues-store';
-import { LabelInterface } from '@/mock-data/labels';
+import type { LabelInterface } from '@/lib/models';
 import { CheckIcon, TagIcon } from 'lucide-react';
 import { useId, useState } from 'react';
 import { cn } from '@/lib/utils';

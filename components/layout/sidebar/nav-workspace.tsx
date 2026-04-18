@@ -9,7 +9,7 @@ import {
    SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { Link } from '@tanstack/react-router';
-import { workspaceItems } from '@/mock-data/side-bar-nav';
+import { workspaceItems } from '@/lib/ui-catalog';
 import { RiPresentationLine } from '@remixicon/react';
 
 const secondaryWorkspaceItems = [

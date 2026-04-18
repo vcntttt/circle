@@ -1,28 +1,20 @@
 'use client';
 
 import ProjectLine from '@/components/common/projects/project-line';
-import { ProjectLike } from '@/lib/projects-presentation';
+import { currentUser } from '@/lib/current-user';
+import { type ProjectLike } from '@/lib/projects-presentation';
 import { Box } from 'lucide-react';
 import {
    health,
+   priorities,
+   status as projectStatuses,
    type Project as PresentationProject,
-   projects as mockProjects,
-} from '@/mock-data/projects';
-import { priorities } from '@/mock-data/priorities';
-import { status as projectStatuses } from '@/mock-data/status';
-import { users } from '@/mock-data/users';
+} from '@/lib/ui-catalog';
 
 interface ProjectsProps {
    projects: ProjectLike[];
    databaseError: string | null;
 }
-
-const slugify = (value: string) =>
-   value
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
 
 const statusToPercent: Record<string, number> = {
    'backlog': 0,
@@ -43,20 +35,6 @@ const statusToHealth = {
 };
 
 const toPresentationProject = (project: ProjectLike): PresentationProject => {
-   const matchedMockProject = mockProjects.find((item) => slugify(item.name) === project.slug);
-
-   if (matchedMockProject) {
-      return {
-         ...matchedMockProject,
-         id: project.id,
-         name: project.name,
-         startDate: new Date(project.createdAt).toISOString(),
-         status:
-            projectStatuses.find((item) => item.id === project.status) ?? matchedMockProject.status,
-         percentComplete: statusToPercent[project.status] ?? matchedMockProject.percentComplete,
-      };
-   }
-
    return {
       id: project.id,
       name: project.name,
@@ -64,7 +42,7 @@ const toPresentationProject = (project: ProjectLike): PresentationProject => {
       status: projectStatuses.find((item) => item.id === project.status) ?? projectStatuses[0],
       percentComplete: statusToPercent[project.status] ?? 0,
       startDate: new Date(project.createdAt).toISOString(),
-      lead: users[0],
+      lead: currentUser,
       priority: priorities[0],
       health: statusToHealth[project.status as keyof typeof statusToHealth] ?? health[0],
    };
@@ -77,9 +55,6 @@ export default function Projects({ projects, databaseError }: ProjectsProps) {
             <div className="rounded-lg border bg-container p-6 max-w-2xl">
                <h2 className="text-sm font-semibold">Database unavailable</h2>
                <p className="mt-2 text-sm text-muted-foreground">{databaseError}</p>
-               <div className="mt-4 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground font-mono">
-                  cd ~/dev/postgres && docker compose up -d
-               </div>
             </div>
          </div>
       );
@@ -91,12 +66,8 @@ export default function Projects({ projects, databaseError }: ProjectsProps) {
             <div className="rounded-lg border bg-container p-6 max-w-2xl">
                <h2 className="text-sm font-semibold">No projects yet</h2>
                <p className="mt-2 text-sm text-muted-foreground">
-                  The schema is ready, but the database is empty. Seed the sample projects or start
-                  adding your own data next.
+                  There are no projects yet. Create your first project and it will appear here.
                </p>
-               <div className="mt-4 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground font-mono">
-                  pnpm db:seed
-               </div>
             </div>
          </div>
       );

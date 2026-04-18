@@ -24,15 +24,12 @@ Comandos principales:
 ```bash
 pnpm install
 pnpm db:migrate
-pnpm db:seed
 pnpm dev
 ```
 
 ## Estado actual
 
-Este fork esta en transicion desde una UI demo basada en mocks hacia una app personal con datos reales.
-
-La prioridad actual es mantener la calidad visual original de Circle mientras se reemplazan gradualmente los datos mock por persistencia real.
+Este fork ya prioriza datos reales en PostgreSQL y evita depender de contenido ficticio para funcionar.
 
 ## Credito
 

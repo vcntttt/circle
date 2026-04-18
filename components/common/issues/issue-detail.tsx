@@ -13,7 +13,7 @@ import { StatusSelector } from './status-selector';
 import { AssigneeUser } from './assignee-user';
 import { useIssuesStore } from '@/store/issues-store';
 import { toast } from 'sonner';
-import type { Issue } from '@/mock-data/issues';
+import type { Issue } from '@/lib/models';
 import { ProjectSelector } from '@/components/layout/sidebar/create-new-issue/project-selector';
 
 export function IssueDetail({

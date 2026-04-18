@@ -12,7 +12,7 @@ import { currentUser, personalAssigneeOptions, statusUserColors } from '@/lib/cu
 import { useIssuesStore } from '@/store/issues-store';
 import { CheckIcon, CircleUserRound, UserIcon } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import type { User } from '@/mock-data/users';
+import type { User } from '@/lib/models';
 
 interface AssigneeUserProps {
    user: User | null;

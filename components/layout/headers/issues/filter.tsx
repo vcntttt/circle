@@ -16,8 +16,7 @@ import { useLabelOptions } from '@/hooks/use-label-options';
 import { useProjectOptions } from '@/hooks/use-project-options';
 import { useIssuesStore } from '@/store/issues-store';
 import { useFilterStore } from '@/store/filter-store';
-import { status as allStatus } from '@/mock-data/status';
-import { priorities } from '@/mock-data/priorities';
+import { status as allStatus, priorities } from '@/lib/ui-catalog';
 import {
    CheckIcon,
    ChevronRight,

@@ -1,6 +1,6 @@
 'use client';
 
-import { users as allUsers } from '@/mock-data/users';
+import { personalMemberOptions as allUsers } from '@/lib/current-user';
 import MemberLine from './member-line';
 import { useMembersFilterStore } from '@/store/members-filter-store';
 import { useMemo } from 'react';

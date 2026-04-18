@@ -372,7 +372,7 @@ export async function getIssuesPageData(): Promise<IssuesPageData> {
       return {
          issues: [],
          databaseError:
-            'The issues list could not be loaded from PostgreSQL. Start the database, run migrations and seed data before opening this page.',
+            'The issues list could not be loaded from PostgreSQL. Check the connection and run the migrations before opening this page.',
          isConnected: false,
       };
    }

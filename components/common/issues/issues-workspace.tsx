@@ -6,15 +6,13 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { IssueListItem } from '@/lib/db/issues';
 import { toPresentationIssue } from '@/lib/issues-presentation';
+import { type Issue, archivedStatus, status } from '@/lib/ui-catalog';
 import { cn } from '@/lib/utils';
-import { Issue } from '@/mock-data/issues';
-import { archivedStatus } from '@/mock-data/status';
 import { useFilterStore } from '@/store/filter-store';
 import { useIssuesStore } from '@/store/issues-store';
 import { useSearchStore } from '@/store/search-store';
 import { useViewStore } from '@/store/view-store';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
-import { status } from '@/mock-data/status';
 import { CustomDragLayer } from './issue-grid';
 import { GroupIssues } from './group-issues';
 import { IssueDetail } from './issue-detail';
@@ -66,9 +64,6 @@ export function IssuesWorkspace({
             <div className="rounded-lg border bg-container p-6 max-w-2xl">
                <h2 className="text-sm font-semibold">Database unavailable</h2>
                <p className="mt-2 text-sm text-muted-foreground">{databaseError}</p>
-               <div className="mt-4 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground font-mono">
-                  cd ~/dev/postgres && docker compose up -d
-               </div>
             </div>
          </div>
       );
@@ -80,12 +75,8 @@ export function IssuesWorkspace({
             <div className="rounded-lg border bg-container p-6 max-w-2xl">
                <h2 className="text-sm font-semibold">No issues yet</h2>
                <p className="mt-2 text-sm text-muted-foreground">
-                  The database is ready, but there are no issues yet. Seed the sample data or create
-                  your first issue from the sidebar composer.
+                  There are no issues yet. Create your first issue from the sidebar composer.
                </p>
-               <div className="mt-4 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground font-mono">
-                  pnpm db:seed
-               </div>
             </div>
          </div>
       );

@@ -80,7 +80,7 @@ const features: Feature[] = [
       icon: <Database size={20} />,
       title: 'Database',
       description:
-         'Projects, issues and labels already rely on the shared PostgreSQL stack in ~/dev/postgres.',
+         'Projects, issues and labels already rely on PostgreSQL as the single source of truth.',
       activated: true,
    },
 ];
@@ -96,9 +96,8 @@ const integrations: Integration[] = [
    },
    {
       icon: <Server size={24} />,
-      title: 'Shared PostgreSQL',
-      description:
-         'The app expects the shared local server from ~/dev/postgres during development.',
+      title: 'PostgreSQL runtime',
+      description: 'The app expects a PostgreSQL server configured through DATABASE_URL.',
       enabled: true,
       actionLabel: 'Enabled',
    },

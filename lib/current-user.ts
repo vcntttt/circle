@@ -1,4 +1,4 @@
-import type { User } from '@/mock-data/users';
+import type { User } from '@/lib/models';
 
 const avatarUrl = (seed: string) => `https://api.dicebear.com/9.x/glass/svg?seed=${seed}`;
 
@@ -20,6 +20,8 @@ export const currentUser: User = {
 };
 
 export const personalAssigneeOptions: User[] = [currentUser];
+
+export const personalMemberOptions: User[] = [currentUser];
 
 export function resolveCurrentAssignee(assigneeId: string | null | undefined): User | null {
    if (!assigneeId) {

@@ -4,7 +4,7 @@ import { useIssuesStore } from '@/store/issues-store';
 import { useSearchStore } from '@/store/search-store';
 import { useEffect, useState } from 'react';
 import { IssueLine } from './issue-line';
-import { Issue } from '@/mock-data/issues';
+import type { Issue } from '@/lib/models';
 
 export function SearchIssues({
    selectedIssueIdentifier,

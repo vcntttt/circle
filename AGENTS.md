@@ -8,7 +8,7 @@
 - Production server: `pnpm start`
 - Lint: `pnpm lint`
 - Format whole repo: `pnpm format`
-- Drizzle: `pnpm db:generate`, `pnpm db:migrate`, `pnpm db:seed`, `pnpm db:studio`
+- Drizzle: `pnpm db:generate`, `pnpm db:migrate`, `pnpm db:studio`
 
 ## Verification
 
@@ -38,7 +38,7 @@
 ## Data Reality
 
 - Projects, issues, and labels already have PostgreSQL-backed flows; extend those instead of adding new mock-only behavior.
-- The UI still depends on `mock-data/*` for presentation catalogs and some fallback options. If making the app more real, remove those dependencies deliberately instead of adding more.
+- Avoid reintroducing `mock-data/*` or seed-driven sample content as product dependencies.
 - Local PostgreSQL is expected from the shared stack in `~/dev/postgres`.
 - `DATABASE_URL` is required for Drizzle commands and server-side DB access. See `.env.example`.
 

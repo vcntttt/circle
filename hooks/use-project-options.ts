@@ -1,12 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ProjectLike, toPresentationProject } from '@/lib/projects-presentation';
-import { projects as mockProjects } from '@/mock-data/projects';
+import { type Project, type ProjectLike, toPresentationProject } from '@/lib/projects-presentation';
 import { getProjectOptions } from '@/src/server/projects';
 
 export function useProjectOptions() {
-   const [projects, setProjects] = useState(() => mockProjects);
+   const [projects, setProjects] = useState<Project[]>([]);
 
    useEffect(() => {
       let isMounted = true;

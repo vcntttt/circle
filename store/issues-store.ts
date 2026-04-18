@@ -1,9 +1,5 @@
-import { Issue } from '@/mock-data/issues';
-import { LabelInterface } from '@/mock-data/labels';
-import { Priority } from '@/mock-data/priorities';
-import { Project } from '@/mock-data/projects';
-import { archivedStatus, status, Status } from '@/mock-data/status';
-import { User } from '@/mock-data/users';
+import type { Issue, LabelInterface, Priority, Project, Status, User } from '@/lib/models';
+import { archivedStatus, status } from '@/lib/ui-catalog';
 import { create } from 'zustand';
 import { deleteIssue as deleteIssueMutation, updateIssue } from '@/src/server/issues';
 

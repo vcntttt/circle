@@ -1,5 +1,5 @@
 import { useNavigate } from '@tanstack/react-router';
-import { Project } from '@/mock-data/projects';
+import type { Project } from '@/lib/models';
 import { HealthPopover } from './health-popover';
 import { PrioritySelector } from './priority-selector';
 import { LeadSelector } from './lead-selector';

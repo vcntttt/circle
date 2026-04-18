@@ -1,4 +1,4 @@
-import { Status } from '@/mock-data/status';
+import type { Status } from '@/lib/models';
 import { create } from 'zustand';
 
 interface CreateIssueState {

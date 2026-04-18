@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { users } from '@/mock-data/users';
+import { personalMemberOptions } from '@/lib/current-user';
 import { Plus } from 'lucide-react';
 
 export default function HeaderNav() {
@@ -12,7 +12,9 @@ export default function HeaderNav() {
             <SidebarTrigger className="" />
             <div className="flex items-center gap-1">
                <span className="text-sm font-medium">Members</span>
-               <span className="text-xs bg-accent rounded-md px-1.5 py-1">{users.length}</span>
+               <span className="text-xs bg-accent rounded-md px-1.5 py-1">
+                  {personalMemberOptions.length}
+               </span>
             </div>
          </div>
          <div className="flex items-center gap-2">

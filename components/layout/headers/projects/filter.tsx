@@ -11,8 +11,7 @@ import {
    CommandSeparator,
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { health as allHealth } from '@/mock-data/projects';
-import { priorities } from '@/mock-data/priorities';
+import { health as allHealth, priorities } from '@/lib/ui-catalog';
 import { useProjectsFilterStore } from '@/store/projects-filter-store';
 import { useState } from 'react';
 import {

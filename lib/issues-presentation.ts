@@ -1,8 +1,6 @@
 import type { IssueListItem } from '@/lib/db/issues';
-import { Issue } from '@/mock-data/issues';
-import { priorities } from '@/mock-data/priorities';
-import { status } from '@/mock-data/status';
 import { resolveCurrentAssignee } from '@/lib/current-user';
+import { type Issue, priorities, status } from '@/lib/ui-catalog';
 import { toPresentationProject } from './projects-presentation';
 
 export const toPresentationIssue = (issue: IssueListItem): Issue => ({

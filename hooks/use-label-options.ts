@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { LabelInterface } from '@/mock-data/labels';
+import type { LabelInterface } from '@/lib/models';
 import { getLabelOptions } from '@/src/server/labels';
 
 export function useLabelOptions() {

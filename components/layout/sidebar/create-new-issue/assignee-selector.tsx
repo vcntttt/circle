@@ -12,7 +12,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { currentUser, personalAssigneeOptions } from '@/lib/current-user';
 import { useIssuesStore } from '@/store/issues-store';
-import { User } from '@/mock-data/users';
+import type { User } from '@/lib/models';
 import { CheckIcon, UserCircle } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';

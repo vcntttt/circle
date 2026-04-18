@@ -38,8 +38,7 @@ import { currentUser, personalAssigneeOptions } from '@/lib/current-user';
 import { useIssuesStore } from '@/store/issues-store';
 import { useLabelOptions } from '@/hooks/use-label-options';
 import { useProjectOptions } from '@/hooks/use-project-options';
-import { archivedStatus, issueStatusOptions } from '@/mock-data/status';
-import { priorities } from '@/mock-data/priorities';
+import { archivedStatus, issueStatusOptions, priorities } from '@/lib/ui-catalog';
 import { toast } from 'sonner';
 
 interface IssueContextMenuProps {
