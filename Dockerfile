@@ -22,15 +22,6 @@ COPY . .
 
 RUN pnpm build
 
-FROM base AS prod-deps
-
-ENV HUSKY=0
-ENV NODE_ENV=production
-
-COPY package.json pnpm-lock.yaml ./
-
-RUN pnpm install --prod --frozen-lockfile --ignore-scripts
-
 FROM base AS migrator
 
 ENV NODE_ENV=production
@@ -48,10 +39,13 @@ ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=3000
 
-COPY --from=prod-deps /app/node_modules ./node_modules
+COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/.output ./.output
+COPY drizzle.config.ts ./
+COPY drizzle ./drizzle
+COPY lib ./lib
 COPY package.json ./
 
 EXPOSE 3000
 
-CMD ["node", ".output/server/index.mjs"]
+CMD ["pnpm", "start:docker"]
