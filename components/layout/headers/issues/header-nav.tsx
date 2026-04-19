@@ -1,14 +1,20 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { useCreateIssueStore } from '@/store/create-issue-store';
 import { Input } from '@/components/ui/input';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useSearchStore } from '@/store/search-store';
-import { SearchIcon } from 'lucide-react';
+import { Plus, SearchIcon } from 'lucide-react';
 import { useEffect, useRef } from 'react';
-import Notifications from './notifications';
 
-export default function HeaderNav() {
+interface HeaderNavProps {
+   count: number;
+   isConnected: boolean;
+}
+
+export default function HeaderNav({ count, isConnected }: HeaderNavProps) {
+   const { openModal } = useCreateIssueStore();
    const { isSearchOpen, toggleSearch, closeSearch, setSearchQuery, searchQuery } =
       useSearchStore();
    const searchInputRef = useRef<HTMLInputElement>(null);
@@ -42,9 +48,12 @@ export default function HeaderNav() {
 
    return (
       <div className="w-full flex justify-between items-center border-b py-1.5 px-6 h-10">
-         <SidebarTrigger className="" />
-
-         <div className="flex items-center gap-2">
+         <div className="flex items-center gap-3">
+            <SidebarTrigger className="" />
+            <div className="flex items-center gap-1">
+               <span className="text-sm font-medium">Issues</span>
+               <span className="text-xs bg-accent rounded-md px-1.5 py-1">{count}</span>
+            </div>
             {isSearchOpen ? (
                <div
                   ref={searchContainerRef}
@@ -84,19 +93,29 @@ export default function HeaderNav() {
                   />
                </div>
             ) : (
-               <>
-                  <Button
-                     variant="ghost"
-                     size="icon"
-                     onClick={toggleSearch}
-                     className="h-8 w-8"
-                     aria-label="Search"
-                  >
-                     <SearchIcon className="h-4 w-4" />
-                  </Button>
-                  <Notifications />
-               </>
+               <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleSearch}
+                  className="h-8 w-8"
+                  aria-label="Search"
+               >
+                  <SearchIcon className="h-4 w-4" />
+               </Button>
             )}
+         </div>
+
+         <div className="flex items-center gap-2">
+            <Button
+               className="relative"
+               size="xs"
+               variant="secondary"
+               onClick={() => openModal()}
+               disabled={!isConnected}
+            >
+               <Plus className="size-4" />
+               <span className="hidden sm:inline ml-1">Create issue</span>
+            </Button>
          </div>
       </div>
    );

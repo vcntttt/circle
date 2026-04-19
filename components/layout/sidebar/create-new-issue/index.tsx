@@ -1,12 +1,11 @@
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { IssueListItem } from '@/lib/db/issues';
 import { toPresentationIssue } from '@/lib/issues-presentation';
 import { currentUser } from '@/lib/current-user';
 import { LexoRank } from '@/lib/utils';
-import { Heart } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { RiEditLine } from '@remixicon/react';
@@ -22,7 +21,6 @@ import { PrioritySelector } from './priority-selector';
 import { AssigneeSelector } from './assignee-selector';
 import { ProjectSelector } from './project-selector';
 import { LabelSelector } from './label-selector';
-import { DialogTitle } from '@radix-ui/react-dialog';
 
 export function CreateNewIssue() {
    const [createMore, setCreateMore] = useState<boolean>(false);
@@ -119,18 +117,7 @@ export function CreateNewIssue() {
             </Button>
          </DialogTrigger>
          <DialogContent className="w-full sm:max-w-[750px] p-0 shadow-xl top-[30%]">
-            <DialogHeader>
-               <DialogTitle>
-                  <div className="flex items-center px-4 pt-4 gap-2">
-                     <Button size="sm" variant="outline" className="gap-1.5">
-                        <Heart className="size-4 text-orange-500 fill-orange-500" />
-                        <span className="font-medium">CORE</span>
-                     </Button>
-                  </div>
-               </DialogTitle>
-            </DialogHeader>
-
-            <div className="px-4 pb-0 space-y-3 w-full">
+            <div className="px-4 pt-4 pb-0 space-y-3 w-full">
                <Input
                   className="border-none w-full shadow-none outline-none text-2xl font-medium px-0 h-auto focus-visible:ring-0 overflow-hidden text-ellipsis whitespace-normal break-words"
                   placeholder="Issue title"

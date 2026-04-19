@@ -1,7 +1,5 @@
 import type { User } from '@/lib/models';
 
-const avatarUrl = (seed: string) => `https://api.dicebear.com/9.x/glass/svg?seed=${seed}`;
-
 export const statusUserColors = {
    online: '#00cc66',
    offline: '#969696',
@@ -11,7 +9,7 @@ export const statusUserColors = {
 export const currentUser: User = {
    id: 'me',
    name: 'vcntttt',
-   avatarUrl: avatarUrl('vcntttt'),
+   avatarUrl: 'https://i.pinimg.com/736x/bd/1f/b6/bd1fb6cf9d218514d9ed9a8022153dd2.jpg',
    email: 'local@circle.dev',
    status: 'online',
    role: 'Admin',
