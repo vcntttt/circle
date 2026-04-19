@@ -16,8 +16,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import type { ProjectOptionLike } from '@/lib/projects-presentation';
 import { toast } from 'sonner';
-import { createProject as createProjectMutation } from '@/src/server/projects';
+import {
+   createProject as createProjectMutation,
+   getProjectPriorityList,
+   getProjectStatusList,
+} from '@/src/server/projects';
 
 interface CreateProjectDialogProps {
    disabled?: boolean;
@@ -28,6 +33,8 @@ export function CreateProjectDialog({ disabled = false }: CreateProjectDialogPro
    const [open, setOpen] = useState(false);
    const [isPending, setIsPending] = useState(false);
    const [error, setError] = useState<string | null>(null);
+   const [statusOptions, setStatusOptions] = useState<ProjectOptionLike[]>([]);
+   const [priorityOptions, setPriorityOptions] = useState<ProjectOptionLike[]>([]);
    const formRef = useRef<HTMLFormElement>(null);
 
    useEffect(() => {
@@ -35,6 +42,24 @@ export function CreateProjectDialog({ disabled = false }: CreateProjectDialogPro
          setError(null);
       }
    }, [open]);
+
+   useEffect(() => {
+      let isMounted = true;
+
+      void Promise.all([getProjectStatusList(), getProjectPriorityList()])
+         .then(([statusesResult, prioritiesResult]) => {
+            if (!isMounted) return;
+            setStatusOptions(statusesResult as ProjectOptionLike[]);
+            setPriorityOptions(prioritiesResult as ProjectOptionLike[]);
+         })
+         .catch((loadError) => {
+            console.error('Failed to load project options.', loadError);
+         });
+
+      return () => {
+         isMounted = false;
+      };
+   }, []);
 
    const createProject = async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
@@ -49,6 +74,7 @@ export function CreateProjectDialog({ disabled = false }: CreateProjectDialogPro
                name: formData.get('name'),
                description: formData.get('description') ?? '',
                status: formData.get('status'),
+               priority: formData.get('priority') ?? 'no-priority',
             },
          });
 
@@ -103,22 +129,42 @@ export function CreateProjectDialog({ disabled = false }: CreateProjectDialogPro
                   <select
                      id="status"
                      name="status"
-                     defaultValue="backlog"
+                     defaultValue={statusOptions[0]?.id ?? 'backlog'}
                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors outline-none"
                   >
-                     <option value="backlog">Backlog</option>
-                     <option value="to-do">Todo</option>
-                     <option value="in-progress">In Progress</option>
-                     <option value="technical-review">Technical Review</option>
-                     <option value="paused">Paused</option>
-                     <option value="completed">Completed</option>
+                     {statusOptions.map((statusOption) => (
+                        <option key={statusOption.id} value={statusOption.id}>
+                           {statusOption.name}
+                        </option>
+                     ))}
+                  </select>
+               </div>
+
+               <div className="space-y-2">
+                  <Label htmlFor="priority">Priority</Label>
+                  <select
+                     id="priority"
+                     name="priority"
+                     defaultValue={priorityOptions[0]?.id ?? 'no-priority'}
+                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors outline-none"
+                  >
+                     {priorityOptions.map((priorityOption) => (
+                        <option key={priorityOption.id} value={priorityOption.id}>
+                           {priorityOption.name}
+                        </option>
+                     ))}
                   </select>
                </div>
 
                {error && <p className="text-sm text-destructive">{error}</p>}
 
                <DialogFooter>
-                  <Button type="submit" disabled={isPending}>
+                  <Button
+                     type="submit"
+                     disabled={
+                        isPending || statusOptions.length === 0 || priorityOptions.length === 0
+                     }
+                  >
                      {isPending ? 'Creating...' : 'Create project'}
                   </Button>
                </DialogFooter>

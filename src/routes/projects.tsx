@@ -19,11 +19,17 @@ export const Route = createFileRoute('/projects')({
 });
 
 function ProjectsPage() {
-   const { projects, databaseError, isConnected } = Route.useLoaderData();
+   const { projects, statusOptions, priorityOptions, databaseError, isConnected } =
+      Route.useLoaderData();
 
    return (
       <MainLayout header={<Header count={projects.length} isConnected={isConnected} />}>
-         <Projects projects={projects} databaseError={databaseError} />
+         <Projects
+            projects={projects}
+            statusOptions={statusOptions}
+            priorityOptions={priorityOptions}
+            databaseError={databaseError}
+         />
       </MainLayout>
    );
 }

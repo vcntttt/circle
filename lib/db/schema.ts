@@ -1,11 +1,36 @@
-import { pgTable, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { integer, pgTable, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+
+export const projectStatuses = pgTable('project_statuses', {
+   id: text('id').primaryKey(),
+   name: text('name').notNull().unique(),
+   color: text('color').notNull().default('#94a3b8'),
+   position: integer('position').notNull().default(0),
+   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const projectPriorities = pgTable('project_priorities', {
+   id: text('id').primaryKey(),
+   name: text('name').notNull().unique(),
+   color: text('color').notNull().default('#94a3b8'),
+   position: integer('position').notNull().default(0),
+   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
 
 export const projects = pgTable('projects', {
    id: uuid('id').defaultRandom().primaryKey(),
    name: text('name').notNull(),
    slug: text('slug').notNull().unique(),
    description: text('description'),
-   status: text('status').notNull().default('active'),
+   status: text('status')
+      .notNull()
+      .default('backlog')
+      .references(() => projectStatuses.id),
+   priority: text('priority')
+      .notNull()
+      .default('no-priority')
+      .references(() => projectPriorities.id),
    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
@@ -51,6 +76,10 @@ export const issueLabels = pgTable(
 
 export type Project = typeof projects.$inferSelect;
 export type NewProject = typeof projects.$inferInsert;
+export type ProjectStatus = typeof projectStatuses.$inferSelect;
+export type NewProjectStatus = typeof projectStatuses.$inferInsert;
+export type ProjectPriority = typeof projectPriorities.$inferSelect;
+export type NewProjectPriority = typeof projectPriorities.$inferInsert;
 export type Issue = typeof issues.$inferSelect;
 export type NewIssue = typeof issues.$inferInsert;
 export type Label = typeof labels.$inferSelect;

@@ -15,7 +15,9 @@ import {
    UserRound,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import type { ProjectOptionLike } from '@/lib/projects-presentation';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
+import { ProjectOptionsSettings } from './project-options-settings';
 
 interface Feature {
    icon: ReactNode;
@@ -213,7 +215,15 @@ const GuideCard = ({ guide }: { guide: Guide }) => {
    );
 };
 
-export default function Settings() {
+interface SettingsProps {
+   initialProjectStatuses: ProjectOptionLike[];
+   initialProjectPriorities: ProjectOptionLike[];
+}
+
+export default function Settings({
+   initialProjectStatuses,
+   initialProjectPriorities,
+}: SettingsProps) {
    return (
       <div className="w-full max-w-7xl mx-auto px-8 py-8">
          <div className="mb-10">
@@ -259,6 +269,16 @@ export default function Settings() {
                   <GuideCard key={index} guide={guide} />
                ))}
             </div>
+         </div>
+
+         <div className="mb-10" id="project-workflow">
+            <div className="flex items-center justify-between mb-6">
+               <h2 className="text-xl font-semibold">Project workflow</h2>
+            </div>
+            <ProjectOptionsSettings
+               initialStatuses={initialProjectStatuses}
+               initialPriorities={initialProjectPriorities}
+            />
          </div>
       </div>
    );

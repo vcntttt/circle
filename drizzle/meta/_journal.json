@@ -15,6 +15,13 @@
          "when": 1775520387606,
          "tag": "0001_lame_agent_zero",
          "breakpoints": true
+      },
+      {
+         "idx": 2,
+         "version": "7",
+         "when": 1776624261283,
+         "tag": "0002_absent_thaddeus_ross",
+         "breakpoints": true
       }
    ]
 }

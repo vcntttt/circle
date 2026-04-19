@@ -39,6 +39,7 @@ import { useIssuesStore } from '@/store/issues-store';
 import { useLabelOptions } from '@/hooks/use-label-options';
 import { useProjectOptions } from '@/hooks/use-project-options';
 import { archivedStatus, issueStatusOptions, priorities } from '@/lib/ui-catalog';
+import { usePinnedProjectsStore } from '@/store/pinned-projects-store';
 import { toast } from 'sonner';
 
 interface IssueContextMenuProps {
@@ -50,6 +51,7 @@ export function IssueContextMenu({ issueId }: IssueContextMenuProps) {
    const [isFavorite, setIsFavorite] = useState(false);
    const labels = useLabelOptions();
    const projects = useProjectOptions();
+   const { isPinned, togglePinnedProject } = usePinnedProjectsStore();
 
    const {
       updateIssueStatus,
@@ -114,6 +116,20 @@ export function IssueContextMenu({ issueId }: IssueContextMenuProps) {
       const newProject = projectId ? projects.find((p) => p.id === projectId) : undefined;
       updateIssueProject(issueId, newProject);
       toast.success(newProject ? `Project set to ${newProject.name}` : 'Project removed');
+   };
+
+   const handleToggleProjectPin = () => {
+      if (!issueId) return;
+
+      const issue = getIssueById(issueId);
+      if (!issue?.project) {
+         toast.error('This issue has no project to pin');
+         return;
+      }
+
+      const pinned = isPinned(issue.project.id);
+      togglePinnedProject(issue.project.id);
+      toast.success(pinned ? `Unpinned ${issue.project.name}` : `Pinned ${issue.project.name}`);
    };
 
    const handleSetDueDate = () => {
@@ -270,6 +286,10 @@ export function IssueContextMenu({ issueId }: IssueContextMenuProps) {
                         <project.icon className="size-4" /> {project.name}
                      </ContextMenuItem>
                   ))}
+                  <ContextMenuSeparator />
+                  <ContextMenuItem onClick={handleToggleProjectPin}>
+                     <Star className="size-4" /> Pin/unpin current project
+                  </ContextMenuItem>
                </ContextMenuSubContent>
             </ContextMenuSub>
 

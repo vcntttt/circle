@@ -11,9 +11,11 @@ import {
    CommandSeparator,
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import type { ProjectOptionLike } from '@/lib/projects-presentation';
+import { getProjectPriorityList } from '@/src/server/projects';
 import { health as allHealth, priorities } from '@/lib/ui-catalog';
 import { useProjectsFilterStore } from '@/store/projects-filter-store';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
    ArrowUpDown,
    BarChart3,
@@ -28,9 +30,27 @@ type FilterType = 'health' | 'priority' | 'sort';
 export function Filter() {
    const [open, setOpen] = useState(false);
    const [active, setActive] = useState<FilterType | null>(null);
+   const [priorityOptions, setPriorityOptions] = useState<ProjectOptionLike[]>([]);
 
    const { filters, sort, toggleFilter, clearFilters, getActiveFiltersCount, setSort } =
       useProjectsFilterStore();
+
+   useEffect(() => {
+      let isMounted = true;
+
+      void getProjectPriorityList()
+         .then((result) => {
+            if (!isMounted) return;
+            setPriorityOptions(result as ProjectOptionLike[]);
+         })
+         .catch((error) => {
+            console.error('Failed to load project priorities for filters.', error);
+         });
+
+      return () => {
+         isMounted = false;
+      };
+   }, []);
 
    return (
       <Popover open={open} onOpenChange={setOpen}>
@@ -164,20 +184,26 @@ export function Filter() {
                   <CommandList>
                      <CommandEmpty>No priorities found.</CommandEmpty>
                      <CommandGroup>
-                        {priorities.map((p) => (
-                           <CommandItem
-                              key={p.id}
-                              value={`${p.id} ${p.name}`}
-                              onSelect={() => toggleFilter('priority', p.id)}
-                              className="flex items-center justify-between"
-                           >
-                              <div className="flex items-center gap-2">
-                                 <p.icon className="text-muted-foreground size-4" />
-                                 {p.name}
-                              </div>
-                              {filters.priority.includes(p.id) && <CheckIcon size={16} />}
-                           </CommandItem>
-                        ))}
+                        {priorityOptions.map((p) => {
+                           const Icon =
+                              priorities.find((priority) => priority.id === p.id)?.icon ??
+                              priorities[0].icon;
+
+                           return (
+                              <CommandItem
+                                 key={p.id}
+                                 value={`${p.id} ${p.name}`}
+                                 onSelect={() => toggleFilter('priority', p.id)}
+                                 className="flex items-center justify-between"
+                              >
+                                 <div className="flex items-center gap-2">
+                                    <Icon className="text-muted-foreground size-4" />
+                                    {p.name}
+                                 </div>
+                                 {filters.priority.includes(p.id) && <CheckIcon size={16} />}
+                              </CommandItem>
+                           );
+                        })}
                      </CommandGroup>
                   </CommandList>
                </Command>

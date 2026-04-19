@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useId, useState } from 'react';
+import { CheckIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
    Command,
@@ -10,33 +12,36 @@ import {
    CommandList,
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { type ProjectOptionLike } from '@/lib/projects-presentation';
 import { status as allStatus, type Status } from '@/lib/ui-catalog';
-import { CheckIcon } from 'lucide-react';
-import { useId, useState } from 'react';
 
 interface StatusWithPercentProps {
    status: Status;
-   percentComplete: number;
+   options: ProjectOptionLike[];
    onStatusChange?: (statusId: string) => void;
 }
 
-export function StatusWithPercent({
-   status,
-   percentComplete,
-   onStatusChange,
-}: StatusWithPercentProps) {
+const statusIconMap: Record<string, Status['icon']> = Object.fromEntries(
+   allStatus.map((item) => [item.id, item.icon])
+);
+
+export function StatusWithPercent({ status, options, onStatusChange }: StatusWithPercentProps) {
    const id = useId();
    const [open, setOpen] = useState<boolean>(false);
    const [value, setValue] = useState<string>(status.id);
 
+   useEffect(() => {
+      setValue(status.id);
+   }, [status.id]);
+
    const handleStatusChange = (statusId: string) => {
       setValue(statusId);
       setOpen(false);
-
-      if (onStatusChange) {
-         onStatusChange(statusId);
-      }
+      onStatusChange?.(statusId);
    };
+
+   const selectedOption = options.find((item) => item.id === value);
+   const SelectedIcon = statusIconMap[value] ?? allStatus[allStatus.length - 1].icon;
 
    return (
       <Popover open={open} onOpenChange={setOpen}>
@@ -49,30 +54,26 @@ export function StatusWithPercent({
                role="combobox"
                aria-expanded={open}
             >
-               {(() => {
-                  const selectedItem = allStatus.find((item) => item.id === value);
-                  if (selectedItem) {
-                     const Icon = selectedItem.icon;
-                     return <Icon />;
-                  }
-                  return null;
-               })()}
-               <span className="text-xs font-medium mt-[1px]">{percentComplete}%</span>
+               <SelectedIcon />
+               <span className="text-xs font-medium mt-[1px]">
+                  {selectedOption?.name ?? status.name}
+               </span>
             </Button>
          </PopoverTrigger>
-         <PopoverContent className="border-input w-48 p-0" align="start">
+         <PopoverContent className="border-input w-56 p-0" align="start">
             <Command>
                <CommandInput placeholder="Set status..." />
                <CommandList>
                   <CommandEmpty>No status found.</CommandEmpty>
                   <CommandGroup>
-                     {allStatus.map((item) => {
-                        const Icon = item.icon;
+                     {options.map((item) => {
+                        const Icon = statusIconMap[item.id] ?? allStatus[allStatus.length - 1].icon;
+
                         return (
                            <CommandItem
                               key={item.id}
-                              value={item.id}
-                              onSelect={handleStatusChange}
+                              value={`${item.id} ${item.name}`}
+                              onSelect={() => handleStatusChange(item.id)}
                               className="flex items-center justify-between"
                            >
                               <div className="flex items-center gap-2">
