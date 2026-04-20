@@ -8,7 +8,7 @@ export const Route = createFileRoute('/projects')({
    loader: () => getProjectsPage(),
    head: () => ({
       meta: [
-         { title: 'Projects | Circle Personal Fork' },
+         { title: 'Projects | Circle' },
          {
             name: 'description',
             content: 'Projects backed by PostgreSQL for the personal Circle tracker.',

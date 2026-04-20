@@ -14,7 +14,7 @@ export const Route = createFileRoute('/issues/$issueIdentifier')({
       return result;
    },
    head: ({ params }) => ({
-      meta: [{ title: `${params.issueIdentifier} | Circle Personal Fork` }],
+      meta: [{ title: `${params.issueIdentifier} | Circle` }],
    }),
    component: IssueDetailPage,
 });

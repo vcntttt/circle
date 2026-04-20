@@ -17,7 +17,7 @@ export const Route = createFileRoute('/settings')({
       };
    },
    head: () => ({
-      meta: [{ title: 'Settings | Circle Personal Fork' }],
+      meta: [{ title: 'Settings | Circle' }],
    }),
    component: SettingsPage,
 });

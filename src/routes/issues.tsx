@@ -13,7 +13,7 @@ export const Route = createFileRoute('/issues')({
    validateSearch: (search) => issuesSearchSchema.parse(search),
    head: () => ({
       meta: [
-         { title: 'Issues | Circle Personal Fork' },
+         { title: 'Issues | Circle' },
          { name: 'description', content: 'Issue tracking for the personal Circle workspace.' },
       ],
    }),
