@@ -19,7 +19,10 @@ export const Route = createRootRoute({
                'Fork personal de Circle, una UI inspirada en Linear, recortada para gestionar proyectos, issues y etiquetas.',
          },
       ],
-      links: [{ rel: 'stylesheet', href: globalsCss }],
+      links: [
+         { rel: 'stylesheet', href: globalsCss },
+         { rel: 'icon', type: 'image/svg+xml', href: '/images/icon.svg' },
+      ],
    }),
    notFoundComponent: NotFoundComponent,
    component: RootComponent,
