@@ -10,6 +10,7 @@ import {
    getProjectPriorityOptions,
    getProjectStatusOptions,
    getProjectsPageData,
+   reorderProjectStatusOptions,
    updateProjectPriorityOption,
    updateProjectRecord,
    updateProjectStatusOption,
@@ -51,6 +52,10 @@ const updateProjectOptionSchema = z.object({
 
 const deleteProjectOptionSchema = z.object({
    id: z.string().trim().min(1),
+});
+
+const reorderProjectOptionsSchema = z.object({
+   ids: z.array(z.string().trim().min(1)).min(1),
 });
 
 export const getProjectOptions = createServerFn({ method: 'GET' }).handler(async () => {
@@ -129,6 +134,13 @@ export const deleteProjectStatus = createServerFn({ method: 'POST' })
    .inputValidator((data: unknown) => deleteProjectOptionSchema.parse(data))
    .handler(async ({ data }) => {
       await deleteProjectStatusOption(data.id);
+      return { ok: true };
+   });
+
+export const reorderProjectStatuses = createServerFn({ method: 'POST' })
+   .inputValidator((data: unknown) => reorderProjectOptionsSchema.parse(data))
+   .handler(async ({ data }) => {
+      await reorderProjectStatusOptions(data);
       return { ok: true };
    });
 

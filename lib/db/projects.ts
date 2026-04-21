@@ -51,6 +51,10 @@ export interface SaveProjectOptionInput {
    color: string;
 }
 
+export interface ReorderProjectOptionsInput {
+   ids: string[];
+}
+
 function toOptionId(value: string): string {
    return value
       .toLowerCase()
@@ -416,6 +420,23 @@ export async function updateProjectPriorityOption(
    }
 
    return updated[0];
+}
+
+export async function reorderProjectStatusOptions(
+   input: ReorderProjectOptionsInput
+): Promise<void> {
+   if (!db) {
+      throw new Error('Database unavailable.');
+   }
+
+   await db.transaction(async (tx) => {
+      for (let index = 0; index < input.ids.length; index += 1) {
+         await tx
+            .update(schema.projectStatuses)
+            .set({ position: index, updatedAt: new Date() })
+            .where(eq(schema.projectStatuses.id, input.ids[index]));
+      }
+   });
 }
 
 export async function deleteProjectPriorityOption(id: string): Promise<void> {

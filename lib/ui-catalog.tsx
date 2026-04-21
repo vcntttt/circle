@@ -304,10 +304,10 @@ export const status: Status[] = [
       color: '#22c55e',
       icon: TechnicalReviewIcon,
    },
-   { id: 'completed', name: 'Completed', color: '#8b5cf6', icon: CompletedIcon },
    { id: 'paused', name: 'Paused', color: '#0ea5e9', icon: PausedIcon },
    { id: 'to-do', name: 'Todo', color: '#f97316', icon: ToDoIcon },
    { id: 'backlog', name: 'Backlog', color: '#ec4899', icon: BacklogIcon },
+   { id: 'completed', name: 'Completed', color: '#8b5cf6', icon: CompletedIcon },
 ];
 
 export const archivedStatus: Status = {

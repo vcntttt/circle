@@ -234,6 +234,16 @@ export default function Settings({
             </p>
          </div>
 
+         <div className="mb-10" id="project-workflow">
+            <div className="flex items-center justify-between mb-6">
+               <h2 className="text-xl font-semibold">Project workflow</h2>
+            </div>
+            <ProjectOptionsSettings
+               initialStatuses={initialProjectStatuses}
+               initialPriorities={initialProjectPriorities}
+            />
+         </div>
+
          <div className="mb-10" id="general">
             <div className="flex items-center justify-between mb-6">
                <h2 className="text-xl font-semibold">Core setup</h2>
@@ -269,16 +279,6 @@ export default function Settings({
                   <GuideCard key={index} guide={guide} />
                ))}
             </div>
-         </div>
-
-         <div className="mb-10" id="project-workflow">
-            <div className="flex items-center justify-between mb-6">
-               <h2 className="text-xl font-semibold">Project workflow</h2>
-            </div>
-            <ProjectOptionsSettings
-               initialStatuses={initialProjectStatuses}
-               initialPriorities={initialProjectPriorities}
-            />
          </div>
       </div>
    );

@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from 'react';
 import { CheckIcon, PlusIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import {
    Command,
    CommandEmpty,
@@ -61,14 +60,10 @@ export function LabelSelector({ issueId }: { issueId: string }) {
                      </Badge>
                   ))
                ) : (
-                  <Button
-                     variant="outline"
-                     size="sm"
-                     className="h-7 rounded-full text-muted-foreground"
-                  >
+                  <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-input bg-background px-3 text-sm text-muted-foreground">
                      <PlusIcon className="size-3.5" />
                      Add label
-                  </Button>
+                  </span>
                )}
             </button>
          </PopoverTrigger>
