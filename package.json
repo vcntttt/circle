@@ -8,6 +8,7 @@
       "build": "vite build",
       "start": "node .output/server/index.mjs",
       "start:docker": "pnpm db:migrate && node .output/server/index.mjs",
+      "deploy": "bash ../dokploy/scripts/deploy.sh circle",
       "lint": "eslint .",
       "format": "prettier --write .",
       "db:generate": "drizzle-kit generate",
