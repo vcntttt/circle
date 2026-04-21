@@ -23,10 +23,13 @@ function IssueDetailPage() {
    const { issues, databaseError } = Route.useLoaderData();
    const { issueIdentifier } = Route.useParams();
    const { projectId } = Route.useSearch();
+   const filteredIssues = projectId
+      ? issues.filter((issue) => issue.project?.id === projectId)
+      : issues;
 
    return (
       <IssuesWorkspace
-         initialIssues={issues}
+         initialIssues={filteredIssues}
          databaseError={databaseError}
          selectedIssueIdentifier={issueIdentifier}
          projectFilterId={projectId}

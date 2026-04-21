@@ -1,5 +1,7 @@
 # Circle Personal Fork
 
+![Banner de Circle](./public/banner.png)
+
 Este repositorio es un fork de Circle, una interfaz de gestion de proyectos inspirada en Linear.
 
 Esta version esta siendo adaptada para uso personal. El objetivo no es reconstruir Linear completo, sino convertir la base visual original en una herramienta simple y usable para gestionar proyectos, issues y etiquetas.

@@ -10,10 +10,13 @@ export const Route = createFileRoute('/issues/')({
 function IssuesIndexPage() {
    const { issues, databaseError } = Route.useLoaderData();
    const { projectId } = Route.useSearch();
+   const filteredIssues = projectId
+      ? issues.filter((issue) => issue.project?.id === projectId)
+      : issues;
 
    return (
       <IssuesWorkspace
-         initialIssues={issues}
+         initialIssues={filteredIssues}
          databaseError={databaseError}
          projectFilterId={projectId}
       />

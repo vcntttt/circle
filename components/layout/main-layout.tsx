@@ -2,6 +2,8 @@ import React from 'react';
 import { AppSidebar } from '@/components/layout/sidebar/app-sidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { CreateIssueModalProvider } from '@/components/common/issues/create-issue-modal-provider';
+import { GlobalShortcuts } from '@/components/common/shortcuts/global-shortcuts';
+import { ShortcutsHelpProvider } from '@/components/common/shortcuts/shortcuts-help-provider';
 import { cn } from '@/lib/utils';
 
 interface MainLayoutProps {
@@ -34,6 +36,8 @@ export default function MainLayout({ children, header, headersNumber = 2 }: Main
    return (
       <SidebarProvider>
          <CreateIssueModalProvider />
+         <ShortcutsHelpProvider />
+         <GlobalShortcuts />
          <AppSidebar />
          <div className="h-svh overflow-hidden lg:p-2 w-full">
             <div className="lg:border lg:rounded-md overflow-hidden flex flex-col items-center justify-start bg-container h-full w-full">

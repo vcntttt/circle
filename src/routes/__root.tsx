@@ -22,6 +22,8 @@ export const Route = createRootRoute({
       links: [
          { rel: 'stylesheet', href: globalsCss },
          { rel: 'icon', type: 'image/svg+xml', href: '/images/icon.svg' },
+         { rel: 'icon', type: 'image/png', href: '/images/icon.png' },
+         { rel: 'apple-touch-icon', href: '/images/icon.png' },
       ],
    }),
    notFoundComponent: NotFoundComponent,
@@ -58,6 +60,7 @@ function NotFoundComponent() {
    return (
       <div className="min-h-svh flex items-center justify-center p-6 bg-background text-foreground">
          <div className="w-full max-w-md rounded-lg border bg-card p-6 space-y-4 text-center">
+            <img src="/images/icon.svg" alt="Circle" className="size-7 mx-auto" />
             <h1 className="text-lg font-semibold">Page not found</h1>
             <p className="text-sm text-muted-foreground">
                The route does not exist in the personal Circle workspace.

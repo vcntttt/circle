@@ -1,5 +1,6 @@
 'use client';
 
+import type { Project } from '@/lib/models';
 import { Button } from '@/components/ui/button';
 import { useCreateIssueStore } from '@/store/create-issue-store';
 import { Input } from '@/components/ui/input';
@@ -11,9 +12,11 @@ import { useEffect, useRef } from 'react';
 interface HeaderNavProps {
    count: number;
    isConnected: boolean;
+   projectTitle?: string;
+   project?: Project;
 }
 
-export default function HeaderNav({ count, isConnected }: HeaderNavProps) {
+export default function HeaderNav({ count, isConnected, projectTitle, project }: HeaderNavProps) {
    const { openModal } = useCreateIssueStore();
    const { isSearchOpen, toggleSearch, closeSearch, setSearchQuery, searchQuery } =
       useSearchStore();
@@ -51,7 +54,7 @@ export default function HeaderNav({ count, isConnected }: HeaderNavProps) {
          <div className="flex items-center gap-3">
             <SidebarTrigger className="" />
             <div className="flex items-center gap-1">
-               <span className="text-sm font-medium">Issues</span>
+               <span className="text-sm font-medium">{projectTitle ?? 'Issues'}</span>
                <span className="text-xs bg-accent rounded-md px-1.5 py-1">{count}</span>
             </div>
             {isSearchOpen ? (
@@ -110,7 +113,7 @@ export default function HeaderNav({ count, isConnected }: HeaderNavProps) {
                className="relative"
                size="xs"
                variant="secondary"
-               onClick={() => openModal()}
+               onClick={() => openModal(undefined, project)}
                disabled={!isConnected}
             >
                <Plus className="size-4" />

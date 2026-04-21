@@ -14,8 +14,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RiGithubLine } from '@remixicon/react';
+import { useShortcutsHelpStore } from '@/store/shortcuts-help-store';
 
 export function HelpButton() {
+   const { open } = useShortcutsHelpStore();
+
    return (
       <DropdownMenu>
          <DropdownMenuTrigger asChild>
@@ -32,10 +35,10 @@ export function HelpButton() {
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuLabel>Shortcuts</DropdownMenuLabel>
-            <DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => open()}>
                <Keyboard className="mr-2 h-4 w-4" />
                <span>Keyboard shortcuts</span>
-               <span className="ml-auto text-xs text-muted-foreground">⌘/</span>
+               <span className="ml-auto text-xs text-muted-foreground">?</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuLabel>Resources</DropdownMenuLabel>

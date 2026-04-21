@@ -24,7 +24,7 @@ import { LabelSelector } from './label-selector';
 
 export function CreateNewIssue() {
    const [createMore, setCreateMore] = useState<boolean>(false);
-   const { isOpen, defaultStatus, openModal, closeModal } = useCreateIssueStore();
+   const { isOpen, defaultStatus, defaultProject, openModal, closeModal } = useCreateIssueStore();
    const { addIssue, getAllIssues } = useIssuesStore();
 
    const generateUniqueIdentifier = useCallback(() => {
@@ -59,13 +59,13 @@ export function CreateNewIssue() {
          labels: [],
          createdAt: new Date().toISOString(),
          cycleId: '',
-         project: undefined,
+         project: defaultProject ?? undefined,
          subissues: [],
          rank: latestRank
             ? LexoRank.from(latestRank).increment().toString()
             : new LexoRank('a3c').toString(),
       };
-   }, [defaultStatus, generateUniqueIdentifier, getAllIssues]);
+   }, [defaultProject, defaultStatus, generateUniqueIdentifier, getAllIssues]);
 
    const [addIssueForm, setAddIssueForm] = useState<Issue>(createDefaultData());
 
@@ -91,6 +91,7 @@ export function CreateNewIssue() {
                rank: addIssueForm.rank,
                dueDate: addIssueForm.dueDate ?? null,
                projectName: addIssueForm.project?.name ?? null,
+               // Keep the server contract aligned with project-by-name creation.
                labelNames: addIssueForm.labels.map((label) => label.name),
             },
          });

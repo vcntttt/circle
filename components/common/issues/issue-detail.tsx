@@ -30,8 +30,14 @@ export function IssueDetail({
    mobileBack?: boolean;
 }) {
    const navigate = useNavigate();
-   const { getIssueById, updateIssueContent, deleteIssue, archiveIssue, updateIssueProject } =
-      useIssuesStore();
+   const {
+      getIssueById,
+      addIssue,
+      updateIssueContent,
+      deleteIssue,
+      archiveIssue,
+      updateIssueProject,
+   } = useIssuesStore();
    const presentationIssue = useMemo(
       () => getIssueById(issueId) ?? initialIssue ?? null,
       [getIssueById, issueId, initialIssue]
@@ -43,6 +49,14 @@ export function IssueDetail({
       setTitle(presentationIssue?.title ?? '');
       setDescription(presentationIssue?.description ?? '');
    }, [presentationIssue?.title, presentationIssue?.description]);
+
+   useEffect(() => {
+      if (!presentationIssue) return;
+      if (getIssueById(issueId)) return;
+
+      // Seed the detail view issue into the store so label edits can persist immediately.
+      addIssue(presentationIssue);
+   }, [addIssue, getIssueById, issueId, presentationIssue]);
 
    if (!presentationIssue) {
       return (
