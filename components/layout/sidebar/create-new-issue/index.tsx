@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverAnchor } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,8 +17,6 @@ import {
    useCallback,
    useMemo,
    useRef,
-   type ClipboardEvent,
-   type FormEvent,
    type KeyboardEvent,
    type ReactNode,
 } from 'react';
@@ -123,85 +122,29 @@ function renderTitlePreviewSegment(segment: TitlePreviewSegment, index: number):
       return <span key={`text-${index}`}>{segment.value}</span>;
    }
 
-   const Icon = segment.type === 'project' ? segment.project.icon : undefined;
-   const accentColor = segment.type === 'project' ? undefined : segment.label.color;
+   const accentColor =
+      segment.type === 'project'
+         ? 'color-mix(in oklab, var(--secondary) 88%, transparent)'
+         : `color-mix(in srgb, ${segment.label.color} 24%, transparent)`;
+   const borderColor =
+      segment.type === 'project'
+         ? 'color-mix(in oklab, var(--border) 85%, transparent)'
+         : `color-mix(in srgb, ${segment.label.color} 58%, var(--border))`;
 
    return (
-      <Badge
+      <span
          key={`${segment.type}-${segment.value}-${index}`}
-         variant="secondary"
-         className="mx-0.5 inline-flex h-9 max-w-[14rem] shrink-0 items-center gap-1.5 rounded-full border border-border/70 bg-background/85 px-3 text-xl font-medium text-foreground shadow-sm backdrop-blur-sm overflow-hidden"
+         className="rounded-[0.65em] text-foreground"
+         style={{
+            backgroundColor: accentColor,
+            boxShadow: `inset 0 0 0 1px ${borderColor}`,
+            boxDecorationBreak: 'clone',
+            WebkitBoxDecorationBreak: 'clone',
+         }}
       >
-         {segment.type === 'project' ? (
-            Icon ? (
-               <Icon className="size-4 shrink-0" />
-            ) : (
-               <span className="size-2.5 rounded-full bg-foreground/60" />
-            )
-         ) : (
-            <span
-               className="size-2.5 shrink-0 rounded-full"
-               style={{ backgroundColor: accentColor }}
-               aria-hidden="true"
-            />
-         )}
-         <span className="min-w-0 truncate">{segment.value}</span>
-      </Badge>
+         {segment.value}
+      </span>
    );
-}
-
-function getEditorSelectionOffset(root: HTMLElement): number {
-   const selection = window.getSelection();
-
-   if (!selection || selection.rangeCount === 0) {
-      return root.textContent?.length ?? 0;
-   }
-
-   const range = selection.getRangeAt(0);
-
-   if (!root.contains(range.startContainer)) {
-      return root.textContent?.length ?? 0;
-   }
-
-   const currentRange = range.cloneRange();
-   currentRange.selectNodeContents(root);
-   currentRange.setEnd(range.startContainer, range.startOffset);
-   return currentRange.toString().length;
-}
-
-function setEditorSelectionOffset(root: HTMLElement, offset: number) {
-   const selection = window.getSelection();
-
-   if (!selection) {
-      return;
-   }
-
-   const boundedOffset = Math.max(0, Math.min(offset, root.textContent?.length ?? 0));
-   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-   let currentNode = walker.nextNode();
-   let currentOffset = boundedOffset;
-
-   while (currentNode) {
-      const nodeLength = currentNode.textContent?.length ?? 0;
-
-      if (currentOffset <= nodeLength) {
-         const range = document.createRange();
-         range.setStart(currentNode, currentOffset);
-         range.collapse(true);
-         selection.removeAllRanges();
-         selection.addRange(range);
-         return;
-      }
-
-      currentOffset -= nodeLength;
-      currentNode = walker.nextNode();
-   }
-
-   const range = document.createRange();
-   range.selectNodeContents(root);
-   range.collapse(false);
-   selection.removeAllRanges();
-   selection.addRange(range);
 }
 
 export function CreateNewIssue() {
@@ -212,7 +155,7 @@ export function CreateNewIssue() {
    const [titleCaretPosition, setTitleCaretPosition] = useState(0);
    const [pendingCaretPosition, setPendingCaretPosition] = useState<number | null>(null);
    const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
-   const titleEditorRef = useRef<HTMLDivElement | null>(null);
+   const titleInputRef = useRef<HTMLInputElement | null>(null);
    const { isOpen, defaultStatus, defaultProject, openModal, closeModal } = useCreateIssueStore();
    const { addIssue, getAllIssues } = useIssuesStore();
    const projectOptions = useProjectOptions();
@@ -282,10 +225,10 @@ export function CreateNewIssue() {
          return;
       }
 
-      const editor = titleEditorRef.current;
-      if (editor) {
-         editor.focus();
-         setEditorSelectionOffset(editor, pendingCaretPosition);
+      const input = titleInputRef.current;
+      if (input) {
+         input.focus();
+         input.setSelectionRange(pendingCaretPosition, pendingCaretPosition);
       }
 
       setTitleCaretPosition(pendingCaretPosition);
@@ -307,15 +250,14 @@ export function CreateNewIssue() {
          return;
       }
 
-      const editor = titleEditorRef.current;
-
-      if (!editor) {
+      const input = titleInputRef.current;
+      if (!input) {
          return;
       }
 
       const frame = window.requestAnimationFrame(() => {
-         editor.focus();
-         setEditorSelectionOffset(editor, addIssueForm.title.length);
+         input.focus();
+         input.setSelectionRange(addIssueForm.title.length, addIssueForm.title.length);
       });
 
       return () => window.cancelAnimationFrame(frame);
@@ -360,29 +302,6 @@ export function CreateNewIssue() {
       setTitleCaretPosition(selectionStart ?? value.length);
    };
 
-   const syncTitleSelection = () => {
-      const editor = titleEditorRef.current;
-
-      if (!editor) {
-         return;
-      }
-
-      setTitleCaretPosition(getEditorSelectionOffset(editor));
-   };
-
-   const handleTitleInput = (event: FormEvent<HTMLDivElement>) => {
-      const selectionOffset = getEditorSelectionOffset(event.currentTarget);
-      const value = event.currentTarget.textContent?.replace(/\n/g, ' ') ?? '';
-      handleTitleCaretChange(value, selectionOffset);
-      setPendingCaretPosition(selectionOffset);
-   };
-
-   const handleTitlePaste = (event: ClipboardEvent<HTMLDivElement>) => {
-      event.preventDefault();
-      const text = event.clipboardData.getData('text/plain').replace(/\s+/g, ' ');
-      document.execCommand('insertText', false, text);
-   };
-
    const handleInlineSuggestionSelect = (index: number) => {
       const suggestion = inlineSuggestion;
 
@@ -408,11 +327,7 @@ export function CreateNewIssue() {
       setActiveSuggestionIndex(0);
    };
 
-   const handleTitleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-      if (event.key === 'Enter') {
-         event.preventDefault();
-      }
-
+   const handleTitleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
       if (!inlineSuggestion || inlineSuggestion.items.length === 0) {
          return;
       }
@@ -501,32 +416,42 @@ export function CreateNewIssue() {
                <Popover open={Boolean(inlineSuggestion)}>
                   <PopoverAnchor asChild>
                      <div className="relative w-full">
-                        {addIssueForm.title.length === 0 && (
-                           <span
-                              aria-hidden="true"
-                              className="pointer-events-none absolute left-0 top-1 text-2xl font-medium leading-tight text-muted-foreground"
-                           >
-                              Issue title
-                           </span>
-                        )}
                         <div
-                           ref={titleEditorRef}
-                           role="textbox"
-                           contentEditable
-                           suppressContentEditableWarning
-                           aria-label="Issue title"
-                           className="relative z-10 min-h-10 w-full bg-transparent py-1 text-2xl font-medium leading-tight text-foreground outline-none focus-visible:ring-0 whitespace-pre-wrap break-words"
-                           onInput={handleTitleInput}
-                           onPaste={handleTitlePaste}
-                           onClick={syncTitleSelection}
-                           onKeyUp={syncTitleSelection}
-                           onMouseUp={syncTitleSelection}
+                           aria-hidden="true"
+                           className="pointer-events-none absolute inset-0 flex items-center overflow-hidden px-0 py-1 text-2xl font-medium leading-tight"
+                        >
+                           {titlePreviewSegments.length > 0 ? (
+                              <div className="whitespace-pre-wrap break-words text-foreground">
+                                 {titlePreviewSegments.map(renderTitlePreviewSegment)}
+                              </div>
+                           ) : (
+                              <span className="text-muted-foreground">Issue title</span>
+                           )}
+                        </div>
+                        <Input
+                           ref={titleInputRef}
+                           className="relative z-10 w-full border-none bg-transparent px-0 py-1 text-2xl md:text-2xl font-medium leading-tight text-transparent shadow-none outline-none caret-foreground placeholder:text-transparent focus-visible:ring-0 overflow-hidden text-ellipsis whitespace-normal break-words"
+                           placeholder="Issue title"
+                           value={addIssueForm.title}
+                           onChange={(event) =>
+                              handleTitleCaretChange(
+                                 event.target.value,
+                                 event.currentTarget.selectionStart
+                              )
+                           }
+                           onClick={(event) =>
+                              setTitleCaretPosition(event.currentTarget.selectionStart ?? 0)
+                           }
+                           onKeyUp={(event) =>
+                              setTitleCaretPosition(event.currentTarget.selectionStart ?? 0)
+                           }
+                           onSelect={(event) =>
+                              setTitleCaretPosition(event.currentTarget.selectionStart ?? 0)
+                           }
                            onFocus={() => setTitleFocused(true)}
                            onBlur={() => setTitleFocused(false)}
                            onKeyDown={handleTitleKeyDown}
-                        >
-                           {titlePreviewSegments.map(renderTitlePreviewSegment)}
-                        </div>
+                        />
                      </div>
                   </PopoverAnchor>
                   <InlineTokenSuggestions
