@@ -144,7 +144,6 @@ export function IssueDetail({
                      </Link>
                   </Button>
                )}
-               <span className="text-sm font-medium truncate">{presentationIssue.identifier}</span>
                <span className="text-xs text-muted-foreground hidden sm:inline-block">
                   Created {format(new Date(presentationIssue.createdAt), 'MMM dd, yyyy')}
                </span>

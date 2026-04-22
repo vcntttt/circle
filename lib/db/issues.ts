@@ -1,5 +1,7 @@
 import { asc, eq, inArray } from 'drizzle-orm';
 import { db, schema } from './index';
+import { getProjectStatusOptions } from './projects';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface IssueListItem {
    id: string;
@@ -31,6 +33,7 @@ export interface IssueListItem {
 
 interface IssuesPageData {
    issues: IssueListItem[];
+   statusOptions: Awaited<ReturnType<typeof getProjectStatusOptions>>;
    databaseError: string | null;
    isConnected: boolean;
 }
@@ -232,7 +235,7 @@ export async function createIssueRecord(input: CreateIssueInput): Promise<IssueL
    const inserted = await db
       .insert(schema.issues)
       .values({
-         identifier: input.identifier,
+         identifier: uuidv4(),
          title: input.title,
          description: input.description || null,
          status: input.status,
@@ -352,6 +355,7 @@ export async function getIssuesPageData(): Promise<IssuesPageData> {
    if (!db) {
       return {
          issues: [],
+         statusOptions: [],
          databaseError:
             'DATABASE_URL is missing. Add it to your local environment before loading issues.',
          isConnected: false,
@@ -359,10 +363,14 @@ export async function getIssuesPageData(): Promise<IssuesPageData> {
    }
 
    try {
-      const joinedRows = await selectIssueRows();
+      const [joinedRows, statusOptions] = await Promise.all([
+         selectIssueRows(),
+         getProjectStatusOptions(),
+      ]);
 
       return {
          issues: mapIssueRows(joinedRows),
+         statusOptions,
          databaseError: null,
          isConnected: true,
       };
@@ -371,6 +379,7 @@ export async function getIssuesPageData(): Promise<IssuesPageData> {
 
       return {
          issues: [],
+         statusOptions: [],
          databaseError:
             'The issues list could not be loaded from PostgreSQL. Check the connection and run the migrations before opening this page.',
          isConnected: false,

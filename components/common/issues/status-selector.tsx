@@ -11,10 +11,11 @@ import {
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useIssuesStore } from '@/store/issues-store';
-import { issueStatusOptions as allStatus, type Status } from '@/lib/ui-catalog';
+import { type Status } from '@/lib/ui-catalog';
 import { CheckIcon } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 import { renderStatusIcon } from '@/lib/status-utils';
+import { useIssuesStatuses } from './issues-status-context';
 
 interface StatusSelectorProps {
    status: Status;
@@ -25,6 +26,7 @@ export function StatusSelector({ status, issueId }: StatusSelectorProps) {
    const id = useId();
    const [open, setOpen] = useState<boolean>(false);
    const [value, setValue] = useState<string>(status.id);
+   const allStatus = useIssuesStatuses();
 
    const { updateIssueStatus, filterByStatus } = useIssuesStore();
 

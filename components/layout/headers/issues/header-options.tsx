@@ -23,7 +23,14 @@ const propertyLabels: Record<IssueDisplayProperty, string> = {
 };
 
 export default function HeaderOptions() {
-   const { viewType, setViewType, visibleProperties, toggleProperty } = useViewStore();
+   const {
+      viewType,
+      setViewType,
+      visibleProperties,
+      toggleProperty,
+      showEmptyStatuses,
+      setShowEmptyStatuses,
+   } = useViewStore();
 
    const handleViewChange = (type: ViewType) => {
       setViewType(type);
@@ -81,6 +88,20 @@ export default function HeaderOptions() {
                         {propertyLabels[property]}
                      </DropdownMenuCheckboxItem>
                   ))}
+               </div>
+
+               <DropdownMenuSeparator />
+
+               <div className="space-y-1">
+                  <DropdownMenuLabel className="px-0 text-xs text-muted-foreground">
+                     Statuses without issues
+                  </DropdownMenuLabel>
+                  <DropdownMenuCheckboxItem
+                     checked={showEmptyStatuses}
+                     onCheckedChange={setShowEmptyStatuses}
+                  >
+                     Show empty statuses
+                  </DropdownMenuCheckboxItem>
                </div>
             </DropdownMenuContent>
          </DropdownMenu>

@@ -30,7 +30,6 @@ function IssueDragPreview({ issue }: { issue: Issue }) {
          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-1.5">
                <PrioritySelector priority={issue.priority} issueId={issue.id} />
-               <span className="text-xs text-muted-foreground font-medium">{issue.identifier}</span>
             </div>
             <StatusSelector status={issue.status} issueId={issue.id} />
          </div>
@@ -136,9 +135,6 @@ export function IssueGrid({ issue, isSelected = false, onSelect }: IssueGridProp
                      onMouseDownCapture={(event) => event.stopPropagation()}
                   >
                      <PrioritySelector priority={issue.priority} issueId={issue.id} />
-                     <span className="text-xs text-muted-foreground font-medium">
-                        {issue.identifier}
-                     </span>
                   </div>
                   <div onMouseDownCapture={(event) => event.stopPropagation()}>
                      <StatusSelector status={issue.status} issueId={issue.id} />

@@ -16,7 +16,7 @@ import { useLabelOptions } from '@/hooks/use-label-options';
 import { useProjectOptions } from '@/hooks/use-project-options';
 import { useIssuesStore } from '@/store/issues-store';
 import { useFilterStore } from '@/store/filter-store';
-import { status as allStatus, priorities } from '@/lib/ui-catalog';
+import { priorities } from '@/lib/ui-catalog';
 import {
    CheckIcon,
    ChevronRight,
@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useIssuesStatuses } from '@/components/common/issues/issues-status-context';
 
 // Define filter types
 type FilterType = 'status' | 'assignee' | 'priority' | 'labels' | 'project';
@@ -38,6 +39,7 @@ export function Filter() {
    const [activeFilter, setActiveFilter] = useState<FilterType | null>(null);
    const labels = useLabelOptions();
    const projects = useProjectOptions();
+   const allStatus = useIssuesStatuses();
 
    const { filters, toggleFilter, clearFilters, getActiveFiltersCount } = useFilterStore();
 

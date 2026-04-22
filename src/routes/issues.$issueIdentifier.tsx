@@ -20,7 +20,7 @@ export const Route = createFileRoute('/issues/$issueIdentifier')({
 });
 
 function IssueDetailPage() {
-   const { issues, databaseError } = Route.useLoaderData();
+   const { issues, statusOptions, databaseError } = Route.useLoaderData();
    const { issueIdentifier } = Route.useParams();
    const { projectId } = Route.useSearch();
    const filteredIssues = projectId
@@ -30,6 +30,7 @@ function IssueDetailPage() {
    return (
       <IssuesWorkspace
          initialIssues={filteredIssues}
+         initialStatuses={statusOptions}
          databaseError={databaseError}
          selectedIssueIdentifier={issueIdentifier}
          projectFilterId={projectId}

@@ -6,7 +6,7 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { IssueListItem } from '@/lib/db/issues';
 import { toPresentationIssue } from '@/lib/issues-presentation';
-import { type Issue, archivedStatus, status } from '@/lib/ui-catalog';
+import { type Issue, archivedStatus } from '@/lib/ui-catalog';
 import { cn } from '@/lib/utils';
 import { useFilterStore } from '@/store/filter-store';
 import { useIssuesStore } from '@/store/issues-store';
@@ -17,9 +17,12 @@ import { CustomDragLayer } from './issue-grid';
 import { GroupIssues } from './group-issues';
 import { IssueDetail } from './issue-detail';
 import { SearchIssues } from './search-issues';
+import { IssuesStatusProvider, useIssuesStatuses } from './issues-status-context';
+import type { ProjectOptionLike } from '@/lib/projects-presentation';
 
 interface IssuesWorkspaceProps {
    initialIssues: IssueListItem[];
+   initialStatuses: ProjectOptionLike[];
    databaseError: string | null;
    selectedIssueIdentifier?: string;
    projectFilterId?: string;
@@ -27,6 +30,7 @@ interface IssuesWorkspaceProps {
 
 export function IssuesWorkspace({
    initialIssues,
+   initialStatuses,
    databaseError,
    selectedIssueIdentifier,
    projectFilterId,
@@ -34,11 +38,12 @@ export function IssuesWorkspace({
    const { replaceIssues, issues, filterIssues } = useIssuesStore();
    const { isSearchOpen, searchQuery } = useSearchStore();
    const { filters, hasActiveFilters } = useFilterStore();
+   const { showEmptyStatuses } = useViewStore();
    const navigate = useNavigate();
 
    const hydratedIssues = useMemo(
-      () => initialIssues.map((issue) => toPresentationIssue(issue)),
-      [initialIssues]
+      () => initialIssues.map((issue) => toPresentationIssue(issue, initialStatuses)),
+      [initialIssues, initialStatuses]
    );
 
    useLayoutEffect(() => {
@@ -83,55 +88,59 @@ export function IssuesWorkspace({
    }
 
    return (
-      <DndProvider backend={HTML5Backend}>
-         <CustomDragLayer />
-         <div className="h-full w-full">
-            <div className={cn('h-full lg:hidden', selectedIssue ? 'hidden' : 'block')}>
-               <IssuesListPanel
-                  issues={filteredIssues}
-                  isSearching={isSearching}
-                  selectedIssueIdentifier={selectedIssueIdentifier}
-                  onSelectIssue={handleSelectIssue}
-               />
-            </div>
-
-            <div className={cn('h-full lg:hidden', selectedIssue ? 'block' : 'hidden')}>
-               {selectedIssue ? (
-                  <IssueDetail
-                     issueId={selectedIssue.id}
-                     initialIssue={selectedIssue}
-                     onDelete={handleDelete}
-                     onArchive={handleArchive}
-                     mobileBack
-                  />
-               ) : null}
-            </div>
-
-            <ResizablePanelGroup direction="horizontal" className="hidden lg:flex h-full w-full">
-               <ResizablePanel defaultSize={60} minSize={32}>
+      <IssuesStatusProvider statuses={initialStatuses}>
+         <DndProvider backend={HTML5Backend}>
+            <CustomDragLayer />
+            <div className="h-full w-full">
+               <div className={cn('h-full lg:hidden', selectedIssue ? 'hidden' : 'block')}>
                   <IssuesListPanel
                      issues={filteredIssues}
+                     showEmptyStatuses={showEmptyStatuses}
                      isSearching={isSearching}
                      selectedIssueIdentifier={selectedIssueIdentifier}
                      onSelectIssue={handleSelectIssue}
                   />
-               </ResizablePanel>
-               <ResizableHandle withHandle />
-               <ResizablePanel defaultSize={40} minSize={28}>
+               </div>
+
+               <div className={cn('h-full lg:hidden', selectedIssue ? 'block' : 'hidden')}>
                   {selectedIssue ? (
                      <IssueDetail
                         issueId={selectedIssue.id}
                         initialIssue={selectedIssue}
                         onDelete={handleDelete}
                         onArchive={handleArchive}
+                        mobileBack
                      />
-                  ) : (
-                     <EmptyPreview />
-                  )}
-               </ResizablePanel>
-            </ResizablePanelGroup>
-         </div>
-      </DndProvider>
+                  ) : null}
+               </div>
+
+               <ResizablePanelGroup direction="horizontal" className="hidden lg:flex h-full w-full">
+                  <ResizablePanel defaultSize={60} minSize={32}>
+                     <IssuesListPanel
+                        issues={filteredIssues}
+                        showEmptyStatuses={showEmptyStatuses}
+                        isSearching={isSearching}
+                        selectedIssueIdentifier={selectedIssueIdentifier}
+                        onSelectIssue={handleSelectIssue}
+                     />
+                  </ResizablePanel>
+                  <ResizableHandle withHandle />
+                  <ResizablePanel defaultSize={40} minSize={28}>
+                     {selectedIssue ? (
+                        <IssueDetail
+                           issueId={selectedIssue.id}
+                           initialIssue={selectedIssue}
+                           onDelete={handleDelete}
+                           onArchive={handleArchive}
+                        />
+                     ) : (
+                        <EmptyPreview />
+                     )}
+                  </ResizablePanel>
+               </ResizablePanelGroup>
+            </div>
+         </DndProvider>
+      </IssuesStatusProvider>
    );
 
    function handleDelete(deletedIssueId: string) {
@@ -173,17 +182,27 @@ export function IssuesWorkspace({
 
 function IssuesListPanel({
    issues,
+   showEmptyStatuses,
    isSearching,
    selectedIssueIdentifier,
    onSelectIssue,
 }: {
    issues: ReturnType<typeof useIssuesStore.getState>['issues'];
+   showEmptyStatuses: boolean;
    isSearching: boolean;
    selectedIssueIdentifier?: string;
    onSelectIssue: (issue: Issue) => void;
 }) {
    const { viewType } = useViewStore();
    const isViewTypeGrid = viewType === 'grid';
+   const statuses = useIssuesStatuses();
+   const displayedStatuses = useMemo(() => {
+      if (showEmptyStatuses) {
+         return statuses;
+      }
+
+      return statuses.filter((status) => issues.some((issue) => issue.status.id === status.id));
+   }, [issues, showEmptyStatuses, statuses]);
 
    return (
       <div className="h-full w-full overflow-hidden border-r border-border/60 bg-container">
@@ -197,7 +216,7 @@ function IssuesListPanel({
          ) : (
             <div className={cn('h-full overflow-auto', isViewTypeGrid && 'overflow-x-auto')}>
                <div className={cn(isViewTypeGrid && 'flex h-full gap-3 px-2 py-2 min-w-max')}>
-                  {status.map((statusItem) => {
+                  {displayedStatuses.map((statusItem) => {
                      const issuesByStatus = issues.filter(
                         (issue) => issue.status.id === statusItem.id
                      );

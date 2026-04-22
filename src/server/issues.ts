@@ -9,7 +9,6 @@ import {
 } from '@/lib/db/issues';
 
 const createIssueSchema = z.object({
-   identifier: z.string().trim().min(1),
    title: z.string().trim().min(1),
    description: z.string().trim().optional(),
    status: z.string().trim().min(1),

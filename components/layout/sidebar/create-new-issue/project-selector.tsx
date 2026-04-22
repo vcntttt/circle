@@ -11,6 +11,7 @@ import {
    CommandList,
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Kbd } from '@/components/ui/kbd';
 import { useIssuesStore } from '@/store/issues-store';
 import type { Project } from '@/lib/models';
 import { Box, CheckIcon, FolderIcon } from 'lucide-react';
@@ -19,15 +20,19 @@ import { useEffect, useId, useState } from 'react';
 interface ProjectSelectorProps {
    project: Project | undefined;
    onChange: (project: Project | undefined) => void;
+   open?: boolean;
+   onOpenChange?: (open: boolean) => void;
 }
 
-export function ProjectSelector({ project, onChange }: ProjectSelectorProps) {
+export function ProjectSelector({ project, onChange, open, onOpenChange }: ProjectSelectorProps) {
    const id = useId();
-   const [open, setOpen] = useState<boolean>(false);
+   const [internalOpen, setInternalOpen] = useState<boolean>(false);
    const [value, setValue] = useState<string | undefined>(project?.id);
    const projects = useProjectOptions();
 
    const { filterByProject } = useIssuesStore();
+   const isOpen = open ?? internalOpen;
+   const setOpen = onOpenChange ?? setInternalOpen;
 
    useEffect(() => {
       setValue(project?.id);
@@ -49,15 +54,17 @@ export function ProjectSelector({ project, onChange }: ProjectSelectorProps) {
 
    return (
       <div className="*:not-first:mt-2">
-         <Popover open={open} onOpenChange={setOpen}>
+         <Popover open={isOpen} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
                <Button
                   id={id}
-                  className="flex items-center justify-center"
+                  className="flex items-center gap-1.5"
                   size="xs"
                   variant="secondary"
                   role="combobox"
-                  aria-expanded={open}
+                  title="Open project picker (Alt+P)"
+                  aria-expanded={isOpen}
+                  aria-keyshortcuts="Alt+P"
                >
                   {value ? (
                      (() => {
@@ -71,7 +78,10 @@ export function ProjectSelector({ project, onChange }: ProjectSelectorProps) {
                   ) : (
                      <Box className="size-4" />
                   )}
-                  <span>{value ? projects.find((p) => p.id === value)?.name : 'No project'}</span>
+                  <span className="max-w-[160px] truncate">
+                     {value ? projects.find((p) => p.id === value)?.name : 'No project'}
+                  </span>
+                  <Kbd className="ml-auto">Alt+P</Kbd>
                </Button>
             </PopoverTrigger>
             <PopoverContent
@@ -79,12 +89,12 @@ export function ProjectSelector({ project, onChange }: ProjectSelectorProps) {
                align="start"
             >
                <Command>
-                  <CommandInput placeholder="Set project..." />
+                  <CommandInput autoFocus placeholder="Set project..." />
                   <CommandList>
                      <CommandEmpty>No projects found.</CommandEmpty>
                      <CommandGroup>
                         <CommandItem
-                           value="no-project"
+                           value="no project no-project none"
                            onSelect={() => handleProjectChange('no-project')}
                            className="flex items-center justify-between"
                         >
@@ -97,7 +107,7 @@ export function ProjectSelector({ project, onChange }: ProjectSelectorProps) {
                         {projects.map((project) => (
                            <CommandItem
                               key={project.id}
-                              value={project.id}
+                              value={`${project.name} ${project.id}`}
                               onSelect={() => handleProjectChange(project.id)}
                               className="flex items-center justify-between"
                            >

@@ -6,8 +6,10 @@ export type IssueDisplayProperty = 'labels' | 'project' | 'assignee' | 'createdA
 
 interface ViewState {
    viewType: ViewType;
+   showEmptyStatuses: boolean;
    visibleProperties: Record<IssueDisplayProperty, boolean>;
    setViewType: (viewType: ViewType) => void;
+   setShowEmptyStatuses: (showEmptyStatuses: boolean) => void;
    toggleProperty: (property: IssueDisplayProperty) => void;
 }
 
@@ -15,6 +17,7 @@ export const useViewStore = create<ViewState>()(
    persist(
       (set) => ({
          viewType: 'list',
+         showEmptyStatuses: true,
          visibleProperties: {
             labels: true,
             project: true,
@@ -22,6 +25,7 @@ export const useViewStore = create<ViewState>()(
             createdAt: true,
          },
          setViewType: (viewType: ViewType) => set({ viewType }),
+         setShowEmptyStatuses: (showEmptyStatuses: boolean) => set({ showEmptyStatuses }),
          toggleProperty: (property: IssueDisplayProperty) =>
             set((state) => ({
                visibleProperties: {

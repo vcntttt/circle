@@ -51,9 +51,6 @@ export function IssueLine({
                   onMouseDownCapture={(event) => event.stopPropagation()}
                >
                   <PrioritySelector priority={issue.priority} issueId={issue.id} />
-                  <span className="text-sm hidden sm:inline-block text-muted-foreground font-medium w-[66px] truncate shrink-0 mr-0.5">
-                     {issue.identifier}
-                  </span>
                   <StatusSelector status={issue.status} issueId={issue.id} />
                </div>
                <div className="min-w-0 flex items-center justify-start mr-1 ml-0.5">

@@ -7,6 +7,7 @@ import {
    DialogHeader,
    DialogTitle,
 } from '@/components/ui/dialog';
+import { Kbd, KbdGroup } from '@/components/ui/kbd';
 import { useShortcutsHelpStore } from '@/store/shortcuts-help-store';
 
 const shortcuts = [
@@ -14,6 +15,16 @@ const shortcuts = [
       action: 'Create issue',
       keys: 'C',
       context: 'Issues',
+   },
+   {
+      action: 'Open project picker',
+      keys: 'Alt + P',
+      context: 'New issue modal',
+   },
+   {
+      action: 'Open tag picker',
+      keys: 'Alt + L',
+      context: 'New issue modal',
    },
    {
       action: 'Search issues',
@@ -62,7 +73,7 @@ export function ShortcutsHelpProvider() {
                </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
                {shortcuts.map((shortcut) => (
                   <div
                      key={`${shortcut.action}-${shortcut.keys}`}
@@ -72,9 +83,14 @@ export function ShortcutsHelpProvider() {
                         <p className="text-sm font-medium">{shortcut.action}</p>
                         <p className="text-xs text-muted-foreground">{shortcut.context}</p>
                      </div>
-                     <kbd className="rounded border bg-muted px-2 py-1 text-xs font-medium">
-                        {shortcut.keys}
-                     </kbd>
+                     <KbdGroup>
+                        {shortcut.keys.split(' + ').map((part, index, parts) => (
+                           <span key={`${part}-${index}`} className="flex items-center gap-1">
+                              <Kbd>{part}</Kbd>
+                              {index < parts.length - 1 && <span>+</span>}
+                           </span>
+                        ))}
+                     </KbdGroup>
                   </div>
                ))}
             </div>

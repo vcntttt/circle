@@ -38,9 +38,10 @@ import { currentUser, personalAssigneeOptions } from '@/lib/current-user';
 import { useIssuesStore } from '@/store/issues-store';
 import { useLabelOptions } from '@/hooks/use-label-options';
 import { useProjectOptions } from '@/hooks/use-project-options';
-import { archivedStatus, issueStatusOptions, priorities } from '@/lib/ui-catalog';
+import { archivedStatus, priorities } from '@/lib/ui-catalog';
 import { usePinnedProjectsStore } from '@/store/pinned-projects-store';
 import { toast } from 'sonner';
+import { useIssuesStatuses } from './issues-status-context';
 
 interface IssueContextMenuProps {
    issueId?: string;
@@ -51,6 +52,7 @@ export function IssueContextMenu({ issueId }: IssueContextMenuProps) {
    const [isFavorite, setIsFavorite] = useState(false);
    const labels = useLabelOptions();
    const projects = useProjectOptions();
+   const issueStatusOptions = useIssuesStatuses();
    const { isPinned, togglePinnedProject } = usePinnedProjectsStore();
 
    const {

@@ -10,24 +10,33 @@ import {
    CommandList,
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Kbd } from '@/components/ui/kbd';
 import { useLabelOptions } from '@/hooks/use-label-options';
 import { useIssuesStore } from '@/store/issues-store';
 import type { LabelInterface } from '@/lib/models';
 import { CheckIcon, TagIcon } from 'lucide-react';
 import { useId, useState } from 'react';
-import { cn } from '@/lib/utils';
 
 interface LabelSelectorProps {
    selectedLabels: LabelInterface[];
    onChange: (labels: LabelInterface[]) => void;
+   open?: boolean;
+   onOpenChange?: (open: boolean) => void;
 }
 
-export function LabelSelector({ selectedLabels, onChange }: LabelSelectorProps) {
+export function LabelSelector({
+   selectedLabels,
+   onChange,
+   open,
+   onOpenChange,
+}: LabelSelectorProps) {
    const id = useId();
-   const [open, setOpen] = useState<boolean>(false);
+   const [internalOpen, setInternalOpen] = useState<boolean>(false);
    const labels = useLabelOptions();
 
    const { filterByLabel } = useIssuesStore();
+   const isOpen = open ?? internalOpen;
+   const setOpen = onOpenChange ?? setInternalOpen;
 
    const handleLabelToggle = (label: LabelInterface) => {
       const isSelected = selectedLabels.some((l) => l.id === label.id);
@@ -44,19 +53,18 @@ export function LabelSelector({ selectedLabels, onChange }: LabelSelectorProps) 
 
    return (
       <div className="*:not-first:mt-2">
-         <Popover open={open} onOpenChange={setOpen}>
+         <Popover open={isOpen} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
                <Button
                   id={id}
-                  className={cn(
-                     'flex items-center justify-center',
-                     selectedLabels.length === 0 && 'size-7'
-                  )}
-                  size={selectedLabels.length > 0 ? 'xs' : 'icon'}
+                  className="flex items-center gap-1.5"
+                  size="xs"
                   variant="secondary"
                   role="combobox"
-                  aria-expanded={open}
+                  title="Open tag picker (Alt+L)"
+                  aria-expanded={isOpen}
                   aria-controls={`${id}-content`}
+                  aria-keyshortcuts="Alt+L"
                >
                   <TagIcon className="size-4" />
                   {selectedLabels.length > 0 && (
@@ -70,6 +78,12 @@ export function LabelSelector({ selectedLabels, onChange }: LabelSelectorProps) 
                         ))}
                      </div>
                   )}
+                  <span className="max-w-[140px] truncate">
+                     {selectedLabels.length > 0
+                        ? `${selectedLabels.length} label${selectedLabels.length === 1 ? '' : 's'}`
+                        : 'No labels'}
+                  </span>
+                  <Kbd className="ml-auto">Alt+L</Kbd>
                </Button>
             </PopoverTrigger>
             <PopoverContent
@@ -78,7 +92,7 @@ export function LabelSelector({ selectedLabels, onChange }: LabelSelectorProps) 
                align="start"
             >
                <Command>
-                  <CommandInput placeholder="Search labels..." />
+                  <CommandInput autoFocus placeholder="Search labels..." />
                   <CommandList>
                      <CommandEmpty>No labels found.</CommandEmpty>
                      <CommandGroup>
@@ -87,7 +101,7 @@ export function LabelSelector({ selectedLabels, onChange }: LabelSelectorProps) 
                            return (
                               <CommandItem
                                  key={label.id}
-                                 value={label.id}
+                                 value={`${label.name} ${label.id}`}
                                  onSelect={() => handleLabelToggle(label)}
                                  className="flex items-center justify-between"
                               >
