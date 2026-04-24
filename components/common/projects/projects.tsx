@@ -1,11 +1,14 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import ProjectLine from '@/components/common/projects/project-line';
+import { ProjectBoard } from '@/components/common/projects/project-board';
 import {
    type ProjectLike,
    type ProjectOptionLike,
    toPresentationProject,
 } from '@/lib/projects-presentation';
+import type { ProjectUpdate } from '@/lib/models';
 import { useProjectsFilterStore } from '@/store/projects-filter-store';
 import { useProjectsViewStore } from '@/store/projects-view-store';
 
@@ -22,10 +25,23 @@ export default function Projects({
    priorityOptions,
    databaseError,
 }: ProjectsProps) {
-   const { visibleProperties } = useProjectsViewStore();
+   const { viewType, visibleProperties } = useProjectsViewStore();
    const { filters, sort } = useProjectsFilterStore();
+   const [projectRows, setProjectRows] = useState(projects);
 
-   const presentationProjects = projects.map((project) =>
+   useEffect(() => {
+      setProjectRows(projects);
+   }, [projects]);
+
+   const handleProjectUpdate = (projectId: string, update: ProjectUpdate) => {
+      setProjectRows((rows) =>
+         rows.map((project) =>
+            project.id === projectId ? { ...project, latestUpdate: update } : project
+         )
+      );
+   };
+
+   const presentationProjects = projectRows.map((project) =>
       toPresentationProject(project, statusOptions, priorityOptions)
    );
 
@@ -64,7 +80,7 @@ export default function Projects({
       );
    }
 
-   if (projects.length === 0) {
+   if (projectRows.length === 0) {
       return (
          <div className="w-full p-6">
             <div className="rounded-lg border bg-container p-6 max-w-2xl">
@@ -90,7 +106,13 @@ export default function Projects({
       );
    }
 
-   return (
+   return viewType === 'board' ? (
+      <ProjectBoard
+         projects={visibleProjects}
+         statusOptions={statusOptions}
+         priorityOptions={priorityOptions}
+      />
+   ) : (
       <div className="w-full">
          <div className="bg-container px-6 py-1.5 text-sm flex items-center text-muted-foreground border-b sticky top-0 z-10">
             <div className="flex-1 min-w-0">Title</div>
@@ -119,6 +141,7 @@ export default function Projects({
                   visibleProperties={visibleProperties}
                   statusOptions={statusOptions}
                   priorityOptions={priorityOptions}
+                  onProjectUpdate={handleProjectUpdate}
                />
             ))}
          </div>

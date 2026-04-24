@@ -47,6 +47,24 @@ export interface Project {
    lead: User;
    priority: Priority;
    health: Health;
+   latestUpdate: ProjectUpdate | null;
+}
+
+export interface ProjectUpdate {
+   id: string;
+   projectId: string;
+   health: Health['id'];
+   body: string;
+   createdAt: string;
+   updatedAt: string;
+}
+
+export interface ProjectTimelineUpdate extends ProjectUpdate {
+   project: {
+      id: string;
+      name: string;
+      slug: string;
+   };
 }
 
 export interface Issue {
@@ -61,7 +79,21 @@ export interface Issue {
    createdAt: string;
    cycleId: string;
    project?: Project;
-   subissues?: string[];
+   parentIssueId?: string | null;
+   parent?: {
+      id: string;
+      identifier: string;
+      title: string;
+   } | null;
+   subissues: Array<{
+      id: string;
+      identifier: string;
+      title: string;
+      status: Status;
+      priority: Priority;
+      assignee: User | null;
+      parentIssueId?: string | null;
+   }>;
    rank: string;
    dueDate?: string;
    estimatedHours?: number;

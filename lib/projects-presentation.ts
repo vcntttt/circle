@@ -23,6 +23,14 @@ export interface ProjectLike {
    status: string;
    priority?: string;
    description?: string | null;
+   latestUpdate?: {
+      id: string;
+      projectId: string;
+      health: PresentationProject['health']['id'];
+      body: string;
+      createdAt: string;
+      updatedAt: string;
+   } | null;
    createdAt: string;
 }
 
@@ -39,14 +47,7 @@ const priorityIconMap: Record<string, Priority['icon']> = Object.fromEntries(
    priorities.map((item) => [item.id, item.icon])
 );
 
-const statusToHealth = {
-   'backlog': health.find((item) => item.id === 'no-update') ?? health[0],
-   'to-do': health.find((item) => item.id === 'no-update') ?? health[0],
-   'in-progress': health.find((item) => item.id === 'on-track') ?? health[0],
-   'technical-review': health.find((item) => item.id === 'at-risk') ?? health[0],
-   'paused': health.find((item) => item.id === 'off-track') ?? health[0],
-   'completed': health.find((item) => item.id === 'on-track') ?? health[0],
-};
+const noUpdateHealth = health.find((item) => item.id === 'no-update') ?? health[0];
 
 function resolveStatus(
    statusId: string,
@@ -94,6 +95,9 @@ export const toPresentationProject = (
       startDate: project.createdAt,
       lead: currentUser,
       priority: resolvePriority(project.priority, priorityOptions),
-      health: statusToHealth[project.status as keyof typeof statusToHealth] ?? health[0],
+      health: project.latestUpdate
+         ? (health.find((item) => item.id === project.latestUpdate?.health) ?? health[0])
+         : noUpdateHealth,
+      latestUpdate: project.latestUpdate ?? null,
    };
 };

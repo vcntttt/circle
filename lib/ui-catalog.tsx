@@ -1,5 +1,5 @@
 import type React from 'react';
-import { Box, Layers, Settings, FolderKanban, UserRound, Zap } from 'lucide-react';
+import { Activity, Box, Layers, Settings, FolderKanban, UserRound, Zap } from 'lucide-react';
 import type { Health, Issue, Priority, SidebarItem, Status } from '@/lib/models';
 
 export type {
@@ -357,6 +357,7 @@ export const health: Health[] = [
 export const workspaceItems: SidebarItem[] = [
    { name: 'Issues', url: '/issues', icon: FolderKanban },
    { name: 'Projects', url: '/projects', icon: Box },
+   { name: 'Pulse', url: '/pulse', icon: Activity },
 ];
 
 export const accountItems: SidebarItem[] = [

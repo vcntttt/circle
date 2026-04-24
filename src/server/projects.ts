@@ -4,17 +4,20 @@ import {
    createProjectPriorityOption,
    createProjectRecord,
    createProjectStatusOption,
+   createProjectUpdateRecord,
    deleteProjectPriorityOption,
    deleteProjectStatusOption,
    getAllProjects,
    getProjectPriorityOptions,
    getProjectStatusOptions,
+   getProjectUpdatesPageData,
    getProjectsPageData,
    reorderProjectStatusOptions,
    updateProjectPriorityOption,
    updateProjectRecord,
    updateProjectStatusOption,
 } from '@/lib/db/projects';
+import type { ProjectLatestUpdate, ProjectTimelineUpdate } from '@/lib/db/projects';
 
 const createProjectSchema = z.object({
    name: z.string().trim().min(2).max(120),
@@ -32,6 +35,14 @@ const updateProjectSchema = z
    .refine((value) => value.status !== undefined || value.priority !== undefined, {
       message: 'At least one project field must be provided.',
    });
+
+const projectHealthSchema = z.enum(['no-update', 'off-track', 'on-track', 'at-risk']);
+
+const createProjectUpdateSchema = z.object({
+   projectId: z.string().trim().min(1),
+   health: projectHealthSchema,
+   body: z.string().trim().min(1).max(2000),
+});
 
 const projectOptionSchema = z.object({
    name: z.string().trim().min(1).max(80),
@@ -58,11 +69,28 @@ const reorderProjectOptionsSchema = z.object({
    ids: z.array(z.string().trim().min(1)).min(1),
 });
 
+function serializeProjectUpdate(update: ProjectLatestUpdate) {
+   return {
+      ...update,
+      createdAt: update.createdAt.toISOString(),
+      updatedAt: update.updatedAt.toISOString(),
+   };
+}
+
+function serializeTimelineUpdate(update: ProjectTimelineUpdate) {
+   return {
+      ...update,
+      createdAt: update.createdAt.toISOString(),
+      updatedAt: update.updatedAt.toISOString(),
+   };
+}
+
 export const getProjectOptions = createServerFn({ method: 'GET' }).handler(async () => {
    const projects = await getAllProjects();
 
    return projects.map((project) => ({
       ...project,
+      latestUpdate: project.latestUpdate ? serializeProjectUpdate(project.latestUpdate) : null,
       createdAt: project.createdAt.toISOString(),
       updatedAt: project.updatedAt.toISOString(),
    }));
@@ -83,9 +111,19 @@ export const getProjectsPage = createServerFn({ method: 'GET' }).handler(async (
       ...result,
       projects: result.projects.map((project) => ({
          ...project,
+         latestUpdate: project.latestUpdate ? serializeProjectUpdate(project.latestUpdate) : null,
          createdAt: project.createdAt.toISOString(),
          updatedAt: project.updatedAt.toISOString(),
       })),
+   };
+});
+
+export const getProjectUpdatesPage = createServerFn({ method: 'GET' }).handler(async () => {
+   const result = await getProjectUpdatesPageData();
+
+   return {
+      ...result,
+      updates: result.updates.map(serializeTimelineUpdate),
    };
 });
 
@@ -96,6 +134,7 @@ export const createProject = createServerFn({ method: 'POST' })
 
       return {
          ...project,
+         latestUpdate: project.latestUpdate ? serializeProjectUpdate(project.latestUpdate) : null,
          createdAt: project.createdAt.toISOString(),
          updatedAt: project.updatedAt.toISOString(),
       };
@@ -113,9 +152,18 @@ export const updateProject = createServerFn({ method: 'POST' })
 
       return {
          ...project,
+         latestUpdate: project.latestUpdate ? serializeProjectUpdate(project.latestUpdate) : null,
          createdAt: project.createdAt.toISOString(),
          updatedAt: project.updatedAt.toISOString(),
       };
+   });
+
+export const createProjectUpdate = createServerFn({ method: 'POST' })
+   .inputValidator((data: unknown) => createProjectUpdateSchema.parse(data))
+   .handler(async ({ data }) => {
+      const update = await createProjectUpdateRecord(data);
+
+      return serializeProjectUpdate(update);
    });
 
 export const createProjectStatus = createServerFn({ method: 'POST' })

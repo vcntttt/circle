@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as PulseRouteImport } from './routes/pulse'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as IssuesRouteImport } from './routes/issues'
 import { Route as InboxRouteImport } from './routes/inbox'
@@ -29,6 +30,11 @@ import { Route as OrgIdTeamTeamIdAllRouteImport } from './routes/$orgId.team.$te
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PulseRoute = PulseRouteImport.update({
+  id: '/pulse',
+  path: '/pulse',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProjectsRoute = ProjectsRouteImport.update({
@@ -114,6 +120,7 @@ export interface FileRoutesByFullPath {
   '/inbox': typeof InboxRoute
   '/issues': typeof IssuesRouteWithChildren
   '/projects': typeof ProjectsRoute
+  '/pulse': typeof PulseRoute
   '/settings': typeof SettingsRoute
   '/$orgId/inbox': typeof OrgIdInboxRoute
   '/$orgId/issues': typeof OrgIdIssuesRouteWithChildren
@@ -131,6 +138,7 @@ export interface FileRoutesByTo {
   '/$orgId': typeof OrgIdRouteWithChildren
   '/inbox': typeof InboxRoute
   '/projects': typeof ProjectsRoute
+  '/pulse': typeof PulseRoute
   '/settings': typeof SettingsRoute
   '/$orgId/inbox': typeof OrgIdInboxRoute
   '/$orgId/issues': typeof OrgIdIssuesRouteWithChildren
@@ -150,6 +158,7 @@ export interface FileRoutesById {
   '/inbox': typeof InboxRoute
   '/issues': typeof IssuesRouteWithChildren
   '/projects': typeof ProjectsRoute
+  '/pulse': typeof PulseRoute
   '/settings': typeof SettingsRoute
   '/$orgId/inbox': typeof OrgIdInboxRoute
   '/$orgId/issues': typeof OrgIdIssuesRouteWithChildren
@@ -170,6 +179,7 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/issues'
     | '/projects'
+    | '/pulse'
     | '/settings'
     | '/$orgId/inbox'
     | '/$orgId/issues'
@@ -187,6 +197,7 @@ export interface FileRouteTypes {
     | '/$orgId'
     | '/inbox'
     | '/projects'
+    | '/pulse'
     | '/settings'
     | '/$orgId/inbox'
     | '/$orgId/issues'
@@ -205,6 +216,7 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/issues'
     | '/projects'
+    | '/pulse'
     | '/settings'
     | '/$orgId/inbox'
     | '/$orgId/issues'
@@ -224,6 +236,7 @@ export interface RootRouteChildren {
   InboxRoute: typeof InboxRoute
   IssuesRoute: typeof IssuesRouteWithChildren
   ProjectsRoute: typeof ProjectsRoute
+  PulseRoute: typeof PulseRoute
   SettingsRoute: typeof SettingsRoute
 }
 
@@ -234,6 +247,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pulse': {
+      id: '/pulse'
+      path: '/pulse'
+      fullPath: '/pulse'
+      preLoaderRoute: typeof PulseRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/projects': {
@@ -397,6 +417,7 @@ const rootRouteChildren: RootRouteChildren = {
   InboxRoute: InboxRoute,
   IssuesRoute: IssuesRouteWithChildren,
   ProjectsRoute: ProjectsRoute,
+  PulseRoute: PulseRoute,
   SettingsRoute: SettingsRoute,
 }
 export const routeTree = rootRouteImport

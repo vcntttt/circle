@@ -1,18 +1,38 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CircleCheck, CircleX, AlertCircle, HelpCircle, Bell } from 'lucide-react';
-import type { Project } from '@/lib/models';
+import {
+   Select,
+   SelectContent,
+   SelectItem,
+   SelectTrigger,
+   SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { CircleCheck, CircleX, AlertCircle, HelpCircle, Bell, Send } from 'lucide-react';
+import { toast } from 'sonner';
+import type { Project, ProjectUpdate } from '@/lib/models';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import { health as healthOptions } from '@/lib/ui-catalog';
+import { createProjectUpdate } from '@/src/server/projects';
 
 interface HealthPopoverProps {
    project: Project;
+   onProjectUpdate?: (projectId: string, update: ProjectUpdate) => void;
 }
 
-export function HealthPopover({ project }: HealthPopoverProps) {
+export function HealthPopover({ project, onProjectUpdate }: HealthPopoverProps) {
+   const [isComposing, setIsComposing] = useState(false);
+   const [selectedHealth, setSelectedHealth] = useState<Project['health']['id']>(
+      project.health.id === 'no-update' ? 'on-track' : project.health.id
+   );
+   const [body, setBody] = useState('');
+   const [isSubmitting, setIsSubmitting] = useState(false);
+
    const getHealthIcon = (healthId: string) => {
       switch (healthId) {
          case 'on-track':
@@ -28,6 +48,44 @@ export function HealthPopover({ project }: HealthPopoverProps) {
    };
 
    const isMobile = useIsMobile();
+
+   useEffect(() => {
+      setSelectedHealth(project.health.id === 'no-update' ? 'on-track' : project.health.id);
+   }, [project.health.id]);
+   const latestUpdateDate = project.latestUpdate
+      ? new Date(project.latestUpdate.createdAt).toLocaleDateString()
+      : new Date(project.startDate).toLocaleDateString();
+
+   const handleCreateUpdate = async () => {
+      const trimmedBody = body.trim();
+
+      if (!trimmedBody) {
+         toast.error('Project update cannot be empty');
+         return;
+      }
+
+      setIsSubmitting(true);
+
+      try {
+         const update = await createProjectUpdate({
+            data: {
+               projectId: project.id,
+               health: selectedHealth,
+               body: trimmedBody,
+            },
+         });
+
+         onProjectUpdate?.(project.id, update);
+         setBody('');
+         setIsComposing(false);
+         toast.success('Project update posted');
+      } catch (error) {
+         console.error('Failed to create project update.', error);
+         toast.error('Project update could not be posted');
+      } finally {
+         setIsSubmitting(false);
+      }
+   };
 
    return (
       <Popover>
@@ -62,6 +120,7 @@ export function HealthPopover({ project }: HealthPopoverProps) {
                      variant="outline"
                      size="sm"
                      className="h-7 px-2 text-xs flex items-center gap-1"
+                     onClick={() => setIsComposing((value) => !value)}
                   >
                      <Bell className="size-3" />
                      New update
@@ -81,15 +140,61 @@ export function HealthPopover({ project }: HealthPopoverProps) {
                      </Avatar>
                      <span className="text-xs text-muted-foreground">{project.lead.name}</span>
                      <span className="text-xs text-muted-foreground">·</span>
-                     <span className="text-xs text-muted-foreground">
-                        {new Date(project.startDate).toLocaleDateString()}
-                     </span>
+                     <span className="text-xs text-muted-foreground">{latestUpdateDate}</span>
                   </div>
                </div>
 
                <div>
-                  <p className="text-sm text-muted-foreground">{project.health.description}</p>
+                  <p className="text-sm text-muted-foreground">
+                     {project.latestUpdate?.body ?? project.health.description}
+                  </p>
                </div>
+
+               {isComposing && (
+                  <div className="space-y-2 border-t pt-3">
+                     <Select
+                        value={selectedHealth}
+                        onValueChange={(value) =>
+                           setSelectedHealth(value as Project['health']['id'])
+                        }
+                     >
+                        <SelectTrigger className="h-8">
+                           <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                           {healthOptions
+                              .filter((item) => item.id !== 'no-update')
+                              .map((item) => (
+                                 <SelectItem key={item.id} value={item.id}>
+                                    <span className="flex items-center gap-2">
+                                       {getHealthIcon(item.id)}
+                                       {item.name}
+                                    </span>
+                                 </SelectItem>
+                              ))}
+                        </SelectContent>
+                     </Select>
+                     <Textarea
+                        value={body}
+                        onChange={(event) => setBody(event.target.value)}
+                        placeholder="Write a project update..."
+                        className="min-h-24 resize-none text-sm"
+                     />
+                     <div className="flex justify-end">
+                        <Button
+                           size="sm"
+                           className="h-8 gap-1.5"
+                           disabled={isSubmitting}
+                           onClick={() => {
+                              void handleCreateUpdate();
+                           }}
+                        >
+                           <Send className="size-3.5" />
+                           Post update
+                        </Button>
+                     </div>
+                  </div>
+               )}
             </div>
          </PopoverContent>
       </Popover>

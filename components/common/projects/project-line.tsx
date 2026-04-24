@@ -1,24 +1,25 @@
-import { useEffect, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import type { Project } from '@/lib/models';
+import { useState } from 'react';
+import type { Project, ProjectUpdate } from '@/lib/models';
 import type { ProjectOptionLike } from '@/lib/projects-presentation';
 import { ContextMenu, ContextMenuTrigger } from '@/components/ui/context-menu';
 import { usePinnedProjectsStore } from '@/store/pinned-projects-store';
 import type { ProjectDisplayProperty } from '@/store/projects-view-store';
-import { toast } from 'sonner';
-import { updateProject as updateProjectMutation } from '@/src/server/projects';
 import { HealthPopover } from './health-popover';
 import { LeadSelector } from './lead-selector';
 import { ProjectContextMenu } from './project-context-menu';
 import { PrioritySelector } from './priority-selector';
 import { StatusWithPercent } from './status-with-percent';
 import { DatePicker } from './date-picker';
+import { CreateProjectUpdateDialog } from './create-project-update-dialog';
+import { useProjectFieldUpdates } from './use-project-field-updates';
 
 interface ProjectLineProps {
    project: Project;
    visibleProperties: Record<ProjectDisplayProperty, boolean>;
    statusOptions: ProjectOptionLike[];
    priorityOptions: ProjectOptionLike[];
+   onProjectUpdate?: (projectId: string, update: ProjectUpdate) => void;
 }
 
 export default function ProjectLine({
@@ -26,62 +27,13 @@ export default function ProjectLine({
    visibleProperties,
    statusOptions,
    priorityOptions,
+   onProjectUpdate,
 }: ProjectLineProps) {
    const navigate = useNavigate();
+   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
    const { pinnedProjectIds, togglePinnedProject } = usePinnedProjectsStore();
-   const [currentStatus, setCurrentStatus] = useState(project.status);
-   const [currentPriority, setCurrentPriority] = useState(project.priority);
-
-   useEffect(() => {
-      setCurrentStatus(project.status);
-      setCurrentPriority(project.priority);
-   }, [project.status.id, project.status.name, project.priority.id, project.priority.name]);
-
-   const handleStatusChange = async (statusId: string) => {
-      if (statusId === currentStatus.id) {
-         return;
-      }
-
-      const nextStatus = statusOptions.find((option) => option.id === statusId);
-      if (!nextStatus) {
-         return;
-      }
-
-      const previousStatus = currentStatus;
-      setCurrentStatus((state) => ({ ...state, id: statusId, name: nextStatus.name }));
-
-      try {
-         await updateProjectMutation({ data: { projectId: project.id, status: statusId } });
-         toast.success('Project status updated');
-      } catch (error) {
-         console.error('Failed to update project status.', error);
-         setCurrentStatus(previousStatus);
-         toast.error('Project status could not be updated');
-      }
-   };
-
-   const handlePriorityChange = async (priorityId: string) => {
-      if (priorityId === currentPriority.id) {
-         return;
-      }
-
-      const nextPriority = priorityOptions.find((option) => option.id === priorityId);
-      if (!nextPriority) {
-         return;
-      }
-
-      const previousPriority = currentPriority;
-      setCurrentPriority((state) => ({ ...state, id: priorityId, name: nextPriority.name }));
-
-      try {
-         await updateProjectMutation({ data: { projectId: project.id, priority: priorityId } });
-         toast.success('Project priority updated');
-      } catch (error) {
-         console.error('Failed to update project priority.', error);
-         setCurrentPriority(previousPriority);
-         toast.error('Project priority could not be updated');
-      }
-   };
+   const { currentStatus, currentPriority, handleStatusChange, handlePriorityChange } =
+      useProjectFieldUpdates(project, statusOptions, priorityOptions);
 
    const handleOpenIssues = () => {
       void navigate({ to: '/issues', search: { projectId: project.id } });
@@ -113,6 +65,7 @@ export default function ProjectLine({
                   <div className="w-[20%] sm:w-[10%] xl:w-[13%] shrink-0">
                      <HealthPopover
                         project={{ ...project, status: currentStatus, priority: currentPriority }}
+                        onProjectUpdate={onProjectUpdate}
                      />
                   </div>
                )}
@@ -163,6 +116,7 @@ export default function ProjectLine({
             statusOptions={statusOptions}
             priorityOptions={priorityOptions}
             onOpenIssues={handleOpenIssues}
+            onNewUpdate={() => setUpdateDialogOpen(true)}
             onTogglePin={() => togglePinnedProject(project.id)}
             onStatusChange={(statusId) => {
                void handleStatusChange(statusId);
@@ -170,6 +124,12 @@ export default function ProjectLine({
             onPriorityChange={(priorityId) => {
                void handlePriorityChange(priorityId);
             }}
+         />
+         <CreateProjectUpdateDialog
+            project={project}
+            open={updateDialogOpen}
+            onOpenChange={setUpdateDialogOpen}
+            onProjectUpdate={onProjectUpdate}
          />
       </ContextMenu>
    );

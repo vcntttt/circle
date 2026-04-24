@@ -1,0 +1,127 @@
+'use client';
+
+import { useEffect, useId, useMemo, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import {
+   Command,
+   CommandEmpty,
+   CommandGroup,
+   CommandInput,
+   CommandItem,
+   CommandList,
+} from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CheckIcon, GitBranchPlus, Link2Off } from 'lucide-react';
+import { useIssuesStore } from '@/store/issues-store';
+import type { Issue } from '@/lib/models';
+
+interface ParentIssueSelectorProps {
+   issueId: string;
+   parent: Issue['parent'];
+   onChange: (parent: Issue['parent']) => void;
+}
+
+export function ParentIssueSelector({ issueId, parent, onChange }: ParentIssueSelectorProps) {
+   const id = useId();
+   const [open, setOpen] = useState(false);
+   const [value, setValue] = useState(parent?.id ?? 'no-parent');
+   const { getAllIssues, getSubissues } = useIssuesStore();
+   const issues = getAllIssues();
+
+   useEffect(() => {
+      setValue(parent?.id ?? 'no-parent');
+   }, [parent?.id]);
+
+   const currentIssueChildren = getSubissues(issueId);
+   const options = useMemo(
+      () =>
+         issues.filter(
+            (issue) =>
+               issue.id !== issueId &&
+               !issue.parentIssueId &&
+               !currentIssueChildren.some((child) => child.id === issue.id)
+         ),
+      [currentIssueChildren, issueId, issues]
+   );
+
+   const handleSelect = (nextParentId: string) => {
+      if (nextParentId === 'no-parent') {
+         setValue('no-parent');
+         onChange(null);
+         setOpen(false);
+         return;
+      }
+
+      const selected = options.find((issue) => issue.id === nextParentId);
+      if (!selected) {
+         return;
+      }
+
+      setValue(selected.id);
+      onChange({
+         id: selected.id,
+         identifier: selected.identifier,
+         title: selected.title,
+      });
+      setOpen(false);
+   };
+
+   return (
+      <Popover open={open} onOpenChange={setOpen}>
+         <PopoverTrigger asChild>
+            <Button
+               id={id}
+               size="xs"
+               variant="secondary"
+               role="combobox"
+               aria-expanded={open}
+               className="max-w-full justify-start gap-1.5"
+            >
+               <GitBranchPlus className="size-4" />
+               <span className="max-w-[180px] truncate">
+                  {parent ? `Parent: ${parent.identifier}` : 'Set parent'}
+               </span>
+            </Button>
+         </PopoverTrigger>
+         <PopoverContent className="border-input w-[320px] p-0" align="start">
+            <Command>
+               <CommandInput placeholder="Set parent issue..." />
+               <CommandList>
+                  <CommandEmpty>No issues available.</CommandEmpty>
+                  <CommandGroup>
+                     <CommandItem
+                        value="no parent remove detach"
+                        onSelect={() => handleSelect('no-parent')}
+                        className="flex items-center justify-between"
+                     >
+                        <div className="flex items-center gap-2">
+                           <Link2Off className="size-4" />
+                           No parent
+                        </div>
+                        {value === 'no-parent' && <CheckIcon size={16} className="ml-auto" />}
+                     </CommandItem>
+                     {options.map((issue) => (
+                        <CommandItem
+                           key={issue.id}
+                           value={`${issue.identifier} ${issue.title}`}
+                           onSelect={() => handleSelect(issue.id)}
+                           className="flex items-center justify-between gap-3"
+                        >
+                           <div className="min-w-0">
+                              <div className="text-xs text-muted-foreground">
+                                 {issue.identifier}
+                              </div>
+                              <div className="truncate">{issue.title}</div>
+                           </div>
+                           {value === issue.id && (
+                              <CheckIcon size={16} className="ml-auto shrink-0" />
+                           )}
+                        </CommandItem>
+                     ))}
+                  </CommandGroup>
+               </CommandList>
+            </Command>
+         </PopoverContent>
+      </Popover>
+   );
+}

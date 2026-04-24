@@ -11,6 +11,7 @@ import { LexoRank } from '@/lib/utils';
 import { toPresentationIssue } from '@/lib/issues-presentation';
 import { Switch } from '@/components/ui/switch';
 import { RiEditLine } from '@remixicon/react';
+import { GitBranchPlus } from 'lucide-react';
 import {
    useState,
    useEffect,
@@ -156,7 +157,8 @@ export function CreateNewIssue() {
    const [pendingCaretPosition, setPendingCaretPosition] = useState<number | null>(null);
    const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
    const titleInputRef = useRef<HTMLInputElement | null>(null);
-   const { isOpen, defaultStatus, defaultProject, openModal, closeModal } = useCreateIssueStore();
+   const { isOpen, defaultStatus, defaultProject, defaultParentIssue, openModal, closeModal } =
+      useCreateIssueStore();
    const { addIssue, getAllIssues } = useIssuesStore();
    const projectOptions = useProjectOptions();
    const labelOptions = useLabelOptions();
@@ -181,12 +183,14 @@ export function CreateNewIssue() {
          createdAt: new Date().toISOString(),
          cycleId: '',
          project: defaultProject ?? undefined,
+         parentIssueId: defaultParentIssue?.id ?? null,
+         parent: defaultParentIssue ?? null,
          subissues: [],
          rank: latestRank
             ? LexoRank.from(latestRank).increment().toString()
             : new LexoRank('a3c').toString(),
       };
-   }, [defaultProject, defaultStatus, getAllIssues]);
+   }, [defaultParentIssue, defaultProject, defaultStatus, getAllIssues]);
 
    const [addIssueForm, setAddIssueForm] = useState<Issue>(createDefaultData());
 
@@ -384,6 +388,7 @@ export function CreateNewIssue() {
                estimatedHours: addIssueForm.estimatedHours ?? null,
                rank: addIssueForm.rank,
                dueDate: addIssueForm.dueDate ?? null,
+               parentIssueId: addIssueForm.parent?.id ?? null,
                projectName: finalProject?.name ?? null,
                // Keep the server contract aligned with project-by-name creation.
                labelNames: finalLabels.map((label) => label.name),
@@ -472,6 +477,12 @@ export function CreateNewIssue() {
                </Popover>
 
                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  {addIssueForm.parent && (
+                     <Badge variant="outline" className="gap-1 rounded-full px-2 py-0.5">
+                        <GitBranchPlus className="size-3" />
+                        Sub-issue of {addIssueForm.parent.identifier}
+                     </Badge>
+                  )}
                   <span>Inline tokens:</span>
                   <Badge variant="outline" className="rounded-full px-2 py-0.5">
                      @project

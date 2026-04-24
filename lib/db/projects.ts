@@ -1,5 +1,24 @@
-import { asc, desc, eq, sql } from 'drizzle-orm';
+import { asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import { db, schema } from './index';
+
+export type ProjectHealth = 'no-update' | 'off-track' | 'on-track' | 'at-risk';
+
+export interface ProjectLatestUpdate {
+   id: string;
+   projectId: string;
+   health: ProjectHealth;
+   body: string;
+   createdAt: Date;
+   updatedAt: Date;
+}
+
+export interface ProjectTimelineUpdate extends ProjectLatestUpdate {
+   project: {
+      id: string;
+      name: string;
+      slug: string;
+   };
+}
 
 export interface ProjectListItem {
    id: string;
@@ -8,6 +27,7 @@ export interface ProjectListItem {
    description: string | null;
    status: string;
    priority: string;
+   latestUpdate: ProjectLatestUpdate | null;
    createdAt: Date;
    updatedAt: Date;
 }
@@ -34,6 +54,12 @@ interface ProjectsPageData {
    isConnected: boolean;
 }
 
+interface ProjectUpdatesPageData {
+   updates: ProjectTimelineUpdate[];
+   databaseError: string | null;
+   isConnected: boolean;
+}
+
 export interface CreateProjectInput {
    name: string;
    description?: string;
@@ -44,6 +70,12 @@ export interface CreateProjectInput {
 export interface UpdateProjectInput {
    status?: string;
    priority?: string;
+}
+
+export interface CreateProjectUpdateInput {
+   projectId: string;
+   health: ProjectHealth;
+   body: string;
 }
 
 export interface SaveProjectOptionInput {
@@ -68,7 +100,7 @@ export async function getAllProjects(): Promise<ProjectListItem[]> {
       return [];
    }
 
-   return db
+   const projects = await db
       .select({
          id: schema.projects.id,
          name: schema.projects.name,
@@ -81,6 +113,66 @@ export async function getAllProjects(): Promise<ProjectListItem[]> {
       })
       .from(schema.projects)
       .orderBy(desc(schema.projects.updatedAt), desc(schema.projects.createdAt));
+
+   if (projects.length === 0) {
+      return [];
+   }
+
+   const latestUpdates = await getLatestProjectUpdates(projects.map((project) => project.id));
+
+   return projects.map((project) => ({
+      ...project,
+      latestUpdate: latestUpdates.get(project.id) ?? null,
+   }));
+}
+
+async function getLatestProjectUpdates(
+   projectIds: string[]
+): Promise<Map<string, ProjectLatestUpdate>> {
+   if (!db || projectIds.length === 0) {
+      return new Map();
+   }
+
+   const updates = await db
+      .select({
+         id: schema.projectUpdates.id,
+         projectId: schema.projectUpdates.projectId,
+         health: schema.projectUpdates.health,
+         body: schema.projectUpdates.body,
+         createdAt: schema.projectUpdates.createdAt,
+         updatedAt: schema.projectUpdates.updatedAt,
+      })
+      .from(schema.projectUpdates)
+      .where(inArray(schema.projectUpdates.projectId, projectIds))
+      .orderBy(desc(schema.projectUpdates.createdAt), desc(schema.projectUpdates.updatedAt));
+
+   const latestByProject = new Map<string, ProjectLatestUpdate>();
+
+   for (const update of updates) {
+      if (latestByProject.has(update.projectId)) {
+         continue;
+      }
+
+      latestByProject.set(update.projectId, {
+         ...update,
+         health: toProjectHealth(update.health),
+      });
+   }
+
+   return latestByProject;
+}
+
+function toProjectHealth(value: string): ProjectHealth {
+   if (
+      value === 'no-update' ||
+      value === 'off-track' ||
+      value === 'on-track' ||
+      value === 'at-risk'
+   ) {
+      return value;
+   }
+
+   return 'no-update';
 }
 
 export async function getProjectStatusOptions(): Promise<ProjectStatusOption[]> {
@@ -155,6 +247,61 @@ export async function getProjectsPageData(): Promise<ProjectsPageData> {
    }
 }
 
+export async function getProjectUpdatesPageData(): Promise<ProjectUpdatesPageData> {
+   if (!db) {
+      return {
+         updates: [],
+         databaseError:
+            'DATABASE_URL is missing. Add it to your local environment before loading project updates.',
+         isConnected: false,
+      };
+   }
+
+   try {
+      const updates = await db
+         .select({
+            id: schema.projectUpdates.id,
+            projectId: schema.projectUpdates.projectId,
+            health: schema.projectUpdates.health,
+            body: schema.projectUpdates.body,
+            createdAt: schema.projectUpdates.createdAt,
+            updatedAt: schema.projectUpdates.updatedAt,
+            projectName: schema.projects.name,
+            projectSlug: schema.projects.slug,
+         })
+         .from(schema.projectUpdates)
+         .innerJoin(schema.projects, eq(schema.projectUpdates.projectId, schema.projects.id))
+         .orderBy(desc(schema.projectUpdates.createdAt), desc(schema.projectUpdates.updatedAt));
+
+      return {
+         updates: updates.map((update) => ({
+            id: update.id,
+            projectId: update.projectId,
+            health: toProjectHealth(update.health),
+            body: update.body,
+            createdAt: update.createdAt,
+            updatedAt: update.updatedAt,
+            project: {
+               id: update.projectId,
+               name: update.projectName,
+               slug: update.projectSlug,
+            },
+         })),
+         databaseError: null,
+         isConnected: true,
+      };
+   } catch (error) {
+      console.error('Failed to load project updates from Postgres.', error);
+
+      return {
+         updates: [],
+         databaseError:
+            'The project updates timeline could not be loaded from PostgreSQL. Start the database and run the migrations before opening this page.',
+         isConnected: false,
+      };
+   }
+}
+
 export async function createProjectRecord(input: CreateProjectInput): Promise<ProjectListItem> {
    if (!db) {
       throw new Error('Database unavailable.');
@@ -212,7 +359,58 @@ export async function createProjectRecord(input: CreateProjectInput): Promise<Pr
       throw new Error('Created project could not be reloaded.');
    }
 
-   return project[0];
+   return {
+      ...project[0],
+      latestUpdate: null,
+   };
+}
+
+export async function createProjectUpdateRecord(
+   input: CreateProjectUpdateInput
+): Promise<ProjectLatestUpdate> {
+   if (!db) {
+      throw new Error('Database unavailable.');
+   }
+
+   const project = await db
+      .select({ id: schema.projects.id })
+      .from(schema.projects)
+      .where(eq(schema.projects.id, input.projectId))
+      .limit(1);
+
+   if (!project[0]) {
+      throw new Error('Project does not exist.');
+   }
+
+   const inserted = await db
+      .insert(schema.projectUpdates)
+      .values({
+         projectId: input.projectId,
+         health: input.health,
+         body: input.body,
+      })
+      .returning({
+         id: schema.projectUpdates.id,
+         projectId: schema.projectUpdates.projectId,
+         health: schema.projectUpdates.health,
+         body: schema.projectUpdates.body,
+         createdAt: schema.projectUpdates.createdAt,
+         updatedAt: schema.projectUpdates.updatedAt,
+      });
+
+   if (!inserted[0]) {
+      throw new Error('Project update could not be created.');
+   }
+
+   await db
+      .update(schema.projects)
+      .set({ updatedAt: new Date() })
+      .where(eq(schema.projects.id, input.projectId));
+
+   return {
+      ...inserted[0],
+      health: toProjectHealth(inserted[0].health),
+   };
 }
 
 export async function updateProjectRecord(
@@ -247,7 +445,16 @@ export async function updateProjectRecord(
       .where(eq(schema.projects.id, projectId))
       .limit(1);
 
-   return project[0] ?? null;
+   if (!project[0]) {
+      return null;
+   }
+
+   const latestUpdate = await getLatestProjectUpdates([projectId]);
+
+   return {
+      ...project[0],
+      latestUpdate: latestUpdate.get(projectId) ?? null,
+   };
 }
 
 export async function createProjectStatusOption(

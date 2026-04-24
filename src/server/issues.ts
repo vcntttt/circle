@@ -17,6 +17,7 @@ const createIssueSchema = z.object({
    estimatedHours: z.number().nonnegative().nullable().optional(),
    rank: z.string().trim().min(1),
    dueDate: z.string().trim().nullable().optional(),
+   parentIssueId: z.string().trim().nullable().optional(),
    projectName: z.string().trim().nullable().optional(),
    labelNames: z.array(z.string().trim().min(1)).optional(),
 });
@@ -31,6 +32,7 @@ const updateIssueSchema = z
       assigneeId: z.string().trim().nullable().optional(),
       estimatedHours: z.number().nonnegative().nullable().optional(),
       dueDate: z.string().trim().nullable().optional(),
+      parentIssueId: z.string().trim().nullable().optional(),
       projectName: z.string().trim().nullable().optional(),
       labelNames: z.array(z.string().trim().min(1)).optional(),
    })
@@ -43,6 +45,7 @@ const updateIssueSchema = z
          value.assigneeId !== undefined ||
          value.estimatedHours !== undefined ||
          value.dueDate !== undefined ||
+         value.parentIssueId !== undefined ||
          value.projectName !== undefined ||
          value.labelNames !== undefined,
       {

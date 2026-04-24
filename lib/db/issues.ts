@@ -1,7 +1,20 @@
 import { asc, eq, inArray } from 'drizzle-orm';
+import { v4 as uuidv4 } from 'uuid';
 import { db, schema } from './index';
 import { getProjectStatusOptions } from './projects';
-import { v4 as uuidv4 } from 'uuid';
+
+export interface IssueSummary {
+   id: string;
+   identifier: string;
+   title: string;
+}
+
+export interface IssueSubissueSummary extends IssueSummary {
+   status: string;
+   priority: string;
+   assigneeId: string | null;
+   rank: string;
+}
 
 export interface IssueListItem {
    id: string;
@@ -16,6 +29,9 @@ export interface IssueListItem {
    dueDate: string | null;
    createdAt: string;
    updatedAt: string;
+   parentIssueId: string | null;
+   parentIssue: IssueSummary | null;
+   subissues: IssueSubissueSummary[];
    project: {
       id: string;
       name: string;
@@ -52,6 +68,7 @@ interface IssueRow {
    dueDate: Date | null;
    createdAt: Date;
    updatedAt: Date;
+   parentIssueId: string | null;
    projectId: string | null;
    projectName: string | null;
    projectSlug: string | null;
@@ -74,6 +91,7 @@ export interface CreateIssueInput {
    rank: string;
    estimatedHours?: number | null;
    dueDate?: string | null;
+   parentIssueId?: string | null;
    projectName?: string | null;
    labelNames?: string[];
 }
@@ -86,6 +104,7 @@ export interface UpdateIssueInput {
    assigneeId?: string | null;
    estimatedHours?: number | null;
    dueDate?: string | null;
+   parentIssueId?: string | null;
    projectName?: string | null;
    labelNames?: string[];
 }
@@ -109,6 +128,7 @@ async function selectIssueRows(issueId?: string): Promise<IssueRow[]> {
          dueDate: schema.issues.dueDate,
          createdAt: schema.issues.createdAt,
          updatedAt: schema.issues.updatedAt,
+         parentIssueId: schema.issues.parentIssueId,
          projectId: schema.projects.id,
          projectName: schema.projects.name,
          projectSlug: schema.projects.slug,
@@ -132,44 +152,6 @@ async function selectIssueRows(issueId?: string): Promise<IssueRow[]> {
    return baseQuery.orderBy(asc(schema.issues.rank), asc(schema.issues.createdAt));
 }
 
-async function selectIssueRowsByIdentifier(identifier: string): Promise<IssueRow[]> {
-   if (!db) {
-      return [];
-   }
-
-   return db
-      .select({
-         id: schema.issues.id,
-         identifier: schema.issues.identifier,
-         title: schema.issues.title,
-         description: schema.issues.description,
-         status: schema.issues.status,
-         priority: schema.issues.priority,
-         assigneeId: schema.issues.assigneeId,
-         rank: schema.issues.rank,
-         estimatedHours: schema.issues.estimatedHours,
-         dueDate: schema.issues.dueDate,
-         createdAt: schema.issues.createdAt,
-         updatedAt: schema.issues.updatedAt,
-         projectId: schema.projects.id,
-         projectName: schema.projects.name,
-         projectSlug: schema.projects.slug,
-         projectStatus: schema.projects.status,
-         projectDescription: schema.projects.description,
-         projectCreatedAt: schema.projects.createdAt,
-         projectUpdatedAt: schema.projects.updatedAt,
-         labelId: schema.labels.id,
-         labelName: schema.labels.name,
-         labelColor: schema.labels.color,
-      })
-      .from(schema.issues)
-      .leftJoin(schema.projects, eq(schema.issues.projectId, schema.projects.id))
-      .leftJoin(schema.issueLabels, eq(schema.issueLabels.issueId, schema.issues.id))
-      .leftJoin(schema.labels, eq(schema.issueLabels.labelId, schema.labels.id))
-      .where(eq(schema.issues.identifier, identifier))
-      .orderBy(asc(schema.issues.rank));
-}
-
 function mapIssueRows(rows: IssueRow[]): IssueListItem[] {
    const issuesMap = new Map<string, IssueListItem>();
 
@@ -188,6 +170,9 @@ function mapIssueRows(rows: IssueRow[]): IssueListItem[] {
             dueDate: row.dueDate ? row.dueDate.toISOString() : null,
             createdAt: row.createdAt.toISOString(),
             updatedAt: row.updatedAt.toISOString(),
+            parentIssueId: row.parentIssueId,
+            parentIssue: null,
+            subissues: [],
             project: row.projectId
                ? {
                     id: row.projectId,
@@ -213,17 +198,145 @@ function mapIssueRows(rows: IssueRow[]): IssueListItem[] {
       }
    }
 
-   return Array.from(issuesMap.values());
+   const issues = Array.from(issuesMap.values());
+   const issueLookup = new Map(issues.map((issue) => [issue.id, issue]));
+
+   for (const issue of issues) {
+      if (issue.parentIssueId) {
+         const parentIssue = issueLookup.get(issue.parentIssueId);
+
+         if (parentIssue) {
+            issue.parentIssue = {
+               id: parentIssue.id,
+               identifier: parentIssue.identifier,
+               title: parentIssue.title,
+            };
+
+            parentIssue.subissues.push({
+               id: issue.id,
+               identifier: issue.identifier,
+               title: issue.title,
+               status: issue.status,
+               priority: issue.priority,
+               assigneeId: issue.assigneeId,
+               rank: issue.rank,
+            });
+         }
+      }
+   }
+
+   for (const issue of issues) {
+      issue.subissues.sort((left, right) => right.rank.localeCompare(left.rank));
+   }
+
+   return issues;
+}
+
+async function getMappedIssues(): Promise<IssueListItem[]> {
+   return mapIssueRows(await selectIssueRows());
+}
+
+async function getIssueProjectIdByName(
+   projectName: string | null | undefined
+): Promise<string | null> {
+   if (!db || !projectName) {
+      return null;
+   }
+
+   const project = await db
+      .select({ id: schema.projects.id })
+      .from(schema.projects)
+      .where(eq(schema.projects.name, projectName))
+      .limit(1);
+
+   return project[0]?.id ?? null;
+}
+
+export async function validateParentAssignment(
+   issueId: string,
+   parentIssueId: string | null
+): Promise<void> {
+   if (!db || parentIssueId === null) {
+      return;
+   }
+
+   if (issueId === parentIssueId) {
+      throw new Error('An issue cannot be its own parent.');
+   }
+
+   const [issue, parentIssue, parentChildren] = await Promise.all([
+      db
+         .select({ id: schema.issues.id, parentIssueId: schema.issues.parentIssueId })
+         .from(schema.issues)
+         .where(eq(schema.issues.id, issueId))
+         .limit(1),
+      db
+         .select({ id: schema.issues.id, parentIssueId: schema.issues.parentIssueId })
+         .from(schema.issues)
+         .where(eq(schema.issues.id, parentIssueId))
+         .limit(1),
+      db
+         .select({ id: schema.issues.id })
+         .from(schema.issues)
+         .where(eq(schema.issues.parentIssueId, issueId)),
+   ]);
+
+   const currentIssue = issue[0];
+   const selectedParent = parentIssue[0];
+
+   if (!currentIssue) {
+      throw new Error('Issue not found.');
+   }
+
+   if (!selectedParent) {
+      throw new Error('Parent issue not found.');
+   }
+
+   if (parentChildren.length > 0) {
+      throw new Error('Issues with subissues cannot become subissues.');
+   }
+
+   if (selectedParent.parentIssueId) {
+      throw new Error('Subissues cannot have subissues.');
+   }
+
+   if (parentChildren.some((child) => child.id === parentIssueId)) {
+      throw new Error('An issue cannot be assigned under one of its subissues.');
+   }
+}
+
+export async function attachIssueToParent(issueId: string, parentIssueId: string): Promise<void> {
+   if (!db) {
+      throw new Error('Database unavailable.');
+   }
+
+   await validateParentAssignment(issueId, parentIssueId);
+
+   await db
+      .update(schema.issues)
+      .set({ parentIssueId, updatedAt: new Date() })
+      .where(eq(schema.issues.id, issueId));
+}
+
+export async function detachIssueFromParent(issueId: string): Promise<void> {
+   if (!db) {
+      throw new Error('Database unavailable.');
+   }
+
+   await db
+      .update(schema.issues)
+      .set({ parentIssueId: null, updatedAt: new Date() })
+      .where(eq(schema.issues.id, issueId));
 }
 
 export async function getIssueById(issueId: string): Promise<IssueListItem | null> {
-   const rows = await selectIssueRows(issueId);
-   return mapIssueRows(rows)[0] ?? null;
+   const issues = await getMappedIssues();
+   return issues.find((issue) => issue.id === issueId) ?? null;
 }
 
 export async function getIssueByIdentifier(identifier: string): Promise<IssueListItem | null> {
-   const rows = await selectIssueRowsByIdentifier(identifier);
-   return mapIssueRows(rows)[0] ?? null;
+   const issues = await getMappedIssues();
+   return issues.find((issue) => issue.identifier === identifier) ?? null;
 }
 
 export async function createIssueRecord(input: CreateIssueInput): Promise<IssueListItem> {
@@ -231,13 +344,7 @@ export async function createIssueRecord(input: CreateIssueInput): Promise<IssueL
       throw new Error('Database unavailable.');
    }
 
-   const project = input.projectName
-      ? await db
-           .select({ id: schema.projects.id })
-           .from(schema.projects)
-           .where(eq(schema.projects.name, input.projectName))
-           .limit(1)
-      : [];
+   const projectId = await getIssueProjectIdByName(input.projectName);
 
    const inserted = await db
       .insert(schema.issues)
@@ -249,9 +356,10 @@ export async function createIssueRecord(input: CreateIssueInput): Promise<IssueL
          priority: input.priority,
          assigneeId: input.assigneeId ?? null,
          rank: input.rank,
-         estimatedHours: input.estimatedHours === undefined ? null : input.estimatedHours.toString(),
+         estimatedHours:
+            input.estimatedHours === undefined ? null : input.estimatedHours.toString(),
          dueDate: input.dueDate ? new Date(input.dueDate) : null,
-         projectId: project[0]?.id ?? null,
+         projectId,
       })
       .returning({ id: schema.issues.id });
 
@@ -259,6 +367,10 @@ export async function createIssueRecord(input: CreateIssueInput): Promise<IssueL
 
    if (!issueId) {
       throw new Error('Issue could not be created.');
+   }
+
+   if (input.parentIssueId) {
+      await attachIssueToParent(issueId, input.parentIssueId);
    }
 
    if (input.labelNames && input.labelNames.length > 0) {
@@ -294,13 +406,18 @@ export async function updateIssueRecord(
       throw new Error('Database unavailable.');
    }
 
-   const project = input.projectName
-      ? await db
-           .select({ id: schema.projects.id })
-           .from(schema.projects)
-           .where(eq(schema.projects.name, input.projectName))
-           .limit(1)
-      : null;
+   const projectId =
+      input.projectName !== undefined
+         ? await getIssueProjectIdByName(input.projectName)
+         : undefined;
+
+   if (input.parentIssueId !== undefined) {
+      if (input.parentIssueId === null) {
+         await detachIssueFromParent(issueId);
+      } else {
+         await attachIssueToParent(issueId, input.parentIssueId);
+      }
+   }
 
    await db
       .update(schema.issues)
@@ -316,7 +433,7 @@ export async function updateIssueRecord(
          ...(input.dueDate !== undefined
             ? { dueDate: input.dueDate ? new Date(input.dueDate) : null }
             : {}),
-         ...(input.projectName !== undefined ? { projectId: project?.[0]?.id ?? null } : {}),
+         ...(input.projectName !== undefined ? { projectId: projectId ?? null } : {}),
          updatedAt: new Date(),
       })
       .where(eq(schema.issues.id, issueId));
@@ -374,13 +491,13 @@ export async function getIssuesPageData(): Promise<IssuesPageData> {
    }
 
    try {
-      const [joinedRows, statusOptions] = await Promise.all([
-         selectIssueRows(),
+      const [issues, statusOptions] = await Promise.all([
+         getMappedIssues(),
          getProjectStatusOptions(),
       ]);
 
       return {
-         issues: mapIssueRows(joinedRows),
+         issues,
          statusOptions,
          databaseError: null,
          isConnected: true,
@@ -392,7 +509,7 @@ export async function getIssuesPageData(): Promise<IssuesPageData> {
          issues: [],
          statusOptions: [],
          databaseError:
-            'The issues list could not be loaded from PostgreSQL. Check the connection and run the migrations before opening this page.',
+            'The issues list could not be loaded from PostgreSQL. Start the database and run the migrations before opening this page.',
          isConnected: false,
       };
    }

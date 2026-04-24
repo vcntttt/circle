@@ -13,6 +13,7 @@ import { IssueLine } from './issue-line';
 import { useCreateIssueStore } from '@/store/create-issue-store';
 import { sortIssuesByPriority } from '@/lib/ui-catalog';
 import { AnimatePresence, motion } from 'motion/react';
+import { useMemo } from 'react';
 
 interface GroupIssuesProps {
    status: Status;
@@ -33,6 +34,64 @@ export function GroupIssues({
    const isViewTypeGrid = viewType === 'grid';
    const { openModal } = useCreateIssueStore();
    const sortedIssues = sortIssuesByPriority(issues);
+   const listRows = useMemo(() => {
+      const issueMap = new Map(sortedIssues.map((issue) => [issue.id, issue]));
+      const rows: Array<{
+         issue: Issue;
+         nestingLevel: number;
+         childrenCount: number;
+         showParentIndicator: boolean;
+      }> = [];
+      const seen = new Set<string>();
+
+      for (const issue of sortedIssues) {
+         if (seen.has(issue.id)) {
+            continue;
+         }
+
+         const visibleParent = issue.parentIssueId ? issueMap.get(issue.parentIssueId) : null;
+         if (visibleParent) {
+            continue;
+         }
+
+         const visibleChildren = sortedIssues.filter(
+            (candidate) => candidate.parentIssueId === issue.id
+         );
+
+         rows.push({
+            issue,
+            nestingLevel: 0,
+            childrenCount: visibleChildren.length,
+            showParentIndicator: Boolean(issue.parent && !visibleParent),
+         });
+         seen.add(issue.id);
+
+         for (const child of visibleChildren) {
+            rows.push({
+               issue: child,
+               nestingLevel: 1,
+               childrenCount: 0,
+               showParentIndicator: false,
+            });
+            seen.add(child.id);
+         }
+      }
+
+      for (const issue of sortedIssues) {
+         if (seen.has(issue.id)) {
+            continue;
+         }
+
+         rows.push({
+            issue,
+            nestingLevel: 0,
+            childrenCount: 0,
+            showParentIndicator: Boolean(issue.parent),
+         });
+      }
+
+      return rows;
+   }, [sortedIssues]);
 
    return (
       <div
@@ -70,7 +129,7 @@ export function GroupIssues({
                   variant="ghost"
                   onClick={(e) => {
                      e.stopPropagation();
-                     openModal(status);
+                     openModal(status, null, null);
                   }}
                >
                   <Plus className="size-4" />
@@ -80,12 +139,15 @@ export function GroupIssues({
 
          {viewType === 'list' ? (
             <div className="space-y-0">
-               {sortedIssues.map((issue) => (
+               {listRows.map(({ issue, nestingLevel, childrenCount, showParentIndicator }) => (
                   <IssueLine
                      key={issue.id}
                      issue={issue}
                      layoutId={true}
                      isSelected={selectedIssueIdentifier === issue.identifier}
+                     nestingLevel={nestingLevel}
+                     childrenCount={childrenCount}
+                     showParentIndicator={showParentIndicator}
                      onSelect={onSelectIssue}
                   />
                ))}

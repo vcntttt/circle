@@ -16,23 +16,37 @@ const parseEstimatedHours = (estimatedHours: string | null): number | undefined 
 export const toPresentationIssue = (
    issue: IssueListItem,
    statusOptions?: ProjectOptionLike[]
-): Issue => ({
-   id: issue.id,
-   identifier: issue.identifier,
-   title: issue.title,
-   description: issue.description ?? '',
-   status:
-      statusOptions?.find((item) => item.id === issue.status) ??
-      fallbackStatuses.find((item) => item.id === issue.status) ??
-      fallbackStatuses[fallbackStatuses.length - 1],
-   assignee: resolveCurrentAssignee(issue.assigneeId),
-   priority: priorities.find((item) => item.id === issue.priority) ?? priorities[0],
-   labels: issue.labels,
-   createdAt: issue.createdAt,
-   cycleId: '',
-   project: issue.project ? toPresentationProject(issue.project) : undefined,
-   subissues: [],
-   rank: issue.rank,
-   dueDate: issue.dueDate ?? undefined,
-   estimatedHours: parseEstimatedHours(issue.estimatedHours),
-});
+): Issue => {
+   const resolveStatus = (statusId: string) =>
+      statusOptions?.find((item) => item.id === statusId) ??
+      fallbackStatuses.find((item) => item.id === statusId) ??
+      fallbackStatuses[fallbackStatuses.length - 1];
+
+   return {
+      id: issue.id,
+      identifier: issue.identifier,
+      title: issue.title,
+      description: issue.description ?? '',
+      status: resolveStatus(issue.status),
+      assignee: resolveCurrentAssignee(issue.assigneeId),
+      priority: priorities.find((item) => item.id === issue.priority) ?? priorities[0],
+      labels: issue.labels,
+      createdAt: issue.createdAt,
+      cycleId: '',
+      project: issue.project ? toPresentationProject(issue.project) : undefined,
+      parentIssueId: issue.parentIssueId,
+      parent: issue.parentIssue,
+      subissues: issue.subissues.map((subissue) => ({
+         id: subissue.id,
+         identifier: subissue.identifier,
+         title: subissue.title,
+         status: resolveStatus(subissue.status),
+         priority: priorities.find((item) => item.id === subissue.priority) ?? priorities[0],
+         assignee: resolveCurrentAssignee(subissue.assigneeId),
+         parentIssueId: issue.id,
+      })),
+      rank: issue.rank,
+      dueDate: issue.dueDate ?? undefined,
+      estimatedHours: parseEstimatedHours(issue.estimatedHours),
+   };
+};

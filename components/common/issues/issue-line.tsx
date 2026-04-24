@@ -2,6 +2,7 @@
 
 import type { Issue } from '@/lib/models';
 import { format } from 'date-fns';
+import { GitBranch, GitBranchPlus } from 'lucide-react';
 import { AssigneeUser } from './assignee-user';
 import { LabelBadge } from './label-badge';
 import { PrioritySelector } from './priority-selector';
@@ -28,11 +29,17 @@ export function IssueLine({
    issue,
    layoutId = false,
    isSelected = false,
+   nestingLevel = 0,
+   childrenCount = 0,
+   showParentIndicator = false,
    onSelect,
 }: {
    issue: Issue;
    layoutId?: boolean;
    isSelected?: boolean;
+   nestingLevel?: number;
+   childrenCount?: number;
+   showParentIndicator?: boolean;
    onSelect?: (issue: Issue) => void;
 }) {
    const { visibleProperties } = useViewStore();
@@ -52,9 +59,12 @@ export function IssueLine({
                role="button"
                tabIndex={0}
                className={cn(
-                  'w-full flex items-center justify-start h-11 px-6 hover:bg-sidebar/50 cursor-pointer',
+                  'w-full flex items-center justify-start min-h-11 px-6 py-1.5 hover:bg-sidebar/50 cursor-pointer',
                   isSelected && 'bg-accent/70 hover:bg-accent/70'
                )}
+               style={{
+                  paddingLeft: `${24 + nestingLevel * 22}px`,
+               }}
             >
                <div
                   className="flex items-center gap-0.5"
@@ -64,9 +74,27 @@ export function IssueLine({
                   <StatusSelector status={issue.status} issueId={issue.id} />
                </div>
                <div className="min-w-0 flex items-center justify-start mr-1 ml-0.5">
-                  <span className="text-xs sm:text-sm font-medium sm:font-semibold truncate hover:underline">
-                     {issue.title}
-                  </span>
+                  <div className="min-w-0">
+                     <div className="flex items-center gap-2 min-w-0">
+                        {nestingLevel > 0 && (
+                           <GitBranch className="size-3.5 text-muted-foreground shrink-0" />
+                        )}
+                        <span className="text-xs sm:text-sm font-medium sm:font-semibold truncate hover:underline">
+                           {issue.title}
+                        </span>
+                        {childrenCount > 0 && (
+                           <span className="inline-flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                              <GitBranchPlus className="size-3" />
+                              {childrenCount}
+                           </span>
+                        )}
+                     </div>
+                     {showParentIndicator && issue.parent && (
+                        <div className="mt-0.5 text-[11px] text-muted-foreground truncate">
+                           Child of {issue.parent.identifier}
+                        </div>
+                     )}
+                  </div>
                </div>
                <div className="flex items-center justify-end gap-2 ml-auto sm:w-fit">
                   <div className="w-3 shrink-0"></div>

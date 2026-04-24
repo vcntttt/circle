@@ -11,6 +11,9 @@ const createEmptyIssuesByStatus = () =>
 
 const isArchivedIssue = (issue: Issue) => issue.status.id === archivedStatus.id;
 
+const sortByRankDesc = (issues: Issue[]) =>
+   [...issues].sort((a, b) => b.rank.localeCompare(a.rank));
+
 const groupIssuesByStatus = (issues: Issue[]) => {
    const grouped = createEmptyIssuesByStatus();
 
@@ -18,8 +21,14 @@ const groupIssuesByStatus = (issues: Issue[]) => {
       grouped[issue.status.id] = [...(grouped[issue.status.id] ?? []), issue];
    });
 
+   for (const statusId of Object.keys(grouped)) {
+      grouped[statusId] = sortByRankDesc(grouped[statusId] ?? []);
+   }
+
    return grouped;
 };
+
+type IssueParentSummary = NonNullable<Issue['parent']>;
 
 const persistIssuePatch = async (
    issueId: string,
@@ -29,6 +38,7 @@ const persistIssuePatch = async (
       assigneeId?: string | null;
       estimatedHours?: number | null;
       dueDate?: string | null;
+      parentIssueId?: string | null;
       projectName?: string | null;
       labelNames?: string[];
    }
@@ -49,14 +59,9 @@ interface FilterOptions {
 }
 
 interface IssuesState {
-   // Data
    issues: Issue[];
    issuesByStatus: Record<string, Issue[]>;
-
-   //
    getAllIssues: () => Issue[];
-
-   // Actions
    replaceIssues: (issues: Issue[]) => void;
    addIssue: (issue: Issue) => void;
    updateIssue: (id: string, updatedIssue: Partial<Issue>) => void;
@@ -66,7 +71,6 @@ interface IssuesState {
       issueId: string,
       content: { title?: string; description?: string; estimatedHours?: number | null }
    ) => void;
-
    // Filters
    filterByStatus: (statusId: string) => Issue[];
    filterByPriority: (priorityId: string) => Issue[];
@@ -75,76 +79,128 @@ interface IssuesState {
    filterByProject: (projectId: string) => Issue[];
    searchIssues: (query: string) => Issue[];
    filterIssues: (filters: FilterOptions) => Issue[];
-
-   // Status management
    updateIssueStatus: (issueId: string, newStatus: Status) => void;
-
-   // Priority management
    updateIssuePriority: (issueId: string, newPriority: Priority) => void;
-
-   // Assignee management
    updateIssueAssignee: (issueId: string, newAssignee: User | null) => void;
-
-   // Labels management
    addIssueLabel: (issueId: string, label: LabelInterface) => void;
    removeIssueLabel: (issueId: string, labelId: string) => void;
-
-   // Project management
    updateIssueProject: (issueId: string, newProject: Project | undefined) => void;
-
-   // Due date management
    updateIssueDueDate: (issueId: string, dueDate: string | undefined) => void;
    updateIssueEstimatedHours: (issueId: string, estimatedHours: number | undefined) => void;
-
+   updateIssueParent: (issueId: string, parent: IssueParentSummary | null) => void;
    // Utility functions
    getIssueById: (id: string) => Issue | undefined;
+   getRootIssues: () => Issue[];
+   getSubissues: (parentIssueId: string) => Issue[];
+   getIssueChildrenCount: (issueId: string) => number;
+}
+
+function rebuildIssueHierarchy(issues: Issue[]): Issue[] {
+   const issueMap = new Map(
+      issues.map((issue) => [
+         issue.id,
+         {
+            ...issue,
+            subissues: [],
+         },
+      ])
+   );
+
+   for (const issue of issueMap.values()) {
+      if (!issue.parentIssueId) {
+         continue;
+      }
+
+      const parent = issueMap.get(issue.parentIssueId);
+
+      if (!parent) {
+         issue.parentIssueId = null;
+         issue.parent = null;
+         continue;
+      }
+
+      issue.parent = {
+         id: parent.id,
+         identifier: parent.identifier,
+         title: parent.title,
+      };
+
+      parent.subissues.push({
+         id: issue.id,
+         identifier: issue.identifier,
+         title: issue.title,
+         status: issue.status,
+         priority: issue.priority,
+         assignee: issue.assignee,
+         parentIssueId: parent.id,
+      });
+   }
+
+   const nextIssues = sortByRankDesc(Array.from(issueMap.values()));
+
+   nextIssues.forEach((issue) => {
+      issue.subissues = [...issue.subissues].sort((left, right) => {
+         const leftIssue = issueMap.get(left.id);
+         const rightIssue = issueMap.get(right.id);
+         return (rightIssue?.rank ?? '').localeCompare(leftIssue?.rank ?? '');
+      });
+   });
+
+   return nextIssues;
 }
 
 export const useIssuesStore = create<IssuesState>((set, get) => ({
-   // Initial state
    issues: [],
    issuesByStatus: createEmptyIssuesByStatus(),
 
-   //
    getAllIssues: () => get().issues,
 
-   // Actions
    replaceIssues: (issues: Issue[]) => {
+      const nextIssues = rebuildIssueHierarchy(issues);
       set({
-         issues: issues.sort((a, b) => b.rank.localeCompare(a.rank)),
-         issuesByStatus: groupIssuesByStatus(issues),
+         issues: nextIssues,
+         issuesByStatus: groupIssuesByStatus(nextIssues),
       });
    },
 
    addIssue: (issue: Issue) => {
       set((state) => {
-         const newIssues = [...state.issues, issue];
+         const nextIssues = rebuildIssueHierarchy([...state.issues, issue]);
          return {
-            issues: newIssues,
-            issuesByStatus: groupIssuesByStatus(newIssues),
+            issues: nextIssues,
+            issuesByStatus: groupIssuesByStatus(nextIssues),
          };
       });
    },
 
    updateIssue: (id: string, updatedIssue: Partial<Issue>) => {
       set((state) => {
-         const newIssues = state.issues.map((issue) =>
-            issue.id === id ? { ...issue, ...updatedIssue } : issue
+         const nextIssues = rebuildIssueHierarchy(
+            state.issues.map((issue) => (issue.id === id ? { ...issue, ...updatedIssue } : issue))
          );
 
          return {
-            issues: newIssues,
-            issuesByStatus: groupIssuesByStatus(newIssues),
+            issues: nextIssues,
+            issuesByStatus: groupIssuesByStatus(nextIssues),
          };
       });
    },
 
    deleteIssue: (id: string) => {
       set((state) => {
-         const newIssues = state.issues.filter((issue) => issue.id !== id);
+         const nextIssues = rebuildIssueHierarchy(
+            state.issues
+               .filter((issue) => issue.id !== id)
+               .map((issue) =>
+                  issue.parentIssueId === id
+                     ? { ...issue, parentIssueId: null, parent: null }
+                     : issue
+               )
+         );
+
          return {
-            issues: newIssues,
-            issuesByStatus: groupIssuesByStatus(newIssues),
+            issues: nextIssues,
+            issuesByStatus: groupIssuesByStatus(nextIssues),
          };
       });
 
@@ -170,29 +226,25 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
       });
    },
 
-   // Filters
-   filterByStatus: (statusId: string) => {
-      return get().issues.filter((issue) => issue.status.id === statusId);
-   },
+   filterByStatus: (statusId: string) =>
+      get().issues.filter((issue) => issue.status.id === statusId),
 
-   filterByPriority: (priorityId: string) => {
-      return get().issues.filter((issue) => issue.priority.id === priorityId);
-   },
+   filterByPriority: (priorityId: string) =>
+      get().issues.filter((issue) => issue.priority.id === priorityId),
 
    filterByAssignee: (userId: string | null) => {
       if (userId === null) {
          return get().issues.filter((issue) => issue.assignee === null);
       }
+
       return get().issues.filter((issue) => issue.assignee?.id === userId);
    },
 
-   filterByLabel: (labelId: string) => {
-      return get().issues.filter((issue) => issue.labels.some((label) => label.id === labelId));
-   },
+   filterByLabel: (labelId: string) =>
+      get().issues.filter((issue) => issue.labels.some((label) => label.id === labelId)),
 
-   filterByProject: (projectId: string) => {
-      return get().issues.filter((issue) => issue.project?.id === projectId);
-   },
+   filterByProject: (projectId: string) =>
+      get().issues.filter((issue) => issue.project?.id === projectId),
 
    searchIssues: (query: string) => {
       const lowerCaseQuery = query.toLowerCase();
@@ -207,42 +259,34 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
    filterIssues: (filters: FilterOptions) => {
       let filteredIssues = get().issues.filter((issue) => !isArchivedIssue(issue));
 
-      // Filter by status
       if (filters.status && filters.status.length > 0) {
          filteredIssues = filteredIssues.filter((issue) =>
             filters.status!.includes(issue.status.id)
          );
       }
 
-      // Filter by assignee
       if (filters.assignee && filters.assignee.length > 0) {
          filteredIssues = filteredIssues.filter((issue) => {
-            if (filters.assignee!.includes('unassigned')) {
-               // If 'unassigned' is selected and the issue has no assignee
-               if (issue.assignee === null) {
-                  return true;
-               }
+            if (filters.assignee!.includes('unassigned') && issue.assignee === null) {
+               return true;
             }
-            // Check if the issue's assignee is in the selected assignees
-            return issue.assignee && filters.assignee!.includes(issue.assignee.id);
+
+            return issue.assignee ? filters.assignee!.includes(issue.assignee.id) : false;
          });
       }
 
-      // Filter by priority
       if (filters.priority && filters.priority.length > 0) {
          filteredIssues = filteredIssues.filter((issue) =>
             filters.priority!.includes(issue.priority.id)
          );
       }
 
-      // Filter by labels
       if (filters.labels && filters.labels.length > 0) {
          filteredIssues = filteredIssues.filter((issue) =>
             issue.labels.some((label) => filters.labels!.includes(label.id))
          );
       }
 
-      // Filter by project
       if (filters.project && filters.project.length > 0) {
          filteredIssues = filteredIssues.filter(
             (issue) => issue.project && filters.project!.includes(issue.project.id)
@@ -252,7 +296,6 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
       return filteredIssues;
    },
 
-   // Status management
    updateIssueStatus: (issueId: string, newStatus: Status) => {
       get().updateIssue(issueId, { status: newStatus });
       void persistIssuePatch(issueId, { status: newStatus.id }).catch((error) => {
@@ -260,7 +303,6 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
       });
    },
 
-   // Priority management
    updateIssuePriority: (issueId: string, newPriority: Priority) => {
       get().updateIssue(issueId, { priority: newPriority });
       void persistIssuePatch(issueId, { priority: newPriority.id }).catch((error) => {
@@ -268,7 +310,6 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
       });
    },
 
-   // Assignee management
    updateIssueAssignee: (issueId: string, newAssignee: User | null) => {
       get().updateIssue(issueId, { assignee: newAssignee });
       void persistIssuePatch(issueId, { assigneeId: newAssignee?.id ?? null }).catch((error) => {
@@ -276,36 +317,38 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
       });
    },
 
-   // Labels management
    addIssueLabel: (issueId: string, label: LabelInterface) => {
       const issue = get().getIssueById(issueId);
-      if (issue) {
-         const labelMap = new Map(issue.labels.map((item) => [item.id, item]));
-         labelMap.set(label.id, label);
-         const updatedLabels = Array.from(labelMap.values());
-         get().updateIssue(issueId, { labels: updatedLabels });
-         void persistIssuePatch(issueId, {
-            labelNames: updatedLabels.map((item) => item.name),
-         }).catch((error) => {
-            console.error('Failed to persist issue labels.', error);
-         });
+      if (!issue) {
+         return;
       }
+
+      const labelMap = new Map(issue.labels.map((item) => [item.id, item]));
+      labelMap.set(label.id, label);
+      const updatedLabels = Array.from(labelMap.values());
+      get().updateIssue(issueId, { labels: updatedLabels });
+      void persistIssuePatch(issueId, {
+         labelNames: updatedLabels.map((item) => item.name),
+      }).catch((error) => {
+         console.error('Failed to persist issue labels.', error);
+      });
    },
 
    removeIssueLabel: (issueId: string, labelId: string) => {
       const issue = get().getIssueById(issueId);
-      if (issue) {
-         const updatedLabels = issue.labels.filter((label) => label.id !== labelId);
-         get().updateIssue(issueId, { labels: updatedLabels });
-         void persistIssuePatch(issueId, {
-            labelNames: updatedLabels.map((item) => item.name),
-         }).catch((error) => {
-            console.error('Failed to persist issue labels.', error);
-         });
+      if (!issue) {
+         return;
       }
+
+      const updatedLabels = issue.labels.filter((label) => label.id !== labelId);
+      get().updateIssue(issueId, { labels: updatedLabels });
+      void persistIssuePatch(issueId, {
+         labelNames: updatedLabels.map((item) => item.name),
+      }).catch((error) => {
+         console.error('Failed to persist issue labels.', error);
+      });
    },
 
-   // Project management
    updateIssueProject: (issueId: string, newProject: Project | undefined) => {
       get().updateIssue(issueId, { project: newProject });
       void persistIssuePatch(issueId, { projectName: newProject?.name ?? null }).catch((error) => {
@@ -322,15 +365,29 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
 
    updateIssueEstimatedHours: (issueId: string, estimatedHours: number | undefined) => {
       get().updateIssue(issueId, { estimatedHours });
-      void persistIssuePatch(issueId, { estimatedHours: estimatedHours ?? null }).catch(
-         (error) => {
-            console.error('Failed to persist issue estimate.', error);
-         }
-      );
+      void persistIssuePatch(issueId, { estimatedHours: estimatedHours ?? null }).catch((error) => {
+         console.error('Failed to persist issue estimate.', error);
+      });
    },
 
    // Utility functions
-   getIssueById: (id: string) => {
-      return get().issues.find((issue) => issue.id === id);
+   updateIssueParent: (issueId: string, parent) => {
+      get().updateIssue(issueId, {
+         parentIssueId: parent?.id ?? null,
+         parent,
+      });
+      void persistIssuePatch(issueId, { parentIssueId: parent?.id ?? null }).catch((error) => {
+         console.error('Failed to persist issue parent.', error);
+      });
    },
+
+   getIssueById: (id: string) => get().issues.find((issue) => issue.id === id),
+
+   getRootIssues: () => get().issues.filter((issue) => !issue.parentIssueId),
+
+   getSubissues: (parentIssueId: string) =>
+      sortByRankDesc(get().issues.filter((issue) => issue.parentIssueId === parentIssueId)),
+
+   getIssueChildrenCount: (issueId: string) =>
+      get().issues.filter((issue) => issue.parentIssueId === issueId).length,
 }));

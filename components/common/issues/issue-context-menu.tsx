@@ -33,10 +33,13 @@ import {
    MessageSquare,
    Clipboard,
    Clock3,
+   GitBranchPlus,
+   Link2Off,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { currentUser, personalAssigneeOptions } from '@/lib/current-user';
 import { useIssuesStore } from '@/store/issues-store';
+import { useCreateIssueStore } from '@/store/create-issue-store';
 import { useLabelOptions } from '@/hooks/use-label-options';
 import { useProjectOptions } from '@/hooks/use-project-options';
 import { archivedStatus, priorities } from '@/lib/ui-catalog';
@@ -55,6 +58,7 @@ export function IssueContextMenu({ issueId }: IssueContextMenuProps) {
    const projects = useProjectOptions();
    const issueStatusOptions = useIssuesStatuses();
    const { isPinned, togglePinnedProject } = usePinnedProjectsStore();
+   const { openModal } = useCreateIssueStore();
 
    const {
       updateIssueStatus,
@@ -67,6 +71,8 @@ export function IssueContextMenu({ issueId }: IssueContextMenuProps) {
       archiveIssue,
       deleteIssue,
       getIssueById,
+      getIssueChildrenCount,
+      updateIssueParent,
    } = useIssuesStore();
 
    const handleStatusChange = (statusId: string) => {
@@ -204,6 +210,24 @@ export function IssueContextMenu({ issueId }: IssueContextMenuProps) {
       toast.success('Reminder set');
    };
 
+   const handleAddSubissue = () => {
+      if (!issueId) return;
+      const issue = getIssueById(issueId);
+      if (!issue) return;
+
+      openModal(undefined, issue.project, {
+         id: issue.id,
+         identifier: issue.identifier,
+         title: issue.title,
+      });
+   };
+
+   const handleRemoveFromParent = () => {
+      if (!issueId) return;
+      updateIssueParent(issueId, null);
+      toast.success('Removed from parent');
+   };
+
    return (
       <ContextMenuContent className="w-64">
          <ContextMenuGroup>
@@ -220,7 +244,7 @@ export function IssueContextMenu({ issueId }: IssueContextMenuProps) {
                         </ContextMenuItem>
                      );
                   })}
-                  </ContextMenuSubContent>
+               </ContextMenuSubContent>
             </ContextMenuSub>
 
             <ContextMenuSub>
@@ -358,6 +382,22 @@ export function IssueContextMenu({ issueId }: IssueContextMenuProps) {
          <ContextMenuItem onClick={handleCreateRelated}>
             <PlusSquare className="size-4" /> Create related
          </ContextMenuItem>
+
+         <ContextMenuItem onClick={handleAddSubissue}>
+            <GitBranchPlus className="size-4" /> Add subissue
+         </ContextMenuItem>
+
+         {issueId && getIssueById(issueId)?.parent && (
+            <ContextMenuItem onClick={handleRemoveFromParent}>
+               <Link2Off className="size-4" /> Remove from parent
+            </ContextMenuItem>
+         )}
+
+         {issueId && getIssueChildrenCount(issueId) > 0 && (
+            <ContextMenuItem disabled>
+               <GitBranchPlus className="size-4" /> Has subissues
+            </ContextMenuItem>
+         )}
 
          <ContextMenuSub>
             <ContextMenuSubTrigger>

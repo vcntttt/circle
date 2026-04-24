@@ -6,7 +6,7 @@ import {
    ContextMenuSubContent,
    ContextMenuSubTrigger,
 } from '@/components/ui/context-menu';
-import { Check, FolderOpen, Pin, PinOff } from 'lucide-react';
+import { Check, FolderOpen, Pin, PinOff, Radio } from 'lucide-react';
 import type { ProjectOptionLike } from '@/lib/projects-presentation';
 import { priorities, status } from '@/lib/ui-catalog';
 
@@ -17,6 +17,7 @@ interface ProjectContextMenuProps {
    statusOptions: ProjectOptionLike[];
    priorityOptions: ProjectOptionLike[];
    onOpenIssues: () => void;
+   onNewUpdate: () => void;
    onTogglePin: () => void;
    onStatusChange: (statusId: string) => void;
    onPriorityChange: (priorityId: string) => void;
@@ -32,6 +33,7 @@ export function ProjectContextMenu({
    statusOptions,
    priorityOptions,
    onOpenIssues,
+   onNewUpdate,
    onTogglePin,
    onStatusChange,
    onPriorityChange,
@@ -40,6 +42,10 @@ export function ProjectContextMenu({
       <ContextMenuContent className="w-64">
          <ContextMenuItem onSelect={onOpenIssues}>
             <FolderOpen className="size-4" /> Open project issues
+         </ContextMenuItem>
+
+         <ContextMenuItem onSelect={onNewUpdate}>
+            <Radio className="size-4" /> New update
          </ContextMenuItem>
 
          <ContextMenuItem onSelect={onTogglePin}>
