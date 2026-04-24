@@ -64,6 +64,7 @@ export interface Issue {
    subissues?: string[];
    rank: string;
    dueDate?: string;
+   estimatedHours?: number;
 }
 
 export interface SidebarItem {

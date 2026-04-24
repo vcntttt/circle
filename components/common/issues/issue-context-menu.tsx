@@ -32,6 +32,7 @@ import {
    FileText,
    MessageSquare,
    Clipboard,
+   Clock3,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { currentUser, personalAssigneeOptions } from '@/lib/current-user';
@@ -142,6 +143,12 @@ export function IssueContextMenu({ issueId }: IssueContextMenuProps) {
       toast.success('Due date set to 7 days from now');
    };
 
+   const handleSetEstimate = (hours: number | null) => {
+      if (!issueId) return;
+      updateIssueEstimatedHours(issueId, hours ?? undefined);
+      toast.success(hours === null ? 'Estimate cleared' : `Estimate set to ${hours}h`);
+   };
+
    const handleAddLink = () => {
       toast.success('Link added');
    };
@@ -213,6 +220,21 @@ export function IssueContextMenu({ issueId }: IssueContextMenuProps) {
                         </ContextMenuItem>
                      );
                   })}
+                  </ContextMenuSubContent>
+            </ContextMenuSub>
+
+            <ContextMenuSub>
+               <ContextMenuSubTrigger>
+                  <Clock3 className="mr-2 size-4" /> Estimate
+               </ContextMenuSubTrigger>
+               <ContextMenuSubContent className="w-48">
+                  {[1, 2, 4, 8].map((hours) => (
+                     <ContextMenuItem key={hours} onClick={() => handleSetEstimate(hours)}>
+                        {hours}h
+                     </ContextMenuItem>
+                  ))}
+                  <ContextMenuSeparator />
+                  <ContextMenuItem onClick={() => handleSetEstimate(null)}>Clear</ContextMenuItem>
                </ContextMenuSubContent>
             </ContextMenuSub>
 

@@ -13,6 +13,16 @@ import { useViewStore } from '@/store/view-store';
 
 import { ContextMenu, ContextMenuTrigger } from '@/components/ui/context-menu';
 import { IssueContextMenu } from './issue-context-menu';
+import { Clock3 } from 'lucide-react';
+
+const formatEstimatedHours = (estimatedHours?: number) => {
+   if (estimatedHours === undefined) {
+      return null;
+   }
+
+   const normalized = Number(estimatedHours.toFixed(2));
+   return `${Number(normalized.toFixed(2)).toString()}h`;
+};
 
 export function IssueLine({
    issue,
@@ -67,6 +77,12 @@ export function IssueLine({
                            <ProjectBadge project={issue.project} />
                         )}
                      </div>
+                  )}
+                  {issue.estimatedHours !== undefined && (
+                     <span className="inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs text-muted-foreground shrink-0">
+                        <Clock3 className="size-3" />
+                        {formatEstimatedHours(issue.estimatedHours)}
+                     </span>
                   )}
                   {visibleProperties.createdAt && (
                      <span className="text-xs text-muted-foreground shrink-0 hidden sm:inline-block">

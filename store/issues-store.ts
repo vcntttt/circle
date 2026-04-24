@@ -27,6 +27,7 @@ const persistIssuePatch = async (
       status?: string;
       priority?: string;
       assigneeId?: string | null;
+      estimatedHours?: number | null;
       dueDate?: string | null;
       projectName?: string | null;
       labelNames?: string[];
@@ -61,7 +62,10 @@ interface IssuesState {
    updateIssue: (id: string, updatedIssue: Partial<Issue>) => void;
    deleteIssue: (id: string) => void;
    archiveIssue: (id: string) => void;
-   updateIssueContent: (issueId: string, content: { title?: string; description?: string }) => void;
+   updateIssueContent: (
+      issueId: string,
+      content: { title?: string; description?: string; estimatedHours?: number | null }
+   ) => void;
 
    // Filters
    filterByStatus: (statusId: string) => Issue[];
@@ -90,6 +94,7 @@ interface IssuesState {
 
    // Due date management
    updateIssueDueDate: (issueId: string, dueDate: string | undefined) => void;
+   updateIssueEstimatedHours: (issueId: string, estimatedHours: number | undefined) => void;
 
    // Utility functions
    getIssueById: (id: string) => Issue | undefined;
@@ -155,7 +160,10 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
       });
    },
 
-   updateIssueContent: (issueId: string, content: { title?: string; description?: string }) => {
+   updateIssueContent: (
+      issueId: string,
+      content: { title?: string; description?: string; estimatedHours?: number | null }
+   ) => {
       get().updateIssue(issueId, content);
       void updateIssue({ data: { issueId, ...content } }).catch((error) => {
          console.error('Failed to persist issue content.', error);
@@ -310,6 +318,15 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
       void persistIssuePatch(issueId, { dueDate: dueDate ?? null }).catch((error) => {
          console.error('Failed to persist issue due date.', error);
       });
+   },
+
+   updateIssueEstimatedHours: (issueId: string, estimatedHours: number | undefined) => {
+      get().updateIssue(issueId, { estimatedHours });
+      void persistIssuePatch(issueId, { estimatedHours: estimatedHours ?? null }).catch(
+         (error) => {
+            console.error('Failed to persist issue estimate.', error);
+         }
+      );
    },
 
    // Utility functions

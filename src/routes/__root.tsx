@@ -3,6 +3,8 @@
 import type { ReactNode } from 'react';
 import { HeadContent, Outlet, Scripts, createRootRoute, Link } from '@tanstack/react-router';
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
+import '@fontsource/geist';
+import '@fontsource/geist-mono';
 import globalsCss from '@/src/styles/globals.css?url';
 import { ThemeProvider } from '@/components/layout/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
@@ -44,7 +46,7 @@ function RootDocument({ children }: { children: ReactNode }) {
          <head>
             <HeadContent />
          </head>
-         <body className="antialiased bg-background [--font-geist-sans:Inter,ui-sans-serif,system-ui,sans-serif] [--font-geist-mono:ui-monospace,SFMono-Regular,monospace]">
+         <body className="antialiased bg-background [--font-geist-sans:'Geist','Geist Sans',Inter,ui-sans-serif,system-ui,sans-serif] [--font-geist-mono:'Geist Mono',ui-monospace,SFMono-Regular,monospace]">
             <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
                {children}
                <Toaster />

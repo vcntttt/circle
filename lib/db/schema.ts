@@ -1,4 +1,4 @@
-import { integer, pgTable, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { integer, numeric, pgTable, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 export const projectStatuses = pgTable('project_statuses', {
    id: text('id').primaryKey(),
@@ -45,6 +45,7 @@ export const issues = pgTable('issues', {
    priority: text('priority').notNull().default('no-priority'),
    assigneeId: text('assignee_id'),
    rank: text('rank').notNull(),
+   estimatedHours: numeric('estimated_hours', { precision: 6, scale: 2 }),
    dueDate: timestamp('due_date', { withTimezone: true }),
    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

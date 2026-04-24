@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { Archive, ArrowLeft, Paperclip, Send, Trash2 } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { LabelSelector } from './label-selector';
 import { PrioritySelector } from './priority-selector';
@@ -34,6 +35,7 @@ export function IssueDetail({
       getIssueById,
       addIssue,
       updateIssueContent,
+      updateIssueEstimatedHours,
       deleteIssue,
       archiveIssue,
       updateIssueProject,
@@ -44,11 +46,19 @@ export function IssueDetail({
    );
    const [title, setTitle] = useState(presentationIssue?.title ?? '');
    const [description, setDescription] = useState(presentationIssue?.description ?? '');
+   const [estimatedHours, setEstimatedHours] = useState(
+      presentationIssue?.estimatedHours !== undefined ? String(presentationIssue.estimatedHours) : ''
+   );
 
    useEffect(() => {
       setTitle(presentationIssue?.title ?? '');
       setDescription(presentationIssue?.description ?? '');
-   }, [presentationIssue?.title, presentationIssue?.description]);
+      setEstimatedHours(
+         presentationIssue?.estimatedHours !== undefined
+            ? String(presentationIssue.estimatedHours)
+            : ''
+      );
+   }, [presentationIssue?.estimatedHours, presentationIssue?.title, presentationIssue?.description]);
 
    useEffect(() => {
       if (!presentationIssue) return;
@@ -93,6 +103,33 @@ export function IssueDetail({
 
       updateIssueContent(issueId, { description: nextDescription });
       toast.success('Description updated');
+   };
+
+   const persistEstimatedHours = () => {
+      const nextValue = estimatedHours.trim();
+      const currentValue =
+         presentationIssue.estimatedHours !== undefined ? String(presentationIssue.estimatedHours) : '';
+
+      if (nextValue === currentValue) {
+         return;
+      }
+
+      if (nextValue === '') {
+         updateIssueEstimatedHours(issueId, undefined);
+         toast.success('Estimate cleared');
+         return;
+      }
+
+      const parsed = Number.parseFloat(nextValue);
+
+      if (!Number.isFinite(parsed) || parsed < 0) {
+         setEstimatedHours(currentValue);
+         toast.error('Enter a valid hour estimate');
+         return;
+      }
+
+      updateIssueEstimatedHours(issueId, parsed);
+      toast.success('Estimate updated');
    };
 
    const handleEditorShortcuts = (
@@ -189,6 +226,37 @@ export function IssueDetail({
                      onChange={(project) => updateIssueProject(presentationIssue.id, project)}
                   />
                   <LabelSelector issueId={presentationIssue.id} />
+                  <div className="flex items-center gap-2 rounded-full border px-2.5 py-1 bg-background">
+                     <span className="text-xs text-muted-foreground">Estimate</span>
+                     <Input
+                        value={estimatedHours}
+                        onChange={(event) => setEstimatedHours(event.target.value)}
+                        onBlur={persistEstimatedHours}
+                        onKeyDown={(event) => {
+                           if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+                              event.preventDefault();
+                              persistEstimatedHours();
+                           }
+
+                           if (event.key === 'Escape') {
+                              event.preventDefault();
+                              setEstimatedHours(
+                                 presentationIssue.estimatedHours !== undefined
+                                    ? String(presentationIssue.estimatedHours)
+                                    : ''
+                              );
+                              event.currentTarget.blur();
+                           }
+                        }}
+                        type="number"
+                        min="0"
+                        step="0.25"
+                        inputMode="decimal"
+                        className="h-7 w-20 border-none bg-transparent px-0 text-xs shadow-none focus-visible:ring-0"
+                        placeholder="0"
+                     />
+                     <span className="text-xs text-muted-foreground">h</span>
+                  </div>
                   {presentationIssue.dueDate && (
                      <span className="text-xs text-muted-foreground rounded-full border px-2.5 py-1 bg-background">
                         Due {format(new Date(presentationIssue.dueDate), 'MMM dd')}

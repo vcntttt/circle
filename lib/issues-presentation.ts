@@ -4,6 +4,15 @@ import { priorities, type Issue, status as fallbackStatuses } from '@/lib/ui-cat
 import { toPresentationProject } from './projects-presentation';
 import type { ProjectOptionLike } from './projects-presentation';
 
+const parseEstimatedHours = (estimatedHours: string | null): number | undefined => {
+   if (estimatedHours === null) {
+      return undefined;
+   }
+
+   const parsed = Number.parseFloat(estimatedHours);
+   return Number.isFinite(parsed) ? parsed : undefined;
+};
+
 export const toPresentationIssue = (
    issue: IssueListItem,
    statusOptions?: ProjectOptionLike[]
@@ -25,4 +34,5 @@ export const toPresentationIssue = (
    subissues: [],
    rank: issue.rank,
    dueDate: issue.dueDate ?? undefined,
+   estimatedHours: parseEstimatedHours(issue.estimatedHours),
 });

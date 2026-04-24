@@ -177,6 +177,7 @@ export function CreateNewIssue() {
          assignee: currentUser,
          priority: priorities.find((p) => p.id === 'no-priority')!,
          labels: [],
+         estimatedHours: undefined,
          createdAt: new Date().toISOString(),
          cycleId: '',
          project: defaultProject ?? undefined,
@@ -380,6 +381,7 @@ export function CreateNewIssue() {
                status: addIssueForm.status.id,
                priority: addIssueForm.priority.id,
                assigneeId: addIssueForm.assignee?.id ?? null,
+               estimatedHours: addIssueForm.estimatedHours ?? null,
                rank: addIssueForm.rank,
                dueDate: addIssueForm.dueDate ?? null,
                projectName: finalProject?.name ?? null,
@@ -488,6 +490,32 @@ export function CreateNewIssue() {
                      setAddIssueForm({ ...addIssueForm, description: e.target.value })
                   }
                />
+
+               <div className="flex items-end gap-2">
+                  <div className="space-y-1">
+                     <Label htmlFor="estimated-hours" className="text-xs text-muted-foreground">
+                        Estimated hours
+                     </Label>
+                     <Input
+                        id="estimated-hours"
+                        type="number"
+                        min="0"
+                        step="0.25"
+                        inputMode="decimal"
+                        className="w-36"
+                        placeholder="1.5"
+                        value={addIssueForm.estimatedHours ?? ''}
+                        onChange={(event) => {
+                           const nextValue = event.target.value;
+                           setAddIssueForm({
+                              ...addIssueForm,
+                              estimatedHours:
+                                 nextValue === '' ? undefined : Number.parseFloat(nextValue),
+                           });
+                        }}
+                     />
+                  </div>
+               </div>
 
                <div className="w-full flex items-center justify-start gap-1.5 flex-wrap">
                   <ProjectSelector

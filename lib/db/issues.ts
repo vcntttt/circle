@@ -12,6 +12,7 @@ export interface IssueListItem {
    priority: string;
    assigneeId: string | null;
    rank: string;
+   estimatedHours: string | null;
    dueDate: string | null;
    createdAt: string;
    updatedAt: string;
@@ -47,6 +48,7 @@ interface IssueRow {
    priority: string;
    assigneeId: string | null;
    rank: string;
+   estimatedHours: string | null;
    dueDate: Date | null;
    createdAt: Date;
    updatedAt: Date;
@@ -70,6 +72,7 @@ export interface CreateIssueInput {
    priority: string;
    assigneeId?: string | null;
    rank: string;
+   estimatedHours?: number | null;
    dueDate?: string | null;
    projectName?: string | null;
    labelNames?: string[];
@@ -81,6 +84,7 @@ export interface UpdateIssueInput {
    status?: string;
    priority?: string;
    assigneeId?: string | null;
+   estimatedHours?: number | null;
    dueDate?: string | null;
    projectName?: string | null;
    labelNames?: string[];
@@ -101,6 +105,7 @@ async function selectIssueRows(issueId?: string): Promise<IssueRow[]> {
          priority: schema.issues.priority,
          assigneeId: schema.issues.assigneeId,
          rank: schema.issues.rank,
+         estimatedHours: schema.issues.estimatedHours,
          dueDate: schema.issues.dueDate,
          createdAt: schema.issues.createdAt,
          updatedAt: schema.issues.updatedAt,
@@ -142,6 +147,7 @@ async function selectIssueRowsByIdentifier(identifier: string): Promise<IssueRow
          priority: schema.issues.priority,
          assigneeId: schema.issues.assigneeId,
          rank: schema.issues.rank,
+         estimatedHours: schema.issues.estimatedHours,
          dueDate: schema.issues.dueDate,
          createdAt: schema.issues.createdAt,
          updatedAt: schema.issues.updatedAt,
@@ -178,6 +184,7 @@ function mapIssueRows(rows: IssueRow[]): IssueListItem[] {
             priority: row.priority,
             assigneeId: row.assigneeId,
             rank: row.rank,
+            estimatedHours: row.estimatedHours,
             dueDate: row.dueDate ? row.dueDate.toISOString() : null,
             createdAt: row.createdAt.toISOString(),
             updatedAt: row.updatedAt.toISOString(),
@@ -242,6 +249,7 @@ export async function createIssueRecord(input: CreateIssueInput): Promise<IssueL
          priority: input.priority,
          assigneeId: input.assigneeId ?? null,
          rank: input.rank,
+         estimatedHours: input.estimatedHours === undefined ? null : input.estimatedHours.toString(),
          dueDate: input.dueDate ? new Date(input.dueDate) : null,
          projectId: project[0]?.id ?? null,
       })
@@ -302,6 +310,9 @@ export async function updateIssueRecord(
          ...(input.status ? { status: input.status } : {}),
          ...(input.priority ? { priority: input.priority } : {}),
          ...(input.assigneeId !== undefined ? { assigneeId: input.assigneeId } : {}),
+         ...(input.estimatedHours !== undefined
+            ? { estimatedHours: input.estimatedHours?.toString() ?? null }
+            : {}),
          ...(input.dueDate !== undefined
             ? { dueDate: input.dueDate ? new Date(input.dueDate) : null }
             : {}),
