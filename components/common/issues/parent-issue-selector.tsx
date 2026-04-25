@@ -19,9 +19,17 @@ interface ParentIssueSelectorProps {
    issueId: string;
    parent: Issue['parent'];
    onChange: (parent: Issue['parent']) => void;
+   compact?: boolean;
+   emptyLabel?: string;
 }
 
-export function ParentIssueSelector({ issueId, parent, onChange }: ParentIssueSelectorProps) {
+export function ParentIssueSelector({
+   issueId,
+   parent,
+   onChange,
+   compact = false,
+   emptyLabel = 'Set parent',
+}: ParentIssueSelectorProps) {
    const id = useId();
    const [open, setOpen] = useState(false);
    const [value, setValue] = useState(parent?.id ?? 'no-parent');
@@ -71,15 +79,19 @@ export function ParentIssueSelector({ issueId, parent, onChange }: ParentIssueSe
          <PopoverTrigger asChild>
             <Button
                id={id}
-               size="xs"
-               variant="secondary"
+               size={compact ? 'sm' : 'xs'}
+               variant={compact ? 'ghost' : 'secondary'}
                role="combobox"
                aria-expanded={open}
-               className="max-w-full justify-start gap-1.5"
+               className={
+                  compact
+                     ? 'h-7 max-w-full justify-start gap-1 rounded-full border px-2.5 text-xs text-muted-foreground'
+                     : 'max-w-full justify-start gap-1.5'
+               }
             >
                <GitBranchPlus className="size-4" />
                <span className="max-w-[180px] truncate">
-                  {parent ? `Parent: ${parent.identifier}` : 'Set parent'}
+                  {parent ? `Parent ${parent.identifier}` : emptyLabel}
                </span>
             </Button>
          </PopoverTrigger>

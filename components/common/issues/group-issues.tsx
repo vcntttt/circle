@@ -40,7 +40,6 @@ export function GroupIssues({
          issue: Issue;
          nestingLevel: number;
          childrenCount: number;
-         showParentIndicator: boolean;
       }> = [];
       const seen = new Set<string>();
 
@@ -62,7 +61,6 @@ export function GroupIssues({
             issue,
             nestingLevel: 0,
             childrenCount: visibleChildren.length,
-            showParentIndicator: Boolean(issue.parent && !visibleParent),
          });
          seen.add(issue.id);
 
@@ -71,7 +69,6 @@ export function GroupIssues({
                issue: child,
                nestingLevel: 1,
                childrenCount: 0,
-               showParentIndicator: false,
             });
             seen.add(child.id);
          }
@@ -86,7 +83,6 @@ export function GroupIssues({
             issue,
             nestingLevel: 0,
             childrenCount: 0,
-            showParentIndicator: Boolean(issue.parent),
          });
       }
 
@@ -139,7 +135,7 @@ export function GroupIssues({
 
          {viewType === 'list' ? (
             <div className="space-y-0">
-               {listRows.map(({ issue, nestingLevel, childrenCount, showParentIndicator }) => (
+               {listRows.map(({ issue, nestingLevel, childrenCount }) => (
                   <IssueLine
                      key={issue.id}
                      issue={issue}
@@ -147,7 +143,6 @@ export function GroupIssues({
                      isSelected={selectedIssueIdentifier === issue.identifier}
                      nestingLevel={nestingLevel}
                      childrenCount={childrenCount}
-                     showParentIndicator={showParentIndicator}
                      onSelect={onSelectIssue}
                   />
                ))}

@@ -31,7 +31,6 @@ export function IssueLine({
    isSelected = false,
    nestingLevel = 0,
    childrenCount = 0,
-   showParentIndicator = false,
    onSelect,
 }: {
    issue: Issue;
@@ -39,7 +38,6 @@ export function IssueLine({
    isSelected?: boolean;
    nestingLevel?: number;
    childrenCount?: number;
-   showParentIndicator?: boolean;
    onSelect?: (issue: Issue) => void;
 }) {
    const { visibleProperties } = useViewStore();
@@ -89,11 +87,6 @@ export function IssueLine({
                            </span>
                         )}
                      </div>
-                     {showParentIndicator && issue.parent && (
-                        <div className="mt-0.5 text-[11px] text-muted-foreground truncate">
-                           Child of {issue.parent.identifier}
-                        </div>
-                     )}
                   </div>
                </div>
                <div className="flex items-center justify-end gap-2 ml-auto sm:w-fit">

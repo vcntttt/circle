@@ -68,7 +68,7 @@ export function CreateProjectUpdateDialog({
          return;
       }
 
-      setProjectId(project?.id ?? projects[0]?.id ?? '');
+      setProjectId(project?.id ?? '');
       setSelectedHealth(
          project?.health.id && project.health.id !== 'no-update' ? project.health.id : 'on-track'
       );

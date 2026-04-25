@@ -1,13 +1,19 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import {
+   Dialog,
+   DialogContent,
+   DialogDescription,
+   DialogTitle,
+   DialogTrigger,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverAnchor } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
 import { IssueListItem } from '@/lib/db/issues';
 import { currentUser } from '@/lib/current-user';
-import { LexoRank } from '@/lib/utils';
+import { getNextLexoRank } from '@/lib/utils';
 import { toPresentationIssue } from '@/lib/issues-presentation';
 import { Switch } from '@/components/ui/switch';
 import { RiEditLine } from '@remixicon/react';
@@ -18,7 +24,7 @@ import {
    useCallback,
    useMemo,
    useRef,
-   type KeyboardEvent,
+   type KeyboardEvent as ReactKeyboardEvent,
    type ReactNode,
 } from 'react';
 import { priorities, status, type Issue } from '@/lib/ui-catalog';
@@ -41,6 +47,7 @@ import { PrioritySelector } from './priority-selector';
 import { AssigneeSelector } from './assignee-selector';
 import { ProjectSelector } from './project-selector';
 import { LabelSelector } from './label-selector';
+import { EstimatedHoursSelector } from './estimated-hours-selector';
 import { InlineTokenSuggestions } from './inline-token-suggestions';
 
 type TitlePreviewSegment =
@@ -165,10 +172,6 @@ export function CreateNewIssue() {
 
    const createDefaultData = useCallback(() => {
       const currentIssues = getAllIssues();
-      const latestRank = currentIssues
-         .map((issue) => issue.rank)
-         .sort((a, b) => a.localeCompare(b))
-         .at(-1);
 
       return {
          id: uuidv4(),
@@ -186,9 +189,7 @@ export function CreateNewIssue() {
          parentIssueId: defaultParentIssue?.id ?? null,
          parent: defaultParentIssue ?? null,
          subissues: [],
-         rank: latestRank
-            ? LexoRank.from(latestRank).increment().toString()
-            : new LexoRank('a3c').toString(),
+         rank: getNextLexoRank(currentIssues.map((issue) => issue.rank)),
       };
    }, [defaultParentIssue, defaultProject, defaultStatus, getAllIssues]);
 
@@ -273,7 +274,7 @@ export function CreateNewIssue() {
          return;
       }
 
-      const handleKeyDown = (event: KeyboardEvent) => {
+      const handleKeyDown = (event: globalThis.KeyboardEvent) => {
          if (event.defaultPrevented || event.repeat) {
             return;
          }
@@ -332,7 +333,7 @@ export function CreateNewIssue() {
       setActiveSuggestionIndex(0);
    };
 
-   const handleTitleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+   const handleTitleKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
       if (!inlineSuggestion || inlineSuggestion.items.length === 0) {
          return;
       }
@@ -364,7 +365,7 @@ export function CreateNewIssue() {
       }
    };
 
-   const createIssue = async () => {
+   const createIssue = useCallback(async () => {
       const finalTitle = inlineDraft.title || addIssueForm.title.trim();
       const finalProject = inlineDraft.project ?? addIssueForm.project;
       const finalLabels = [...addIssueForm.labels, ...inlineDraft.labels].filter(
@@ -409,7 +410,29 @@ export function CreateNewIssue() {
          console.error('Failed to create issue.', error);
          toast.error('Issue could not be created');
       }
-   };
+   }, [addIssue, addIssueForm, closeModal, createMore, createDefaultData, inlineDraft]);
+
+   useEffect(() => {
+      if (!isOpen) {
+         return;
+      }
+
+      const handleSubmitShortcut = (event: globalThis.KeyboardEvent) => {
+         if (event.defaultPrevented || event.repeat) {
+            return;
+         }
+
+         if (!(event.metaKey || event.ctrlKey) || event.key !== 'Enter') {
+            return;
+         }
+
+         event.preventDefault();
+         void createIssue();
+      };
+
+      window.addEventListener('keydown', handleSubmitShortcut);
+      return () => window.removeEventListener('keydown', handleSubmitShortcut);
+   }, [createIssue, isOpen]);
 
    return (
       <Dialog open={isOpen} onOpenChange={(value) => (value ? openModal() : closeModal())}>
@@ -419,6 +442,10 @@ export function CreateNewIssue() {
             </Button>
          </DialogTrigger>
          <DialogContent className="w-full sm:max-w-[750px] p-0 shadow-xl top-[30%]">
+            <DialogTitle className="sr-only">Create issue</DialogTitle>
+            <DialogDescription className="sr-only">
+               Create a new issue with optional project, labels, priority, assignee, and estimate.
+            </DialogDescription>
             <div className="px-4 pt-4 pb-0 space-y-3 w-full">
                <Popover open={Boolean(inlineSuggestion)}>
                   <PopoverAnchor asChild>
@@ -502,32 +529,6 @@ export function CreateNewIssue() {
                   }
                />
 
-               <div className="flex items-end gap-2">
-                  <div className="space-y-1">
-                     <Label htmlFor="estimated-hours" className="text-xs text-muted-foreground">
-                        Estimated hours
-                     </Label>
-                     <Input
-                        id="estimated-hours"
-                        type="number"
-                        min="0"
-                        step="0.25"
-                        inputMode="decimal"
-                        className="w-36"
-                        placeholder="1.5"
-                        value={addIssueForm.estimatedHours ?? ''}
-                        onChange={(event) => {
-                           const nextValue = event.target.value;
-                           setAddIssueForm({
-                              ...addIssueForm,
-                              estimatedHours:
-                                 nextValue === '' ? undefined : Number.parseFloat(nextValue),
-                           });
-                        }}
-                     />
-                  </div>
-               </div>
-
                <div className="w-full flex items-center justify-start gap-1.5 flex-wrap">
                   <ProjectSelector
                      project={addIssueForm.project}
@@ -561,6 +562,12 @@ export function CreateNewIssue() {
                      assignee={addIssueForm.assignee}
                      onChange={(newAssignee) =>
                         setAddIssueForm({ ...addIssueForm, assignee: newAssignee })
+                     }
+                  />
+                  <EstimatedHoursSelector
+                     estimatedHours={addIssueForm.estimatedHours}
+                     onChange={(estimatedHours) =>
+                        setAddIssueForm({ ...addIssueForm, estimatedHours })
                      }
                   />
                </div>

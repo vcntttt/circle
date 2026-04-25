@@ -19,6 +19,7 @@ import { IssueDetail } from './issue-detail';
 import { SearchIssues } from './search-issues';
 import { IssuesStatusProvider, useIssuesStatuses } from './issues-status-context';
 import type { ProjectOptionLike } from '@/lib/projects-presentation';
+import { groupIssuesForDisplayByStatus } from '@/lib/issue-status-groups';
 
 interface IssuesWorkspaceProps {
    initialIssues: IssueListItem[];
@@ -196,13 +197,14 @@ function IssuesListPanel({
    const { viewType } = useViewStore();
    const isViewTypeGrid = viewType === 'grid';
    const statuses = useIssuesStatuses();
+   const issuesByStatus = useMemo(() => groupIssuesForDisplayByStatus(issues), [issues]);
    const displayedStatuses = useMemo(() => {
       if (showEmptyStatuses) {
          return statuses;
       }
 
-      return statuses.filter((status) => issues.some((issue) => issue.status.id === status.id));
-   }, [issues, showEmptyStatuses, statuses]);
+      return statuses.filter((status) => (issuesByStatus[status.id] ?? []).length > 0);
+   }, [issuesByStatus, showEmptyStatuses, statuses]);
 
    return (
       <div className="h-full w-full overflow-hidden border-r border-border/60 bg-container">
@@ -217,16 +219,14 @@ function IssuesListPanel({
             <div className={cn('h-full overflow-auto', isViewTypeGrid && 'overflow-x-auto')}>
                <div className={cn(isViewTypeGrid && 'flex h-full gap-3 px-2 py-2 min-w-max')}>
                   {displayedStatuses.map((statusItem) => {
-                     const issuesByStatus = issues.filter(
-                        (issue) => issue.status.id === statusItem.id
-                     );
+                     const statusIssues = issuesByStatus[statusItem.id] ?? [];
 
                      return (
                         <GroupIssues
                            key={statusItem.id}
                            status={statusItem}
-                           issues={issuesByStatus}
-                           count={issuesByStatus.length}
+                           issues={statusIssues}
+                           count={statusIssues.length}
                            selectedIssueIdentifier={selectedIssueIdentifier}
                            onSelectIssue={onSelectIssue}
                         />

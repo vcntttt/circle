@@ -357,7 +357,9 @@ export async function createIssueRecord(input: CreateIssueInput): Promise<IssueL
          assigneeId: input.assigneeId ?? null,
          rank: input.rank,
          estimatedHours:
-            input.estimatedHours === undefined ? null : input.estimatedHours.toString(),
+            input.estimatedHours === undefined || input.estimatedHours === null
+               ? null
+               : input.estimatedHours.toString(),
          dueDate: input.dueDate ? new Date(input.dueDate) : null,
          projectId,
       })
