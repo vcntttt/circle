@@ -41,6 +41,7 @@ import { PrioritySelector } from './priority-selector';
 import { AssigneeSelector } from './assignee-selector';
 import { ProjectSelector } from './project-selector';
 import { LabelSelector } from './label-selector';
+import { EstimatedHoursSelector } from './estimated-hours-selector';
 import { InlineTokenSuggestions } from './inline-token-suggestions';
 
 type TitlePreviewSegment =
@@ -502,38 +503,6 @@ export function CreateNewIssue() {
                   }
                />
 
-               <div className="flex items-end gap-2">
-                  <div className="space-y-1">
-                     <Label
-                        htmlFor="estimated-hours"
-                        className="flex items-center gap-1 text-xs text-muted-foreground"
-                     >
-                        <span>Estimated hours</span>
-                        <span className="rounded-full border px-1.5 py-0.5 text-[10px] uppercase tracking-wide">
-                           Optional
-                        </span>
-                     </Label>
-                     <Input
-                        id="estimated-hours"
-                        type="number"
-                        min="0"
-                        step="0.25"
-                        inputMode="decimal"
-                        className="w-36"
-                        placeholder="Leave blank"
-                        value={addIssueForm.estimatedHours ?? ''}
-                        onChange={(event) => {
-                           const nextValue = event.target.value;
-                           setAddIssueForm({
-                              ...addIssueForm,
-                              estimatedHours:
-                                 nextValue === '' ? undefined : Number.parseFloat(nextValue),
-                           });
-                        }}
-                     />
-                  </div>
-               </div>
-
                <div className="w-full flex items-center justify-start gap-1.5 flex-wrap">
                   <ProjectSelector
                      project={addIssueForm.project}
@@ -567,6 +536,12 @@ export function CreateNewIssue() {
                      assignee={addIssueForm.assignee}
                      onChange={(newAssignee) =>
                         setAddIssueForm({ ...addIssueForm, assignee: newAssignee })
+                     }
+                  />
+                  <EstimatedHoursSelector
+                     estimatedHours={addIssueForm.estimatedHours}
+                     onChange={(estimatedHours) =>
+                        setAddIssueForm({ ...addIssueForm, estimatedHours })
                      }
                   />
                </div>
