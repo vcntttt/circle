@@ -160,8 +160,8 @@ export function ProjectUpdatesTimeline({
                            </Button>
 
                            <Link
-                              to="/issues"
-                              search={{ projectId: update.project.id }}
+                              to="/projects/$projectSlug"
+                              params={{ projectSlug: update.project.slug }}
                               className="inline-flex max-w-[calc(100%-36px)] text-xl font-semibold tracking-normal hover:underline"
                            >
                               <span className="truncate">{update.project.name}</span>

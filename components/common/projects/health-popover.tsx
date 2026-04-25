@@ -19,6 +19,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { health as healthOptions } from '@/lib/ui-catalog';
 import { createProjectUpdate } from '@/src/server/projects';
+import { ProjectIconGlyph } from './project-icon';
 
 interface HealthPopoverProps {
    project: Project;
@@ -107,9 +108,10 @@ export function HealthPopover({ project, onProjectUpdate }: HealthPopoverProps) 
          >
             <div className="flex items-center justify-between border-b p-3">
                <div className="flex items-center gap-2">
-                  {project.icon && (
-                     <project.icon className="size-4 shrink-0 text-muted-foreground" />
-                  )}
+                  <ProjectIconGlyph
+                     icon={project.iconConfig}
+                     className="size-4 shrink-0 text-muted-foreground"
+                  />
                   <h4 className="font-medium text-sm">{project.name}</h4>
                </div>
                <div className="flex items-center gap-2">

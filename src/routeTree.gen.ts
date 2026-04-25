@@ -16,7 +16,9 @@ import { Route as IssuesRouteImport } from './routes/issues'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as OrgIdRouteImport } from './routes/$orgId'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProjectsIndexRouteImport } from './routes/projects.index'
 import { Route as IssuesIndexRouteImport } from './routes/issues.index'
+import { Route as ProjectsProjectSlugRouteImport } from './routes/projects.$projectSlug'
 import { Route as IssuesIssueIdentifierRouteImport } from './routes/issues.$issueIdentifier'
 import { Route as OrgIdTeamsRouteImport } from './routes/$orgId.teams'
 import { Route as OrgIdSettingsRouteImport } from './routes/$orgId.settings'
@@ -62,10 +64,20 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ProjectsRoute,
+} as any)
 const IssuesIndexRoute = IssuesIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => IssuesRoute,
+} as any)
+const ProjectsProjectSlugRoute = ProjectsProjectSlugRouteImport.update({
+  id: '/$projectSlug',
+  path: '/$projectSlug',
+  getParentRoute: () => ProjectsRoute,
 } as any)
 const IssuesIssueIdentifierRoute = IssuesIssueIdentifierRouteImport.update({
   id: '/$issueIdentifier',
@@ -119,7 +131,7 @@ export interface FileRoutesByFullPath {
   '/$orgId': typeof OrgIdRouteWithChildren
   '/inbox': typeof InboxRoute
   '/issues': typeof IssuesRouteWithChildren
-  '/projects': typeof ProjectsRoute
+  '/projects': typeof ProjectsRouteWithChildren
   '/pulse': typeof PulseRoute
   '/settings': typeof SettingsRoute
   '/$orgId/inbox': typeof OrgIdInboxRoute
@@ -129,7 +141,9 @@ export interface FileRoutesByFullPath {
   '/$orgId/settings': typeof OrgIdSettingsRoute
   '/$orgId/teams': typeof OrgIdTeamsRoute
   '/issues/$issueIdentifier': typeof IssuesIssueIdentifierRoute
+  '/projects/$projectSlug': typeof ProjectsProjectSlugRoute
   '/issues/': typeof IssuesIndexRoute
+  '/projects/': typeof ProjectsIndexRoute
   '/$orgId/issues/$issueIdentifier': typeof OrgIdIssuesIssueIdentifierRoute
   '/$orgId/team/$teamId/all': typeof OrgIdTeamTeamIdAllRoute
 }
@@ -137,7 +151,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$orgId': typeof OrgIdRouteWithChildren
   '/inbox': typeof InboxRoute
-  '/projects': typeof ProjectsRoute
   '/pulse': typeof PulseRoute
   '/settings': typeof SettingsRoute
   '/$orgId/inbox': typeof OrgIdInboxRoute
@@ -147,7 +160,9 @@ export interface FileRoutesByTo {
   '/$orgId/settings': typeof OrgIdSettingsRoute
   '/$orgId/teams': typeof OrgIdTeamsRoute
   '/issues/$issueIdentifier': typeof IssuesIssueIdentifierRoute
+  '/projects/$projectSlug': typeof ProjectsProjectSlugRoute
   '/issues': typeof IssuesIndexRoute
+  '/projects': typeof ProjectsIndexRoute
   '/$orgId/issues/$issueIdentifier': typeof OrgIdIssuesIssueIdentifierRoute
   '/$orgId/team/$teamId/all': typeof OrgIdTeamTeamIdAllRoute
 }
@@ -157,7 +172,7 @@ export interface FileRoutesById {
   '/$orgId': typeof OrgIdRouteWithChildren
   '/inbox': typeof InboxRoute
   '/issues': typeof IssuesRouteWithChildren
-  '/projects': typeof ProjectsRoute
+  '/projects': typeof ProjectsRouteWithChildren
   '/pulse': typeof PulseRoute
   '/settings': typeof SettingsRoute
   '/$orgId/inbox': typeof OrgIdInboxRoute
@@ -167,7 +182,9 @@ export interface FileRoutesById {
   '/$orgId/settings': typeof OrgIdSettingsRoute
   '/$orgId/teams': typeof OrgIdTeamsRoute
   '/issues/$issueIdentifier': typeof IssuesIssueIdentifierRoute
+  '/projects/$projectSlug': typeof ProjectsProjectSlugRoute
   '/issues/': typeof IssuesIndexRoute
+  '/projects/': typeof ProjectsIndexRoute
   '/$orgId/issues/$issueIdentifier': typeof OrgIdIssuesIssueIdentifierRoute
   '/$orgId/team/$teamId/all': typeof OrgIdTeamTeamIdAllRoute
 }
@@ -188,7 +205,9 @@ export interface FileRouteTypes {
     | '/$orgId/settings'
     | '/$orgId/teams'
     | '/issues/$issueIdentifier'
+    | '/projects/$projectSlug'
     | '/issues/'
+    | '/projects/'
     | '/$orgId/issues/$issueIdentifier'
     | '/$orgId/team/$teamId/all'
   fileRoutesByTo: FileRoutesByTo
@@ -196,7 +215,6 @@ export interface FileRouteTypes {
     | '/'
     | '/$orgId'
     | '/inbox'
-    | '/projects'
     | '/pulse'
     | '/settings'
     | '/$orgId/inbox'
@@ -206,7 +224,9 @@ export interface FileRouteTypes {
     | '/$orgId/settings'
     | '/$orgId/teams'
     | '/issues/$issueIdentifier'
+    | '/projects/$projectSlug'
     | '/issues'
+    | '/projects'
     | '/$orgId/issues/$issueIdentifier'
     | '/$orgId/team/$teamId/all'
   id:
@@ -225,7 +245,9 @@ export interface FileRouteTypes {
     | '/$orgId/settings'
     | '/$orgId/teams'
     | '/issues/$issueIdentifier'
+    | '/projects/$projectSlug'
     | '/issues/'
+    | '/projects/'
     | '/$orgId/issues/$issueIdentifier'
     | '/$orgId/team/$teamId/all'
   fileRoutesById: FileRoutesById
@@ -235,7 +257,7 @@ export interface RootRouteChildren {
   OrgIdRoute: typeof OrgIdRouteWithChildren
   InboxRoute: typeof InboxRoute
   IssuesRoute: typeof IssuesRouteWithChildren
-  ProjectsRoute: typeof ProjectsRoute
+  ProjectsRoute: typeof ProjectsRouteWithChildren
   PulseRoute: typeof PulseRoute
   SettingsRoute: typeof SettingsRoute
 }
@@ -291,12 +313,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projects/': {
+      id: '/projects/'
+      path: '/'
+      fullPath: '/projects/'
+      preLoaderRoute: typeof ProjectsIndexRouteImport
+      parentRoute: typeof ProjectsRoute
+    }
     '/issues/': {
       id: '/issues/'
       path: '/'
       fullPath: '/issues/'
       preLoaderRoute: typeof IssuesIndexRouteImport
       parentRoute: typeof IssuesRoute
+    }
+    '/projects/$projectSlug': {
+      id: '/projects/$projectSlug'
+      path: '/$projectSlug'
+      fullPath: '/projects/$projectSlug'
+      preLoaderRoute: typeof ProjectsProjectSlugRouteImport
+      parentRoute: typeof ProjectsRoute
     }
     '/issues/$issueIdentifier': {
       id: '/issues/$issueIdentifier'
@@ -411,12 +447,26 @@ const IssuesRouteChildren: IssuesRouteChildren = {
 const IssuesRouteWithChildren =
   IssuesRoute._addFileChildren(IssuesRouteChildren)
 
+interface ProjectsRouteChildren {
+  ProjectsProjectSlugRoute: typeof ProjectsProjectSlugRoute
+  ProjectsIndexRoute: typeof ProjectsIndexRoute
+}
+
+const ProjectsRouteChildren: ProjectsRouteChildren = {
+  ProjectsProjectSlugRoute: ProjectsProjectSlugRoute,
+  ProjectsIndexRoute: ProjectsIndexRoute,
+}
+
+const ProjectsRouteWithChildren = ProjectsRoute._addFileChildren(
+  ProjectsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   OrgIdRoute: OrgIdRouteWithChildren,
   InboxRoute: InboxRoute,
   IssuesRoute: IssuesRouteWithChildren,
-  ProjectsRoute: ProjectsRoute,
+  ProjectsRoute: ProjectsRouteWithChildren,
   PulseRoute: PulseRoute,
   SettingsRoute: SettingsRoute,
 }

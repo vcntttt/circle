@@ -21,6 +21,7 @@ import { Link } from '@tanstack/react-router';
 import { workspaceItems } from '@/lib/ui-catalog';
 import { useProjectOptions } from '@/hooks/use-project-options';
 import { usePinnedProjectsStore } from '@/store/pinned-projects-store';
+import { ProjectIconGlyph } from '@/components/common/projects/project-icon';
 
 export function NavWorkspace() {
    const projects = useProjectOptions();
@@ -92,8 +93,11 @@ export function NavWorkspace() {
                {pinnedProjects.map((project) => (
                   <SidebarMenuItem key={project.id}>
                      <SidebarMenuButton asChild>
-                        <Link to="/issues" search={{ projectId: project.id }}>
-                           <Pin className="size-4" />
+                        <Link
+                           to="/projects/$projectSlug"
+                           params={{ projectSlug: project.slug ?? project.id }}
+                        >
+                           <ProjectIconGlyph icon={project.iconConfig} className="size-4" />
                            <span className="truncate">{project.name}</span>
                         </Link>
                      </SidebarMenuButton>

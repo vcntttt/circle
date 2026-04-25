@@ -1,5 +1,5 @@
-import { Box } from 'lucide-react';
 import { currentUser } from '@/lib/current-user';
+import type { ProjectIconType } from '@/lib/models';
 import {
    health,
    priorities,
@@ -20,6 +20,9 @@ export interface ProjectLike {
    id: string;
    name: string;
    slug: string;
+   key: string;
+   iconType?: ProjectIconType;
+   iconValue?: string;
    status: string;
    priority?: string;
    description?: string | null;
@@ -89,7 +92,13 @@ export const toPresentationProject = (
    return {
       id: project.id,
       name: project.name,
-      icon: Box,
+      slug: project.slug,
+      description: project.description ?? null,
+      key: project.key,
+      iconConfig: {
+         type: project.iconType ?? 'lucide',
+         value: project.iconValue ?? 'box',
+      },
       status: resolvedStatus,
       percentComplete: 0,
       startDate: project.createdAt,

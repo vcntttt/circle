@@ -1,21 +1,19 @@
-import { Badge } from '@/components/ui/badge';
 import type { Project } from '@/lib/models';
 import { Link } from '@tanstack/react-router';
+import { IssueChip, issueChipIconClassName } from './issue-chip';
+import { ProjectIconGlyph } from '@/components/common/projects/project-icon';
 
 export function ProjectBadge({ project }: { project: Project }) {
    return (
       <Link
-         to="/issues"
-         search={{ projectId: project.id }}
-         className="flex items-center justify-center gap-.5"
+         to="/projects/$projectSlug"
+         params={{ projectSlug: project.slug ?? project.id }}
+         className="inline-flex max-w-full"
       >
-         <Badge
-            variant="outline"
-            className="gap-1.5 rounded-full text-muted-foreground bg-background"
-         >
-            <project.icon size={16} />
-            {project.name}
-         </Badge>
+         <IssueChip>
+            <ProjectIconGlyph icon={project.iconConfig} className={issueChipIconClassName} />
+            <span className="truncate">{project.name}</span>
+         </IssueChip>
       </Link>
    );
 }

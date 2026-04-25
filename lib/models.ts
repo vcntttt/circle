@@ -1,5 +1,12 @@
 import type { ComponentType, FC, SVGProps } from 'react';
 
+export type ProjectIconType = 'lucide' | 'emoji';
+
+export interface ProjectIconConfig {
+   type: ProjectIconType;
+   value: string;
+}
+
 export interface LabelInterface {
    id: string;
    name: string;
@@ -40,8 +47,11 @@ export interface Health {
 export interface Project {
    id: string;
    name: string;
+   slug?: string;
+   key?: string;
+   description?: string | null;
    status: Status;
-   icon: ComponentType<{ className?: string; size?: string | number }>;
+   iconConfig: ProjectIconConfig;
    percentComplete: number;
    startDate: string;
    lead: User;

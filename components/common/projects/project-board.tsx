@@ -205,8 +205,8 @@ export function ProjectBoard({ projects, statusOptions, priorityOptions }: Proje
 
    function handleOpenIssues(project: Project) {
       void navigate({
-         to: '/issues',
-         search: { projectId: project.id },
+         to: '/projects/$projectSlug',
+         params: { projectSlug: project.slug ?? project.id },
       });
    }
 }

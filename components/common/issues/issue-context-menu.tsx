@@ -46,6 +46,7 @@ import { archivedStatus, priorities } from '@/lib/ui-catalog';
 import { usePinnedProjectsStore } from '@/store/pinned-projects-store';
 import { toast } from 'sonner';
 import { useIssuesStatuses } from './issues-status-context';
+import { ProjectIconGlyph } from '@/components/common/projects/project-icon';
 
 interface IssueContextMenuProps {
    issueId?: string;
@@ -331,7 +332,8 @@ export function IssueContextMenu({ issueId }: IssueContextMenuProps) {
                         key={project.id}
                         onClick={() => handleProjectChange(project.id)}
                      >
-                        <project.icon className="size-4" /> {project.name}
+                        <ProjectIconGlyph icon={project.iconConfig} className="size-4" />{' '}
+                        {project.name}
                      </ContextMenuItem>
                   ))}
                   <ContextMenuSeparator />

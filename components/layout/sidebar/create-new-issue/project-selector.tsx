@@ -16,15 +16,26 @@ import { useIssuesStore } from '@/store/issues-store';
 import type { Project } from '@/lib/models';
 import { Box, CheckIcon, FolderIcon } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
+import { cn } from '@/lib/utils';
+import { ProjectIconGlyph } from '@/components/common/projects/project-icon';
 
 interface ProjectSelectorProps {
    project: Project | undefined;
    onChange: (project: Project | undefined) => void;
    open?: boolean;
    onOpenChange?: (open: boolean) => void;
+   showShortcut?: boolean;
+   triggerClassName?: string;
 }
 
-export function ProjectSelector({ project, onChange, open, onOpenChange }: ProjectSelectorProps) {
+export function ProjectSelector({
+   project,
+   onChange,
+   open,
+   onOpenChange,
+   showShortcut = true,
+   triggerClassName,
+}: ProjectSelectorProps) {
    const id = useId();
    const [internalOpen, setInternalOpen] = useState<boolean>(false);
    const [value, setValue] = useState<string | undefined>(project?.id);
@@ -58,20 +69,24 @@ export function ProjectSelector({ project, onChange, open, onOpenChange }: Proje
             <PopoverTrigger asChild>
                <Button
                   id={id}
-                  className="flex items-center gap-1.5"
+                  className={cn('flex items-center gap-1.5', triggerClassName)}
                   size="xs"
                   variant="secondary"
                   role="combobox"
-                  title="Open project picker (Alt+P)"
+                  title={showShortcut ? 'Open project picker (Alt+P)' : 'Open project picker'}
                   aria-expanded={isOpen}
-                  aria-keyshortcuts="Alt+P"
+                  aria-keyshortcuts={showShortcut ? 'Alt+P' : undefined}
                >
                   {value ? (
                      (() => {
                         const selectedProject = projects.find((p) => p.id === value);
                         if (selectedProject) {
-                           const Icon = selectedProject.icon;
-                           return <Icon className="size-4" />;
+                           return (
+                              <ProjectIconGlyph
+                                 icon={selectedProject.iconConfig}
+                                 className="size-4"
+                              />
+                           );
                         }
                         return <Box className="size-4" />;
                      })()
@@ -81,7 +96,7 @@ export function ProjectSelector({ project, onChange, open, onOpenChange }: Proje
                   <span className="max-w-[160px] truncate">
                      {value ? projects.find((p) => p.id === value)?.name : 'No project'}
                   </span>
-                  <Kbd className="ml-auto">Alt+P</Kbd>
+                  {showShortcut && <Kbd className="ml-auto">Alt+P</Kbd>}
                </Button>
             </PopoverTrigger>
             <PopoverContent
@@ -112,7 +127,7 @@ export function ProjectSelector({ project, onChange, open, onOpenChange }: Proje
                               className="flex items-center justify-between"
                            >
                               <div className="flex items-center gap-2">
-                                 <project.icon className="size-4" />
+                                 <ProjectIconGlyph icon={project.iconConfig} className="size-4" />
                                  {project.name}
                               </div>
                               {value === project.id && <CheckIcon size={16} className="ml-auto" />}

@@ -1,5 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router';
-import Projects from '@/components/common/projects/projects';
+import { Outlet, createFileRoute } from '@tanstack/react-router';
 import Header from '@/components/layout/headers/projects/header';
 import MainLayout from '@/components/layout/main-layout';
 import { getProjectsPage } from '@/src/server/projects';
@@ -19,17 +18,11 @@ export const Route = createFileRoute('/projects')({
 });
 
 function ProjectsPage() {
-   const { projects, statusOptions, priorityOptions, databaseError, isConnected } =
-      Route.useLoaderData();
+   const { projects, isConnected } = Route.useLoaderData();
 
    return (
       <MainLayout header={<Header count={projects.length} isConnected={isConnected} />}>
-         <Projects
-            projects={projects}
-            statusOptions={statusOptions}
-            priorityOptions={priorityOptions}
-            databaseError={databaseError}
-         />
+         <Outlet />
       </MainLayout>
    );
 }

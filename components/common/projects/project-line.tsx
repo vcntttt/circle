@@ -12,6 +12,7 @@ import { PrioritySelector } from './priority-selector';
 import { StatusWithPercent } from './status-with-percent';
 import { DatePicker } from './date-picker';
 import { CreateProjectUpdateDialog } from './create-project-update-dialog';
+import { ProjectIcon } from './project-icon';
 import { useProjectFieldUpdates } from './use-project-field-updates';
 
 interface ProjectLineProps {
@@ -36,7 +37,10 @@ export default function ProjectLine({
       useProjectFieldUpdates(project, statusOptions, priorityOptions);
 
    const handleOpenIssues = () => {
-      void navigate({ to: '/issues', search: { projectId: project.id } });
+      void navigate({
+         to: '/projects/$projectSlug',
+         params: { projectSlug: project.slug ?? project.id },
+      });
    };
 
    const isPinned = pinnedProjectIds.includes(project.id);
@@ -47,9 +51,7 @@ export default function ProjectLine({
             <div className="w-full flex items-center py-3 px-6 border-b hover:bg-sidebar/50 border-muted-foreground/5 text-sm">
                <div className="flex-1 min-w-0 flex items-center gap-2">
                   <div className="relative">
-                     <div className="inline-flex size-6 bg-muted/50 items-center justify-center rounded shrink-0">
-                        <project.icon className="size-4" />
-                     </div>
+                     <ProjectIcon project={project} />
                   </div>
                   <button
                      className="flex flex-col items-start overflow-hidden text-left"

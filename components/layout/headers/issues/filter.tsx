@@ -30,6 +30,7 @@ import {
 import { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useIssuesStatuses } from '@/components/common/issues/issues-status-context';
+import { ProjectIconGlyph } from '@/components/common/projects/project-icon';
 
 // Define filter types
 type FilterType = 'status' | 'assignee' | 'priority' | 'labels' | 'project';
@@ -377,7 +378,7 @@ export function Filter() {
                               className="flex items-center justify-between"
                            >
                               <div className="flex items-center gap-2">
-                                 <project.icon className="size-4" />
+                                 <ProjectIconGlyph icon={project.iconConfig} className="size-4" />
                                  {project.name}
                               </div>
                               {filters.project.includes(project.id) && (

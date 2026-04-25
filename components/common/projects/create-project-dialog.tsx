@@ -16,6 +16,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { ProjectIconPicker } from '@/components/common/projects/project-icon-picker';
+import type { ProjectIconConfig } from '@/lib/models';
 import type { ProjectOptionLike } from '@/lib/projects-presentation';
 import { toast } from 'sonner';
 import {
@@ -33,6 +35,12 @@ export function CreateProjectDialog({ disabled = false }: CreateProjectDialogPro
    const [open, setOpen] = useState(false);
    const [isPending, setIsPending] = useState(false);
    const [error, setError] = useState<string | null>(null);
+   const [projectKey, setProjectKey] = useState('');
+   const [keyTouched, setKeyTouched] = useState(false);
+   const [iconConfig, setIconConfig] = useState<ProjectIconConfig>({
+      type: 'lucide',
+      value: 'box',
+   });
    const [statusOptions, setStatusOptions] = useState<ProjectOptionLike[]>([]);
    const [priorityOptions, setPriorityOptions] = useState<ProjectOptionLike[]>([]);
    const formRef = useRef<HTMLFormElement>(null);
@@ -42,6 +50,26 @@ export function CreateProjectDialog({ disabled = false }: CreateProjectDialogPro
          setError(null);
       }
    }, [open]);
+
+   const normalizeProjectKey = (value: string) =>
+      value
+         .toUpperCase()
+         .trim()
+         .replace(/[^A-Z0-9]+/g, '')
+         .slice(0, 10);
+
+   const createProjectKeyFromName = (name: string) => {
+      const words = name
+         .toUpperCase()
+         .trim()
+         .split(/[^A-Z0-9]+/)
+         .filter(Boolean);
+      const acronym = words.map((word) => word[0]).join('');
+
+      return normalizeProjectKey(acronym.length >= 2 ? acronym : name);
+   };
+
+   const projectKeyIsValid = /^[A-Z][A-Z0-9]{1,9}$/.test(projectKey);
 
    useEffect(() => {
       let isMounted = true;
@@ -72,13 +100,19 @@ export function CreateProjectDialog({ disabled = false }: CreateProjectDialogPro
          await createProjectMutation({
             data: {
                name: formData.get('name'),
+               key: projectKey,
                description: formData.get('description') ?? '',
                status: formData.get('status'),
                priority: formData.get('priority') ?? 'no-priority',
+               iconType: iconConfig.type,
+               iconValue: iconConfig.value,
             },
          });
 
          formRef.current?.reset();
+         setProjectKey('');
+         setKeyTouched(false);
+         setIconConfig({ type: 'lucide', value: 'box' });
          setOpen(false);
          await router.invalidate();
          toast.success('Project created');
@@ -111,7 +145,40 @@ export function CreateProjectDialog({ disabled = false }: CreateProjectDialogPro
             <form ref={formRef} onSubmit={createProject} className="space-y-4">
                <div className="space-y-2">
                   <Label htmlFor="name">Name</Label>
-                  <Input id="name" name="name" placeholder="Personal tracker MVP" required />
+                  <div className="flex items-center gap-2">
+                     <ProjectIconPicker value={iconConfig} onChange={setIconConfig} />
+                     <Input
+                        id="name"
+                        name="name"
+                        placeholder="Personal tracker MVP"
+                        required
+                        onChange={(event) => {
+                           if (!keyTouched) {
+                              setProjectKey(createProjectKeyFromName(event.target.value));
+                           }
+                        }}
+                     />
+                  </div>
+               </div>
+
+               <div className="space-y-2">
+                  <Label htmlFor="key">Key</Label>
+                  <Input
+                     id="key"
+                     name="key"
+                     placeholder="APP"
+                     value={projectKey}
+                     maxLength={10}
+                     required
+                     onChange={(event) => {
+                        setKeyTouched(true);
+                        setProjectKey(normalizeProjectKey(event.target.value));
+                     }}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                     Use 2-10 uppercase letters or numbers. This prefixes issue IDs like{' '}
+                     {projectKeyIsValid ? `${projectKey}-1` : 'APP-1'}.
+                  </p>
                </div>
 
                <div className="space-y-2">
@@ -162,7 +229,10 @@ export function CreateProjectDialog({ disabled = false }: CreateProjectDialogPro
                   <Button
                      type="submit"
                      disabled={
-                        isPending || statusOptions.length === 0 || priorityOptions.length === 0
+                        isPending ||
+                        !projectKeyIsValid ||
+                        statusOptions.length === 0 ||
+                        priorityOptions.length === 0
                      }
                   >
                      {isPending ? 'Creating...' : 'Create project'}
