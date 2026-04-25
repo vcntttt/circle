@@ -2,7 +2,6 @@
 
 import { IssueListItem } from '@/lib/db/issues';
 import { toPresentationIssue } from '@/lib/issues-presentation';
-import { type Issue } from '@/lib/ui-catalog';
 import { useIssuesStore } from '@/store/issues-store';
 import { useSearchStore } from '@/store/search-store';
 import { useViewStore } from '@/store/view-store';
@@ -16,6 +15,7 @@ import { CustomDragLayer } from './issue-grid';
 import { cn } from '@/lib/utils';
 import { IssuesStatusProvider, useIssuesStatuses } from './issues-status-context';
 import type { ProjectOptionLike } from '@/lib/projects-presentation';
+import { groupIssuesForDisplayByStatus } from '@/lib/issue-status-groups';
 
 interface AllIssuesProps {
    initialIssues: IssueListItem[];
@@ -119,23 +119,26 @@ const FilteredIssuesView: FC<{
    }, [filteredIssues, showEmptyStatuses, statuses]);
 
    // Group filtered issues by status
-   const filteredIssuesByStatus = useMemo(() => {
-      const result: Record<string, Issue[]> = {};
+   const filteredIssuesByStatus = useMemo(
+      () => groupIssuesForDisplayByStatus(filteredIssues),
+      [filteredIssues]
+   );
 
-      displayedStatuses.forEach((statusItem) => {
-         result[statusItem.id] = filteredIssues.filter(
-            (issue) => issue.status.id === statusItem.id
-         );
+   const displayedStatusesWithIssues = useMemo(() => {
+      if (showEmptyStatuses) {
+         return displayedStatuses;
+      }
+
+      return displayedStatuses.filter((statusItem) => {
+         return (filteredIssuesByStatus[statusItem.id] ?? []).length > 0;
       });
-
-      return result;
-   }, [displayedStatuses, filteredIssues]);
+   }, [displayedStatuses, filteredIssuesByStatus, showEmptyStatuses]);
 
    return (
       <DndProvider backend={HTML5Backend}>
          <CustomDragLayer />
          <div className={cn(isViewTypeGrid && 'flex h-full gap-3 px-2 py-2 min-w-max')}>
-            {displayedStatuses.map((statusItem) => (
+            {displayedStatusesWithIssues.map((statusItem) => (
                <GroupIssues
                   key={statusItem.id}
                   status={statusItem}
@@ -152,8 +155,9 @@ const GroupIssuesListView: FC<{
    isViewTypeGrid: boolean;
    showEmptyStatuses: boolean;
 }> = ({ isViewTypeGrid = false, showEmptyStatuses }) => {
-   const { issuesByStatus } = useIssuesStore();
+   const { issues } = useIssuesStore();
    const statuses = useIssuesStatuses();
+   const issuesByStatus = useMemo(() => groupIssuesForDisplayByStatus(issues), [issues]);
    const displayedStatuses = useMemo(() => {
       if (showEmptyStatuses) {
          return statuses;
