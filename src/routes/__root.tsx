@@ -29,6 +29,7 @@ export const Route = createRootRoute({
       ],
    }),
    notFoundComponent: NotFoundComponent,
+   errorComponent: RootErrorComponent,
    component: RootComponent,
 });
 
@@ -72,5 +73,24 @@ function NotFoundComponent() {
             </Link>
          </div>
       </div>
+   );
+}
+
+function RootErrorComponent({ error }: { error: unknown }) {
+   const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
+
+   return (
+      <RootDocument>
+         <div className="min-h-svh flex items-center justify-center p-6 bg-background text-foreground">
+            <div className="w-full max-w-lg rounded-lg border bg-card p-6 space-y-4 text-center">
+               <img src="/images/icon.svg" alt="Circle" className="size-7 mx-auto" />
+               <h1 className="text-lg font-semibold">Something went wrong</h1>
+               <p className="text-sm text-muted-foreground">{message}</p>
+               <Link to="/issues" className="text-sm underline underline-offset-4">
+                  Go to issues
+               </Link>
+            </div>
+         </div>
+      </RootDocument>
    );
 }

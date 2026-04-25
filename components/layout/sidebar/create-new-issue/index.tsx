@@ -1,15 +1,22 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import {
+   Dialog,
+   DialogContent,
+   DialogDescription,
+   DialogTitle,
+   DialogTrigger,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverAnchor } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
 import { IssueListItem } from '@/lib/db/issues';
 import { currentUser } from '@/lib/current-user';
-import { LexoRank } from '@/lib/utils';
+import { getNextLexoRank } from '@/lib/utils';
 import { toPresentationIssue } from '@/lib/issues-presentation';
 import { Switch } from '@/components/ui/switch';
+import { RiEditLine } from '@remixicon/react';
 import { GitBranchPlus } from 'lucide-react';
 import {
    useState,
@@ -17,7 +24,7 @@ import {
    useCallback,
    useMemo,
    useRef,
-   type KeyboardEvent,
+   type KeyboardEvent as ReactKeyboardEvent,
    type ReactNode,
 } from 'react';
 import { priorities, status, type Issue } from '@/lib/ui-catalog';
@@ -150,7 +157,6 @@ function renderTitlePreviewSegment(segment: TitlePreviewSegment, index: number):
 
 export function CreateNewIssue() {
    const [createMore, setCreateMore] = useState<boolean>(false);
-   const [isCreating, setIsCreating] = useState(false);
    const [projectSelectorOpen, setProjectSelectorOpen] = useState(false);
    const [labelSelectorOpen, setLabelSelectorOpen] = useState(false);
    const [titleFocused, setTitleFocused] = useState(false);
@@ -166,10 +172,6 @@ export function CreateNewIssue() {
 
    const createDefaultData = useCallback(() => {
       const currentIssues = getAllIssues();
-      const latestRank = currentIssues
-         .map((issue) => issue.rank)
-         .sort((a, b) => a.localeCompare(b))
-         .at(-1);
 
       return {
          id: uuidv4(),
@@ -187,9 +189,7 @@ export function CreateNewIssue() {
          parentIssueId: defaultParentIssue?.id ?? null,
          parent: defaultParentIssue ?? null,
          subissues: [],
-         rank: latestRank
-            ? LexoRank.from(latestRank).increment().toString()
-            : new LexoRank('a3c').toString(),
+         rank: getNextLexoRank(currentIssues.map((issue) => issue.rank)),
       };
    }, [defaultParentIssue, defaultProject, defaultStatus, getAllIssues]);
 
@@ -274,7 +274,7 @@ export function CreateNewIssue() {
          return;
       }
 
-      const handleKeyDown = (event: KeyboardEvent) => {
+      const handleKeyDown = (event: globalThis.KeyboardEvent) => {
          if (event.defaultPrevented || event.repeat) {
             return;
          }
@@ -333,7 +333,7 @@ export function CreateNewIssue() {
       setActiveSuggestionIndex(0);
    };
 
-   const handleTitleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+   const handleTitleKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
       if (!inlineSuggestion || inlineSuggestion.items.length === 0) {
          return;
       }
@@ -366,10 +366,6 @@ export function CreateNewIssue() {
    };
 
    const createIssue = useCallback(async () => {
-      if (isCreating) {
-         return;
-      }
-
       const finalTitle = inlineDraft.title || addIssueForm.title.trim();
       const finalProject = inlineDraft.project ?? addIssueForm.project;
       const finalLabels = [...addIssueForm.labels, ...inlineDraft.labels].filter(
@@ -383,7 +379,6 @@ export function CreateNewIssue() {
       }
 
       try {
-         setIsCreating(true);
          const createdIssue = await createIssueMutation({
             data: {
                title: finalTitle,
@@ -414,10 +409,8 @@ export function CreateNewIssue() {
       } catch (error) {
          console.error('Failed to create issue.', error);
          toast.error('Issue could not be created');
-      } finally {
-         setIsCreating(false);
       }
-   }, [addIssue, addIssueForm, closeModal, createDefaultData, createMore, inlineDraft, isCreating]);
+   }, [addIssue, addIssueForm, closeModal, createMore, createDefaultData, inlineDraft]);
 
    useEffect(() => {
       if (!isOpen) {
@@ -429,11 +422,7 @@ export function CreateNewIssue() {
             return;
          }
 
-         if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) {
-            return;
-         }
-
-         if (event.key !== 'Enter') {
+         if (!(event.metaKey || event.ctrlKey) || event.key !== 'Enter') {
             return;
          }
 
@@ -447,7 +436,16 @@ export function CreateNewIssue() {
 
    return (
       <Dialog open={isOpen} onOpenChange={(value) => (value ? openModal() : closeModal())}>
+         <DialogTrigger asChild>
+            <Button className="size-8 shrink-0" variant="secondary" size="icon">
+               <RiEditLine />
+            </Button>
+         </DialogTrigger>
          <DialogContent className="w-full sm:max-w-[750px] p-0 shadow-xl top-[30%]">
+            <DialogTitle className="sr-only">Create issue</DialogTitle>
+            <DialogDescription className="sr-only">
+               Create a new issue with optional project, labels, priority, assignee, and estimate.
+            </DialogDescription>
             <div className="px-4 pt-4 pb-0 space-y-3 w-full">
                <Popover open={Boolean(inlineSuggestion)}>
                   <PopoverAnchor asChild>
@@ -587,7 +585,6 @@ export function CreateNewIssue() {
                </div>
                <Button
                   size="sm"
-                  disabled={isCreating}
                   onClick={() => {
                      void createIssue();
                   }}

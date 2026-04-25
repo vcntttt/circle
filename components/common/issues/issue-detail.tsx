@@ -3,30 +3,26 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { format } from 'date-fns';
-import { Archive, ArrowLeft, GitBranchPlus, Link2, Paperclip, Send, Trash2 } from 'lucide-react';
+import { Archive, ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
-import {
-   Command,
-   CommandEmpty,
-   CommandGroup,
-   CommandInput,
-   CommandItem,
-   CommandList,
-} from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
 import { LabelSelector } from './label-selector';
 import { PrioritySelector } from './priority-selector';
 import { StatusSelector } from './status-selector';
 import { AssigneeUser } from './assignee-user';
 import { useIssuesStore } from '@/store/issues-store';
-import { useCreateIssueStore } from '@/store/create-issue-store';
 import { toast } from 'sonner';
 import type { Issue } from '@/lib/models';
 import { ProjectSelector } from '@/components/layout/sidebar/create-new-issue/project-selector';
 import { ParentIssueSelector } from './parent-issue-selector';
+import { createIssue as createIssueMutation } from '@/src/server/issues';
+import { getNextLexoRank } from '@/lib/utils';
+import { priorities, status as statusOptions } from '@/lib/ui-catalog';
+import { toPresentationIssue } from '@/lib/issues-presentation';
+import type { IssueListItem } from '@/lib/db/issues';
 
 export function IssueDetail({
    issueId,
@@ -44,49 +40,34 @@ export function IssueDetail({
    const navigate = useNavigate();
    const {
       getIssueById,
-      getRootIssues,
-      getIssueChildrenCount,
+      getAllIssues,
       addIssue,
       updateIssueContent,
-      updateIssueEstimatedHours,
       deleteIssue,
       archiveIssue,
       updateIssueProject,
       updateIssueParent,
+      updateIssueStatus,
    } = useIssuesStore();
-   const { openModal } = useCreateIssueStore();
    const presentationIssue = useMemo(
       () => getIssueById(issueId) ?? initialIssue ?? null,
       [getIssueById, issueId, initialIssue]
    );
    const [title, setTitle] = useState(presentationIssue?.title ?? '');
    const [description, setDescription] = useState(presentationIssue?.description ?? '');
-   const [estimatedHours, setEstimatedHours] = useState(
-      presentationIssue?.estimatedHours !== undefined
-         ? String(presentationIssue.estimatedHours)
-         : ''
-   );
-   const [attachOpen, setAttachOpen] = useState(false);
+   const [subissueComposerOpen, setSubissueComposerOpen] = useState(false);
+   const [newSubissueTitle, setNewSubissueTitle] = useState('');
+   const [newSubissueDescription, setNewSubissueDescription] = useState('');
+   const [creatingSubissue, setCreatingSubissue] = useState(false);
 
    useEffect(() => {
       setTitle(presentationIssue?.title ?? '');
       setDescription(presentationIssue?.description ?? '');
-      setEstimatedHours(
-         presentationIssue?.estimatedHours !== undefined
-            ? String(presentationIssue.estimatedHours)
-            : ''
-      );
-   }, [
-      presentationIssue?.estimatedHours,
-      presentationIssue?.title,
-      presentationIssue?.description,
-   ]);
+   }, [presentationIssue?.title, presentationIssue?.description]);
 
    useEffect(() => {
       if (!presentationIssue) return;
       if (getIssueById(issueId)) return;
-
-      // Seed the detail view issue into the store so label edits can persist immediately.
       addIssue(presentationIssue);
    }, [addIssue, getIssueById, issueId, presentationIssue]);
 
@@ -102,6 +83,8 @@ export function IssueDetail({
          </div>
       );
    }
+
+   const canBecomeSubissue = presentationIssue.subissues.length === 0;
 
    const persistTitle = () => {
       const nextTitle = title.trim();
@@ -125,35 +108,6 @@ export function IssueDetail({
 
       updateIssueContent(issueId, { description: nextDescription });
       toast.success('Description updated');
-   };
-
-   const persistEstimatedHours = () => {
-      const nextValue = estimatedHours.trim();
-      const currentValue =
-         presentationIssue.estimatedHours !== undefined
-            ? String(presentationIssue.estimatedHours)
-            : '';
-
-      if (nextValue === currentValue) {
-         return;
-      }
-
-      if (nextValue === '') {
-         updateIssueEstimatedHours(issueId, undefined);
-         toast.success('Estimate cleared');
-         return;
-      }
-
-      const parsed = Number.parseFloat(nextValue);
-
-      if (!Number.isFinite(parsed) || parsed < 0) {
-         setEstimatedHours(currentValue);
-         toast.error('Enter a valid hour estimate');
-         return;
-      }
-
-      updateIssueEstimatedHours(issueId, parsed);
-      toast.success('Estimate updated');
    };
 
    const handleEditorShortcuts = (
@@ -192,13 +146,42 @@ export function IssueDetail({
       void navigate({ to: '/issues', replace: true });
    };
 
-   const canBecomeSubissue = presentationIssue.subissues.length === 0;
-   const attachableIssues = getRootIssues().filter(
-      (issue) =>
-         issue.id !== presentationIssue.id &&
-         getIssueChildrenCount(issue.id) === 0 &&
-         !presentationIssue.subissues.some((subissue) => subissue.id === issue.id)
-   );
+   const handleCreateSubissue = async () => {
+      const finalTitle = newSubissueTitle.trim();
+
+      if (!finalTitle) {
+         toast.error('Subissue title is required');
+         return;
+      }
+
+      setCreatingSubissue(true);
+
+      try {
+         const createdIssue = await createIssueMutation({
+            data: {
+               title: finalTitle,
+               description: newSubissueDescription.trim() || undefined,
+               status: statusOptions.find((item) => item.id === 'to-do')?.id ?? statusOptions[0].id,
+               priority:
+                  priorities.find((item) => item.id === 'no-priority')?.id ?? priorities[0].id,
+               rank: getNextLexoRank(getAllIssues().map((issue) => issue.rank)),
+               parentIssueId: presentationIssue.id,
+               projectName: presentationIssue.project?.name ?? null,
+            },
+         });
+
+         addIssue(toPresentationIssue(createdIssue as IssueListItem));
+         setNewSubissueTitle('');
+         setNewSubissueDescription('');
+         setSubissueComposerOpen(false);
+         toast.success('Subissue created');
+      } catch (error) {
+         console.error('Failed to create subissue.', error);
+         toast.error('Subissue could not be created');
+      } finally {
+         setCreatingSubissue(false);
+      }
+   };
 
    return (
       <div className="flex h-full flex-col bg-background">
@@ -257,57 +240,47 @@ export function IssueDetail({
                      project={presentationIssue.project}
                      onChange={(project) => updateIssueProject(presentationIssue.id, project)}
                   />
-                  <ParentIssueSelector
-                     issueId={presentationIssue.id}
-                     parent={presentationIssue.parent ?? null}
-                     onChange={(parent) => {
-                        if (!canBecomeSubissue && parent) {
-                           toast.error('Issues with subissues cannot become subissues');
-                           return;
-                        }
-
-                        updateIssueParent(presentationIssue.id, parent);
-                        toast.success(
-                           parent ? `Parent set to ${parent.identifier}` : 'Parent removed'
-                        );
-                     }}
-                  />
                   <LabelSelector issueId={presentationIssue.id} />
-                  <div className="flex items-center gap-2 rounded-full border px-2.5 py-1 bg-background">
-                     <span className="text-xs text-muted-foreground">Estimate</span>
-                     <Input
-                        value={estimatedHours}
-                        onChange={(event) => setEstimatedHours(event.target.value)}
-                        onBlur={persistEstimatedHours}
-                        onKeyDown={(event) => {
-                           if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
-                              event.preventDefault();
-                              persistEstimatedHours();
-                           }
-
-                           if (event.key === 'Escape') {
-                              event.preventDefault();
-                              setEstimatedHours(
-                                 presentationIssue.estimatedHours !== undefined
-                                    ? String(presentationIssue.estimatedHours)
-                                    : ''
-                              );
-                              event.currentTarget.blur();
-                           }
-                        }}
-                        type="number"
-                        min="0"
-                        step="0.25"
-                        inputMode="decimal"
-                        className="h-7 w-20 border-none bg-transparent px-0 text-xs shadow-none focus-visible:ring-0"
-                        placeholder="0"
-                     />
-                     <span className="text-xs text-muted-foreground">h</span>
-                  </div>
                   {presentationIssue.dueDate && (
                      <span className="text-xs text-muted-foreground rounded-full border px-2.5 py-1 bg-background">
                         Due {format(new Date(presentationIssue.dueDate), 'MMM dd')}
                      </span>
+                  )}
+                  {presentationIssue.parent ? (
+                     <ParentIssueSelector
+                        issueId={presentationIssue.id}
+                        parent={presentationIssue.parent}
+                        onChange={(parent) => {
+                           if (!canBecomeSubissue && parent) {
+                              toast.error('Issues with subissues cannot become subissues');
+                              return;
+                           }
+
+                           updateIssueParent(presentationIssue.id, parent);
+                           toast.success(
+                              parent ? `Parent set to ${parent.identifier}` : 'Parent removed'
+                           );
+                        }}
+                        compact
+                     />
+                  ) : (
+                     <ParentIssueSelector
+                        issueId={presentationIssue.id}
+                        parent={null}
+                        onChange={(parent) => {
+                           if (!canBecomeSubissue && parent) {
+                              toast.error('Issues with subissues cannot become subissues');
+                              return;
+                           }
+
+                           updateIssueParent(presentationIssue.id, parent);
+                           if (parent) {
+                              toast.success(`Parent set to ${parent.identifier}`);
+                           }
+                        }}
+                        compact
+                        emptyLabel="Add parent"
+                     />
                   )}
                </div>
             </div>
@@ -328,159 +301,109 @@ export function IssueDetail({
                />
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-               <div className="rounded-xl border bg-card p-4 space-y-3">
-                  <div className="flex items-center justify-between gap-3">
-                     <div>
-                        <div className="text-sm font-medium">Parent</div>
-                        <div className="text-xs text-muted-foreground">
-                           Link this issue under a larger mission or feature.
-                        </div>
-                     </div>
-                  </div>
-                  {presentationIssue.parent ? (
-                     <Button variant="secondary" size="sm" asChild className="justify-start">
-                        <Link
-                           to="/issues/$issueIdentifier"
-                           params={{ issueIdentifier: presentationIssue.parent.identifier }}
+            <section className="border-t border-border/60 pt-5">
+               <div className="space-y-3">
+                  {presentationIssue.subissues.map((subissue) => {
+                     const childIssue = getIssueById(subissue.id);
+                     const isDone =
+                        childIssue?.status.id === 'completed' ||
+                        childIssue?.status.id === 'archived';
+
+                     return (
+                        <div
+                           key={subissue.id}
+                           className="flex items-start gap-3 rounded-lg px-1 py-1.5"
                         >
-                           <Link2 className="size-4" />
-                           {presentationIssue.parent.identifier}
-                        </Link>
-                     </Button>
-                  ) : (
-                     <p className="text-sm text-muted-foreground">
-                        This issue is currently top-level.
-                     </p>
-                  )}
-                  {!canBecomeSubissue && (
-                     <p className="text-xs text-muted-foreground">
-                        This issue already has subissues, so it cannot be attached under another
-                        parent.
-                     </p>
-                  )}
-               </div>
+                           <Checkbox
+                              checked={isDone}
+                              onCheckedChange={(checked) => {
+                                 const nextStatus = statusOptions.find((item) =>
+                                    checked ? item.id === 'completed' : item.id === 'to-do'
+                                 );
 
-               <div className="rounded-xl border bg-card p-4 space-y-3">
-                  <div className="flex items-center justify-between gap-3">
-                     <div>
-                        <div className="text-sm font-medium">Subissues</div>
-                        <div className="text-xs text-muted-foreground">
-                           Break this work into smaller issues without leaving the detail view.
+                                 if (childIssue && nextStatus) {
+                                    updateIssueStatus(childIssue.id, nextStatus);
+                                 }
+                              }}
+                              className="mt-1"
+                           />
+                           <Link
+                              to="/issues/$issueIdentifier"
+                              params={{ issueIdentifier: subissue.identifier }}
+                              className="min-w-0 flex-1"
+                           >
+                              <div
+                                 className={`text-base leading-6 ${isDone ? 'text-muted-foreground line-through' : 'text-foreground'}`}
+                              >
+                                 {subissue.title}
+                              </div>
+                           </Link>
+                        </div>
+                     );
+                  })}
+
+                  {subissueComposerOpen ? (
+                     <div className="rounded-xl border bg-card">
+                        <div className="px-4 pt-3">
+                           <div className="flex items-start gap-3">
+                              <div className="pt-2">
+                                 <div className="size-4 rounded-full border border-muted-foreground/50" />
+                              </div>
+                              <div className="flex-1 space-y-3">
+                                 <Input
+                                    value={newSubissueTitle}
+                                    onChange={(event) => setNewSubissueTitle(event.target.value)}
+                                    placeholder="Issue title"
+                                    className="h-auto border-none bg-transparent px-0 py-0 text-base font-medium shadow-none focus-visible:ring-0"
+                                 />
+                                 <Textarea
+                                    value={newSubissueDescription}
+                                    onChange={(event) =>
+                                       setNewSubissueDescription(event.target.value)
+                                    }
+                                    placeholder="Add description..."
+                                    rows={2}
+                                    className="min-h-0 resize-none border-none bg-transparent px-0 py-0 text-sm shadow-none focus-visible:ring-0"
+                                 />
+                              </div>
+                           </div>
+                        </div>
+                        <div className="flex items-center justify-end gap-2 border-t px-4 py-2.5">
+                           <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                 setSubissueComposerOpen(false);
+                                 setNewSubissueTitle('');
+                                 setNewSubissueDescription('');
+                              }}
+                           >
+                              Cancel
+                           </Button>
+                           <Button
+                              size="sm"
+                              onClick={() => {
+                                 void handleCreateSubissue();
+                              }}
+                              disabled={creatingSubissue}
+                           >
+                              Create
+                           </Button>
                         </div>
                      </div>
-                     <span className="text-xs text-muted-foreground">
-                        {presentationIssue.subissues.length} total
-                     </span>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                     <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() =>
-                           openModal(undefined, presentationIssue.project, {
-                              id: presentationIssue.id,
-                              identifier: presentationIssue.identifier,
-                              title: presentationIssue.title,
-                           })
-                        }
-                     >
-                        <GitBranchPlus className="size-4" />
-                        Add subissue
-                     </Button>
-                     <Popover open={attachOpen} onOpenChange={setAttachOpen}>
-                        <PopoverTrigger asChild>
-                           <Button size="sm" variant="outline">
-                              Attach existing issue
-                           </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[320px] p-0" align="start">
-                           <Command>
-                              <CommandInput placeholder="Attach existing issue..." />
-                              <CommandList>
-                                 <CommandEmpty>No eligible issues found.</CommandEmpty>
-                                 <CommandGroup>
-                                    {attachableIssues.map((issue) => (
-                                       <CommandItem
-                                          key={issue.id}
-                                          value={`${issue.identifier} ${issue.title}`}
-                                          onSelect={() => {
-                                             updateIssueParent(issue.id, {
-                                                id: presentationIssue.id,
-                                                identifier: presentationIssue.identifier,
-                                                title: presentationIssue.title,
-                                             });
-                                             toast.success(
-                                                `${issue.identifier} attached as subissue`
-                                             );
-                                             setAttachOpen(false);
-                                          }}
-                                       >
-                                          <div className="min-w-0">
-                                             <div className="text-xs text-muted-foreground">
-                                                {issue.identifier}
-                                             </div>
-                                             <div className="truncate">{issue.title}</div>
-                                          </div>
-                                       </CommandItem>
-                                    ))}
-                                 </CommandGroup>
-                              </CommandList>
-                           </Command>
-                        </PopoverContent>
-                     </Popover>
-                  </div>
-
-                  {presentationIssue.subissues.length > 0 ? (
-                     <div className="space-y-2">
-                        {presentationIssue.subissues.map((subissue) => (
-                           <Button
-                              key={subissue.id}
-                              variant="ghost"
-                              size="sm"
-                              className="h-auto w-full justify-start rounded-lg border px-3 py-2"
-                              asChild
-                           >
-                              <Link
-                                 to="/issues/$issueIdentifier"
-                                 params={{ issueIdentifier: subissue.identifier }}
-                              >
-                                 <div className="min-w-0 text-left">
-                                    <div className="text-xs text-muted-foreground">
-                                       {subissue.identifier}
-                                    </div>
-                                    <div className="truncate text-sm font-medium">
-                                       {subissue.title}
-                                    </div>
-                                 </div>
-                              </Link>
-                           </Button>
-                        ))}
-                     </div>
                   ) : (
-                     <p className="text-sm text-muted-foreground">
-                        No subissues yet. Add one or attach an existing issue.
-                     </p>
+                     <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-0 text-muted-foreground hover:text-foreground"
+                        onClick={() => setSubissueComposerOpen(true)}
+                     >
+                        <Plus className="size-4" />
+                        Add sub-issues
+                     </Button>
                   )}
                </div>
-            </div>
-
-            <div className="relative w-full flex flex-col mt-8">
-               <Textarea
-                  className="w-full rounded-lg border px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent pb-14 resize-none"
-                  placeholder="Leave a note..."
-                  rows={3}
-               />
-               <div className="absolute right-3 bottom-3 flex items-center gap-3">
-                  <Button size="icon" variant="ghost">
-                     <Paperclip className="w-4 h-4" />
-                  </Button>
-                  <Button size="icon" variant="secondary">
-                     <Send className="w-4 h-4" />
-                  </Button>
-               </div>
-            </div>
+            </section>
          </div>
       </div>
    );
