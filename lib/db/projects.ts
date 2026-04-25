@@ -24,7 +24,10 @@ export interface ProjectListItem {
    id: string;
    name: string;
    slug: string;
+   key: string;
    description: string | null;
+   iconType: string;
+   iconValue: string;
    status: string;
    priority: string;
    latestUpdate: ProjectLatestUpdate | null;
@@ -62,7 +65,10 @@ interface ProjectUpdatesPageData {
 
 export interface CreateProjectInput {
    name: string;
+   key?: string;
    description?: string;
+   iconType?: string;
+   iconValue?: string;
    status: string;
    priority?: string;
 }
@@ -70,6 +76,13 @@ export interface CreateProjectInput {
 export interface UpdateProjectInput {
    status?: string;
    priority?: string;
+}
+
+export interface UpdateProjectDetailsInput {
+   name?: string;
+   description?: string | null;
+   iconType?: string;
+   iconValue?: string;
 }
 
 export interface CreateProjectUpdateInput {
@@ -95,6 +108,36 @@ function toOptionId(value: string): string {
       .replace(/^-+|-+$/g, '');
 }
 
+const projectKeyPattern = /^[A-Z][A-Z0-9]{1,9}$/;
+
+export function normalizeProjectKey(value: string): string {
+   return value
+      .toUpperCase()
+      .trim()
+      .replace(/[^A-Z0-9]+/g, '')
+      .slice(0, 10);
+}
+
+export function createProjectKeyFromName(name: string): string {
+   const words = name
+      .toUpperCase()
+      .trim()
+      .split(/[^A-Z0-9]+/)
+      .filter(Boolean);
+   const acronym = words.map((word) => word[0]).join('');
+   const candidate = acronym.length >= 2 ? acronym : normalizeProjectKey(name);
+
+   return candidate.slice(0, 10);
+}
+
+function assertValidProjectKey(key: string): void {
+   if (!projectKeyPattern.test(key)) {
+      throw new Error(
+         'Project key must be 2-10 uppercase letters or numbers and start with a letter.'
+      );
+   }
+}
+
 export async function getAllProjects(): Promise<ProjectListItem[]> {
    if (!db) {
       return [];
@@ -105,7 +148,10 @@ export async function getAllProjects(): Promise<ProjectListItem[]> {
          id: schema.projects.id,
          name: schema.projects.name,
          slug: schema.projects.slug,
+         key: schema.projects.key,
          description: schema.projects.description,
+         iconType: schema.projects.iconType,
+         iconValue: schema.projects.iconValue,
          status: schema.projects.status,
          priority: schema.projects.priority,
          createdAt: schema.projects.createdAt,
@@ -308,19 +354,25 @@ export async function createProjectRecord(input: CreateProjectInput): Promise<Pr
    }
 
    const slug = toOptionId(input.name);
+   const key = normalizeProjectKey(input.key || createProjectKeyFromName(input.name));
 
    if (!slug) {
       throw new Error('Project name must contain letters or numbers so a slug can be generated.');
    }
 
-   const existingProject = await db
-      .select({ id: schema.projects.id })
-      .from(schema.projects)
-      .where(eq(schema.projects.slug, slug))
-      .limit(1);
+   assertValidProjectKey(key);
 
-   if (existingProject.length > 0) {
+   const existingProject = await db
+      .select({ id: schema.projects.id, slug: schema.projects.slug, key: schema.projects.key })
+      .from(schema.projects)
+      .where(sql`${schema.projects.slug} = ${slug} or ${schema.projects.key} = ${key}`);
+
+   if (existingProject.some((project) => project.slug === slug)) {
       throw new Error(`A project with the slug "${slug}" already exists. Choose a different name.`);
+   }
+
+   if (existingProject.some((project) => project.key === key)) {
+      throw new Error(`A project with the key "${key}" already exists. Choose a different key.`);
    }
 
    const inserted = await db
@@ -328,7 +380,10 @@ export async function createProjectRecord(input: CreateProjectInput): Promise<Pr
       .values({
          name: input.name,
          slug,
+         key,
          description: input.description || null,
+         iconType: input.iconType ?? 'lucide',
+         iconValue: input.iconValue ?? 'box',
          status: input.status,
          priority: input.priority ?? 'no-priority',
       })
@@ -345,7 +400,10 @@ export async function createProjectRecord(input: CreateProjectInput): Promise<Pr
          id: schema.projects.id,
          name: schema.projects.name,
          slug: schema.projects.slug,
+         key: schema.projects.key,
          description: schema.projects.description,
+         iconType: schema.projects.iconType,
+         iconValue: schema.projects.iconValue,
          status: schema.projects.status,
          priority: schema.projects.priority,
          createdAt: schema.projects.createdAt,
@@ -435,7 +493,59 @@ export async function updateProjectRecord(
          id: schema.projects.id,
          name: schema.projects.name,
          slug: schema.projects.slug,
+         key: schema.projects.key,
          description: schema.projects.description,
+         iconType: schema.projects.iconType,
+         iconValue: schema.projects.iconValue,
+         status: schema.projects.status,
+         priority: schema.projects.priority,
+         createdAt: schema.projects.createdAt,
+         updatedAt: schema.projects.updatedAt,
+      })
+      .from(schema.projects)
+      .where(eq(schema.projects.id, projectId))
+      .limit(1);
+
+   if (!project[0]) {
+      return null;
+   }
+
+   const latestUpdate = await getLatestProjectUpdates([projectId]);
+
+   return {
+      ...project[0],
+      latestUpdate: latestUpdate.get(projectId) ?? null,
+   };
+}
+
+export async function updateProjectDetailsRecord(
+   projectId: string,
+   input: UpdateProjectDetailsInput
+): Promise<ProjectListItem | null> {
+   if (!db) {
+      throw new Error('Database unavailable.');
+   }
+
+   await db
+      .update(schema.projects)
+      .set({
+         ...(input.name !== undefined ? { name: input.name } : {}),
+         ...(input.description !== undefined ? { description: input.description } : {}),
+         ...(input.iconType !== undefined ? { iconType: input.iconType } : {}),
+         ...(input.iconValue !== undefined ? { iconValue: input.iconValue } : {}),
+         updatedAt: new Date(),
+      })
+      .where(eq(schema.projects.id, projectId));
+
+   const project = await db
+      .select({
+         id: schema.projects.id,
+         name: schema.projects.name,
+         slug: schema.projects.slug,
+         key: schema.projects.key,
+         description: schema.projects.description,
+         iconType: schema.projects.iconType,
+         iconValue: schema.projects.iconValue,
          status: schema.projects.status,
          priority: schema.projects.priority,
          createdAt: schema.projects.createdAt,

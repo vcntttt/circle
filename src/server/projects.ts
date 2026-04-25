@@ -13,18 +13,48 @@ import {
    getProjectUpdatesPageData,
    getProjectsPageData,
    reorderProjectStatusOptions,
+   updateProjectDetailsRecord,
    updateProjectPriorityOption,
    updateProjectRecord,
    updateProjectStatusOption,
 } from '@/lib/db/projects';
 import type { ProjectLatestUpdate, ProjectTimelineUpdate } from '@/lib/db/projects';
 
-const createProjectSchema = z.object({
-   name: z.string().trim().min(2).max(120),
-   description: z.string().trim().max(500).optional(),
-   status: z.string().trim().min(1),
-   priority: z.string().trim().min(1).optional(),
-});
+const createProjectSchema = z
+   .object({
+      name: z.string().trim().min(2).max(120),
+      key: z.string().trim().max(10).optional(),
+      description: z.string().trim().max(500).optional(),
+      iconType: z.enum(['lucide', 'emoji']).optional(),
+      iconValue: z.string().trim().max(80).optional(),
+      status: z.string().trim().min(1),
+      priority: z.string().trim().min(1).optional(),
+   })
+   .superRefine((value, ctx) => {
+      if (value.iconType === undefined && value.iconValue === undefined) {
+         return;
+      }
+
+      const iconType = value.iconType ?? 'lucide';
+      const iconValue = value.iconValue?.trim() ?? '';
+
+      if (!iconValue) {
+         ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['iconValue'],
+            message: 'Project icon is required.',
+         });
+         return;
+      }
+
+      if (iconType === 'emoji' && iconValue.length > 8) {
+         ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['iconValue'],
+            message: 'Emoji icon must be 8 characters or fewer.',
+         });
+      }
+   });
 
 const updateProjectSchema = z
    .object({
@@ -35,6 +65,86 @@ const updateProjectSchema = z
    .refine((value) => value.status !== undefined || value.priority !== undefined, {
       message: 'At least one project field must be provided.',
    });
+
+const updateProjectDetailsSchema = z
+   .object({
+      projectId: z.string().trim().min(1),
+      name: z.string().trim().min(2).max(120).optional(),
+      description: z.string().trim().max(500).nullable().optional(),
+      iconType: z.enum(['lucide', 'emoji']).optional(),
+      iconValue: z.string().trim().max(80).optional(),
+   })
+   .refine(
+      (value) =>
+         value.name !== undefined ||
+         value.description !== undefined ||
+         value.iconType !== undefined ||
+         value.iconValue !== undefined,
+      {
+         message: 'At least one project detail must be provided.',
+      }
+   )
+   .superRefine((value, ctx) => {
+      if (value.iconType === undefined && value.iconValue === undefined) {
+         return;
+      }
+
+      const iconType = value.iconType ?? 'lucide';
+      const iconValue = value.iconValue?.trim() ?? '';
+
+      if (!iconValue) {
+         ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['iconValue'],
+            message: 'Project icon is required.',
+         });
+         return;
+      }
+
+      if (iconType === 'emoji' && iconValue.length > 8) {
+         ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['iconValue'],
+            message: 'Emoji icon must be 8 characters or fewer.',
+         });
+      }
+   });
+
+const normalizeIconPayload = <T extends { iconType?: 'lucide' | 'emoji'; iconValue?: string }>(
+   payload: T
+) => {
+   if (payload.iconType === undefined && payload.iconValue === undefined) {
+      return payload;
+   }
+
+   const iconType = payload.iconType ?? 'lucide';
+   const rawValue = payload.iconValue?.trim() ?? '';
+   const iconValue =
+      iconType === 'lucide'
+         ? rawValue
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, '-')
+              .replace(/^-+|-+$/g, '')
+         : rawValue;
+
+   if (!iconValue) {
+      throw new Error('Project icon is required.');
+   }
+
+   if (iconType === 'emoji' && iconValue.length > 8) {
+      throw new Error('Emoji icon must be 8 characters or fewer.');
+   }
+
+   if (iconType === 'lucide' && iconValue.length > 80) {
+      throw new Error('Lucide icon name must be 80 characters or fewer.');
+   }
+
+   return {
+      ...payload,
+      iconType,
+      iconValue,
+   };
+};
 
 const projectHealthSchema = z.enum(['no-update', 'off-track', 'on-track', 'at-risk']);
 
@@ -130,7 +240,7 @@ export const getProjectUpdatesPage = createServerFn({ method: 'GET' }).handler(a
 export const createProject = createServerFn({ method: 'POST' })
    .inputValidator((data: unknown) => createProjectSchema.parse(data))
    .handler(async ({ data }) => {
-      const project = await createProjectRecord(data);
+      const project = await createProjectRecord(normalizeIconPayload(data));
 
       return {
          ...project,
@@ -145,6 +255,24 @@ export const updateProject = createServerFn({ method: 'POST' })
    .handler(async ({ data }) => {
       const { projectId, ...payload } = data;
       const project = await updateProjectRecord(projectId, payload);
+
+      if (!project) {
+         return null;
+      }
+
+      return {
+         ...project,
+         latestUpdate: project.latestUpdate ? serializeProjectUpdate(project.latestUpdate) : null,
+         createdAt: project.createdAt.toISOString(),
+         updatedAt: project.updatedAt.toISOString(),
+      };
+   });
+
+export const updateProjectDetails = createServerFn({ method: 'POST' })
+   .inputValidator((data: unknown) => updateProjectDetailsSchema.parse(data))
+   .handler(async ({ data }) => {
+      const { projectId, ...payload } = data;
+      const project = await updateProjectDetailsRecord(projectId, normalizeIconPayload(payload));
 
       if (!project) {
          return null;

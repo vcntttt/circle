@@ -50,6 +50,20 @@
          "when": 1777071000000,
          "tag": "0005_red_glider",
          "breakpoints": true
+      },
+      {
+         "idx": 7,
+         "version": "7",
+         "when": 1777075200000,
+         "tag": "0006_project_issue_identifiers",
+         "breakpoints": true
+      },
+      {
+         "idx": 8,
+         "version": "7",
+         "when": 1777080000000,
+         "tag": "0007_project_icons",
+         "breakpoints": true
       }
    ]
 }

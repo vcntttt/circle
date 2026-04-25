@@ -31,7 +31,10 @@ export const projects = pgTable('projects', {
    id: uuid('id').defaultRandom().primaryKey(),
    name: text('name').notNull(),
    slug: text('slug').notNull().unique(),
+   key: text('key').notNull().unique(),
    description: text('description'),
+   iconType: text('icon_type').notNull().default('lucide'),
+   iconValue: text('icon_value').notNull().default('box'),
    status: text('status')
       .notNull()
       .default('backlog')
@@ -64,6 +67,7 @@ export const issues = pgTable(
    {
       id: uuid('id').defaultRandom().primaryKey(),
       identifier: text('identifier').notNull().unique(),
+      projectIssueNumber: integer('project_issue_number'),
       projectId: uuid('project_id').references(() => projects.id, { onDelete: 'set null' }),
       parentIssueId: uuid('parent_issue_id').references((): any => issues.id, {
          onDelete: 'set null',

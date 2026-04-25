@@ -1,5 +1,4 @@
-import { asc, eq, inArray } from 'drizzle-orm';
-import { v4 as uuidv4 } from 'uuid';
+import { asc, eq, inArray, sql } from 'drizzle-orm';
 import { db, schema } from './index';
 import { getProjectStatusOptions } from './projects';
 
@@ -36,6 +35,9 @@ export interface IssueListItem {
       id: string;
       name: string;
       slug: string;
+      key: string;
+      iconType: string;
+      iconValue: string;
       status: string;
       description: string | null;
       createdAt: string;
@@ -72,6 +74,9 @@ interface IssueRow {
    projectId: string | null;
    projectName: string | null;
    projectSlug: string | null;
+   projectKey: string | null;
+   projectIconType: string | null;
+   projectIconValue: string | null;
    projectStatus: string | null;
    projectDescription: string | null;
    projectCreatedAt: Date | null;
@@ -132,6 +137,9 @@ async function selectIssueRows(issueId?: string): Promise<IssueRow[]> {
          projectId: schema.projects.id,
          projectName: schema.projects.name,
          projectSlug: schema.projects.slug,
+         projectKey: schema.projects.key,
+         projectIconType: schema.projects.iconType,
+         projectIconValue: schema.projects.iconValue,
          projectStatus: schema.projects.status,
          projectDescription: schema.projects.description,
          projectCreatedAt: schema.projects.createdAt,
@@ -178,6 +186,9 @@ function mapIssueRows(rows: IssueRow[]): IssueListItem[] {
                     id: row.projectId,
                     name: row.projectName!,
                     slug: row.projectSlug!,
+                    key: row.projectKey!,
+                    iconType: row.projectIconType ?? 'lucide',
+                    iconValue: row.projectIconValue ?? 'box',
                     status: row.projectStatus!,
                     description: row.projectDescription,
                     createdAt: row.projectCreatedAt!.toISOString(),
@@ -236,20 +247,38 @@ async function getMappedIssues(): Promise<IssueListItem[]> {
    return mapIssueRows(await selectIssueRows());
 }
 
-async function getIssueProjectIdByName(
+async function getIssueProjectByName(
    projectName: string | null | undefined
-): Promise<string | null> {
+): Promise<{ id: string; key: string } | null> {
    if (!db || !projectName) {
       return null;
    }
 
    const project = await db
-      .select({ id: schema.projects.id })
+      .select({ id: schema.projects.id, key: schema.projects.key })
       .from(schema.projects)
       .where(eq(schema.projects.name, projectName))
       .limit(1);
 
-   return project[0]?.id ?? null;
+   return project[0] ?? null;
+}
+
+async function createIssueIdentifier(tx: any, identifierKey: string) {
+   await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${identifierKey}))`);
+
+   const maxIssueNumber = await tx
+      .select({
+         value: sql<number>`coalesce(max(${schema.issues.projectIssueNumber}), 0)`,
+      })
+      .from(schema.issues)
+      .where(sql`${schema.issues.identifier} like ${`${identifierKey}-%`}`);
+
+   const projectIssueNumber = (maxIssueNumber[0]?.value ?? 0) + 1;
+
+   return {
+      identifier: `${identifierKey}-${projectIssueNumber}`,
+      projectIssueNumber,
+   };
 }
 
 export async function validateParentAssignment(
@@ -344,26 +373,34 @@ export async function createIssueRecord(input: CreateIssueInput): Promise<IssueL
       throw new Error('Database unavailable.');
    }
 
-   const projectId = await getIssueProjectIdByName(input.projectName);
+   const project = await getIssueProjectByName(input.projectName);
 
-   const inserted = await db
-      .insert(schema.issues)
-      .values({
-         identifier: uuidv4(),
-         title: input.title,
-         description: input.description || null,
-         status: input.status,
-         priority: input.priority,
-         assigneeId: input.assigneeId ?? null,
-         rank: input.rank,
-         estimatedHours:
-            input.estimatedHours === undefined || input.estimatedHours === null
-               ? null
-               : input.estimatedHours.toString(),
-         dueDate: input.dueDate ? new Date(input.dueDate) : null,
-         projectId,
-      })
-      .returning({ id: schema.issues.id });
+   const inserted = await db.transaction(async (tx) => {
+      const { identifier, projectIssueNumber } = await createIssueIdentifier(
+         tx,
+         project?.key ?? 'CIRC'
+      );
+
+      return tx
+         .insert(schema.issues)
+         .values({
+            identifier,
+            projectIssueNumber,
+            title: input.title,
+            description: input.description || null,
+            status: input.status,
+            priority: input.priority,
+            assigneeId: input.assigneeId ?? null,
+            rank: input.rank,
+            estimatedHours:
+               input.estimatedHours === undefined || input.estimatedHours === null
+                  ? null
+                  : input.estimatedHours.toString(),
+            dueDate: input.dueDate ? new Date(input.dueDate) : null,
+            projectId: project?.id ?? null,
+         })
+         .returning({ id: schema.issues.id });
+   });
 
    const issueId = inserted[0]?.id;
 
@@ -410,7 +447,7 @@ export async function updateIssueRecord(
 
    const projectId =
       input.projectName !== undefined
-         ? await getIssueProjectIdByName(input.projectName)
+         ? (await getIssueProjectByName(input.projectName))?.id
          : undefined;
 
    if (input.parentIssueId !== undefined) {
