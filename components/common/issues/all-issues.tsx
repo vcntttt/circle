@@ -6,7 +6,7 @@ import { useIssuesStore } from '@/store/issues-store';
 import { useSearchStore } from '@/store/search-store';
 import { useViewStore } from '@/store/view-store';
 import { useFilterStore } from '@/store/filter-store';
-import { FC, useLayoutEffect, useMemo } from 'react';
+import { FC, useLayoutEffect, useMemo, useRef } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { GroupIssues } from './group-issues';
@@ -23,6 +23,21 @@ interface AllIssuesProps {
    databaseError: string | null;
 }
 
+const getIssuesHydrationKey = (issues: IssueListItem[]) =>
+   issues
+      .map((issue) =>
+         [
+            issue.id,
+            issue.status,
+            issue.priority,
+            issue.assigneeId ?? '',
+            issue.project?.id ?? '',
+            issue.parentIssueId ?? '',
+            issue.labels.map((label) => label.id).join(','),
+         ].join(':')
+      )
+      .join('|');
+
 export default function AllIssues({
    initialIssues,
    initialStatuses,
@@ -32,14 +47,21 @@ export default function AllIssues({
    const { isSearchOpen, searchQuery } = useSearchStore();
    const { viewType, showEmptyStatuses } = useViewStore();
    const { hasActiveFilters } = useFilterStore();
+   const lastHydrationKeyRef = useRef<string | null>(null);
    const hydratedIssues = useMemo(
       () => initialIssues.map((issue) => toPresentationIssue(issue, initialStatuses)),
       [initialIssues, initialStatuses]
    );
+   const hydrationKey = useMemo(() => getIssuesHydrationKey(initialIssues), [initialIssues]);
 
    useLayoutEffect(() => {
+      if (lastHydrationKeyRef.current === hydrationKey) {
+         return;
+      }
+
+      lastHydrationKeyRef.current = hydrationKey;
       replaceIssues(hydratedIssues);
-   }, [hydratedIssues, replaceIssues]);
+   }, [hydratedIssues, hydrationKey, replaceIssues]);
 
    if (databaseError) {
       return (

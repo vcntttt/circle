@@ -11,9 +11,9 @@ import {
    CommandList,
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Badge } from '@/components/ui/badge';
 import { useLabelOptions } from '@/hooks/use-label-options';
 import { useIssuesStore } from '@/store/issues-store';
+import { IssueChip, issueChipDotClassName } from './issue-chip';
 
 export function LabelSelector({ issueId }: { issueId: string }) {
    const [open, setOpen] = useState(false);
@@ -46,24 +46,20 @@ export function LabelSelector({ issueId }: { issueId: string }) {
             <button className="flex flex-wrap items-center gap-2 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                {currentLabels.length > 0 ? (
                   currentLabels.map((label) => (
-                     <Badge
-                        key={label.id}
-                        variant="outline"
-                        className="gap-1.5 rounded-full text-muted-foreground bg-background"
-                     >
+                     <IssueChip key={label.id}>
                         <span
-                           className="size-1.5 rounded-full"
+                           className={issueChipDotClassName}
                            style={{ backgroundColor: label.color }}
                            aria-hidden="true"
                         ></span>
-                        {label.name}
-                     </Badge>
+                        <span className="truncate">{label.name}</span>
+                     </IssueChip>
                   ))
                ) : (
-                  <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-input bg-background px-3 text-sm text-muted-foreground">
+                  <IssueChip>
                      <PlusIcon className="size-3.5" />
                      Add label
-                  </span>
+                  </IssueChip>
                )}
             </button>
          </PopoverTrigger>

@@ -2,7 +2,7 @@
 
 import type { Issue } from '@/lib/models';
 import { format } from 'date-fns';
-import { GitBranch, GitBranchPlus } from 'lucide-react';
+import { GitBranchPlus } from 'lucide-react';
 import { AssigneeUser } from './assignee-user';
 import { LabelBadge } from './label-badge';
 import { PrioritySelector } from './priority-selector';
@@ -15,6 +15,7 @@ import { useViewStore } from '@/store/view-store';
 import { ContextMenu, ContextMenuTrigger } from '@/components/ui/context-menu';
 import { IssueContextMenu } from './issue-context-menu';
 import { Clock3 } from 'lucide-react';
+import { IssueChip, issueChipIconClassName } from './issue-chip';
 
 const formatEstimatedHours = (estimatedHours?: number) => {
    if (estimatedHours === undefined) {
@@ -31,6 +32,7 @@ export function IssueLine({
    isSelected = false,
    nestingLevel = 0,
    childrenCount = 0,
+   completedChildrenCount = 0,
    onSelect,
 }: {
    issue: Issue;
@@ -38,6 +40,7 @@ export function IssueLine({
    isSelected?: boolean;
    nestingLevel?: number;
    childrenCount?: number;
+   completedChildrenCount?: number;
    onSelect?: (issue: Issue) => void;
 }) {
    const { visibleProperties } = useViewStore();
@@ -74,16 +77,13 @@ export function IssueLine({
                <div className="min-w-0 flex items-center justify-start mr-1 ml-0.5">
                   <div className="min-w-0">
                      <div className="flex items-center gap-2 min-w-0">
-                        {nestingLevel > 0 && (
-                           <GitBranch className="size-3.5 text-muted-foreground shrink-0" />
-                        )}
                         <span className="text-xs sm:text-sm font-medium sm:font-semibold truncate hover:underline">
                            {issue.title}
                         </span>
                         {childrenCount > 0 && (
                            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-0.5 text-[11px] text-muted-foreground">
                               <GitBranchPlus className="size-3" />
-                              {childrenCount}
+                              {completedChildrenCount}/{childrenCount}
                            </span>
                         )}
                      </div>
@@ -92,7 +92,7 @@ export function IssueLine({
                <div className="flex items-center justify-end gap-2 ml-auto sm:w-fit">
                   <div className="w-3 shrink-0"></div>
                   {(visibleProperties.labels || visibleProperties.project) && (
-                     <div className="-space-x-5 hover:space-x-1 lg:space-x-1 items-center justify-end hidden sm:flex duration-200 transition-all">
+                     <div className="hidden items-center justify-end gap-1 sm:flex">
                         {visibleProperties.labels && <LabelBadge label={issue.labels} />}
                         {visibleProperties.project && issue.project && (
                            <ProjectBadge project={issue.project} />
@@ -100,10 +100,10 @@ export function IssueLine({
                      </div>
                   )}
                   {issue.estimatedHours !== undefined && (
-                     <span className="inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs text-muted-foreground shrink-0">
-                        <Clock3 className="size-3" />
+                     <IssueChip>
+                        <Clock3 className={issueChipIconClassName} />
                         {formatEstimatedHours(issue.estimatedHours)}
-                     </span>
+                     </IssueChip>
                   )}
                   {visibleProperties.createdAt && (
                      <span className="text-xs text-muted-foreground shrink-0 hidden sm:inline-block">

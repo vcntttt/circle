@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CheckIcon, GitBranchPlus, Link2Off } from 'lucide-react';
 import { useIssuesStore } from '@/store/issues-store';
 import type { Issue } from '@/lib/models';
+import { issueChipClassName, issueChipIconClassName } from './issue-chip';
 
 interface ParentIssueSelectorProps {
    issueId: string;
@@ -83,13 +84,9 @@ export function ParentIssueSelector({
                variant={compact ? 'ghost' : 'secondary'}
                role="combobox"
                aria-expanded={open}
-               className={
-                  compact
-                     ? 'h-7 max-w-full justify-start gap-1 rounded-full border px-2.5 text-xs text-muted-foreground'
-                     : 'max-w-full justify-start gap-1.5'
-               }
+               className={compact ? issueChipClassName : 'max-w-full justify-start gap-1.5'}
             >
-               <GitBranchPlus className="size-4" />
+               <GitBranchPlus className={compact ? issueChipIconClassName : 'size-4'} />
                <span className="max-w-[180px] truncate">
                   {parent ? `Parent ${parent.identifier}` : emptyLabel}
                </span>

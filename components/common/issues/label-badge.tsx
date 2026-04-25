@@ -1,22 +1,18 @@
-import { Badge } from '@/components/ui/badge';
 import type { LabelInterface } from '@/lib/models';
+import { IssueChip, issueChipDotClassName } from './issue-chip';
 
 export function LabelBadge({ label }: { label: LabelInterface[] }) {
    return (
       <>
          {label.map((l) => (
-            <Badge
-               key={l.id}
-               variant="outline"
-               className="gap-1.5 rounded-full text-muted-foreground bg-background"
-            >
+            <IssueChip key={l.id}>
                <span
-                  className="size-1.5 rounded-full"
+                  className={issueChipDotClassName}
                   style={{ backgroundColor: l.color }}
                   aria-hidden="true"
                ></span>
-               {l.name}
-            </Badge>
+               <span className="truncate">{l.name}</span>
+            </IssueChip>
          ))}
       </>
    );

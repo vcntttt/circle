@@ -14,13 +14,16 @@ import { useIssuesStore } from '@/store/issues-store';
 import { priorities, type Priority } from '@/lib/ui-catalog';
 import { CheckIcon } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
+import { cn } from '@/lib/utils';
+import { issueChipClassName, issueChipIconClassName } from './issue-chip';
 
 interface PrioritySelectorProps {
    priority: Priority;
    issueId?: string;
+   display?: 'icon' | 'chip';
 }
 
-export function PrioritySelector({ priority, issueId }: PrioritySelectorProps) {
+export function PrioritySelector({ priority, issueId, display = 'icon' }: PrioritySelectorProps) {
    const id = useId();
    const [open, setOpen] = useState<boolean>(false);
    const [value, setValue] = useState<string>(priority.id);
@@ -43,26 +46,39 @@ export function PrioritySelector({ priority, issueId }: PrioritySelectorProps) {
       }
    };
 
+   const selectedItem = priorities.find((item) => item.id === value);
+   const SelectedIcon = selectedItem?.icon;
+
    return (
       <div className="*:not-first:mt-2">
          <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
                <Button
                   id={id}
-                  className="size-7 flex items-center justify-center"
-                  size="icon"
-                  variant="ghost"
+                  className={cn(
+                     display === 'icon'
+                        ? 'size-7 flex items-center justify-center'
+                        : issueChipClassName
+                  )}
+                  size={display === 'icon' ? 'icon' : 'xs'}
+                  variant={display === 'icon' ? 'ghost' : 'outline'}
                   role="combobox"
                   aria-expanded={open}
                >
-                  {(() => {
-                     const selectedItem = priorities.find((item) => item.id === value);
-                     if (selectedItem) {
-                        const Icon = selectedItem.icon;
-                        return <Icon className="text-muted-foreground size-4" />;
-                     }
-                     return null;
-                  })()}
+                  {SelectedIcon && (
+                     <SelectedIcon
+                        className={
+                           display === 'icon'
+                              ? 'text-muted-foreground size-4'
+                              : issueChipIconClassName
+                        }
+                     />
+                  )}
+                  {display === 'chip' && (
+                     <span className="max-w-[160px] truncate">
+                        {selectedItem?.name ?? 'No priority'}
+                     </span>
+                  )}
                </Button>
             </PopoverTrigger>
             <PopoverContent

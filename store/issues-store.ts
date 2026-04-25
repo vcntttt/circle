@@ -13,6 +13,7 @@ const isArchivedIssue = (issue: Issue) => issue.status.id === archivedStatus.id;
 
 const sortByRankDesc = (issues: Issue[]) =>
    [...issues].sort((a, b) => b.rank.localeCompare(a.rank));
+const isDoneStatusId = (statusId: string) => statusId === 'completed' || statusId === 'archived';
 
 const groupIssuesByStatus = (issues: Issue[]) => {
    const grouped = createEmptyIssuesByStatus();
@@ -297,9 +298,80 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
    },
 
    updateIssueStatus: (issueId: string, newStatus: Status) => {
-      get().updateIssue(issueId, { status: newStatus });
-      void persistIssuePatch(issueId, { status: newStatus.id }).catch((error) => {
-         console.error('Failed to persist issue status.', error);
+      const currentIssues = get().issues;
+      const targetIssue = currentIssues.find((issue) => issue.id === issueId);
+
+      if (!targetIssue) {
+         return;
+      }
+
+      const updates = new Map<string, Status>();
+      updates.set(issueId, newStatus);
+
+      if (!targetIssue.parentIssueId && newStatus.id === 'completed') {
+         const children = currentIssues.filter((issue) => issue.parentIssueId === targetIssue.id);
+         const pendingChildren = children.filter((child) => !isDoneStatusId(child.status.id));
+
+         if (pendingChildren.length > 0) {
+            const shouldCompleteChildren = window.confirm(
+               `Completing ${targetIssue.identifier} will also complete ${pendingChildren.length} sub-issue${pendingChildren.length > 1 ? 's' : ''}. Continue?`
+            );
+
+            if (!shouldCompleteChildren) {
+               return;
+            }
+         }
+
+         const completedStatus = status.find((statusItem) => statusItem.id === 'completed');
+         if (completedStatus) {
+            children
+               .filter((child) => !isDoneStatusId(child.status.id))
+               .forEach((child) => {
+                  updates.set(child.id, completedStatus);
+               });
+         }
+      }
+
+      if (
+         targetIssue.parentIssueId &&
+         (newStatus.id === 'in-progress' || newStatus.id === 'completed')
+      ) {
+         const parentIssue = currentIssues.find((issue) => issue.id === targetIssue.parentIssueId);
+         const inProgressStatus = status.find((statusItem) => statusItem.id === 'in-progress');
+
+         if (parentIssue && parentIssue.status.id === 'to-do' && inProgressStatus) {
+            updates.set(parentIssue.id, inProgressStatus);
+         }
+      }
+
+      const updatesToApply = Array.from(updates.entries()).filter(([id, nextStatus]) => {
+         const issue = currentIssues.find((item) => item.id === id);
+         return issue && issue.status.id !== nextStatus.id;
+      });
+
+      if (updatesToApply.length === 0) {
+         return;
+      }
+
+      set((state) => {
+         const updatesByIssueId = new Map(updatesToApply);
+         const nextIssues = rebuildIssueHierarchy(
+            state.issues.map((issue) => {
+               const nextStatus = updatesByIssueId.get(issue.id);
+               return nextStatus ? { ...issue, status: nextStatus } : issue;
+            })
+         );
+
+         return {
+            issues: nextIssues,
+            issuesByStatus: groupIssuesByStatus(nextIssues),
+         };
+      });
+
+      updatesToApply.forEach(([id, nextStatus]) => {
+         void persistIssuePatch(id, { status: nextStatus.id }).catch((error) => {
+            console.error(`Failed to persist issue status for ${id}.`, error);
+         });
       });
    },
 

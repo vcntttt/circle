@@ -1,12 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { format } from 'date-fns';
 import { Archive, ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { LabelSelector } from './label-selector';
@@ -19,10 +18,12 @@ import type { Issue } from '@/lib/models';
 import { ProjectSelector } from '@/components/layout/sidebar/create-new-issue/project-selector';
 import { ParentIssueSelector } from './parent-issue-selector';
 import { createIssue as createIssueMutation } from '@/src/server/issues';
-import { getNextLexoRank } from '@/lib/utils';
+import { cn, getNextLexoRank } from '@/lib/utils';
 import { priorities, status as statusOptions } from '@/lib/ui-catalog';
 import { toPresentationIssue } from '@/lib/issues-presentation';
 import type { IssueListItem } from '@/lib/db/issues';
+import { IssueChip, issueChipClassName } from './issue-chip';
+import { currentUser } from '@/lib/current-user';
 
 export function IssueDetail({
    issueId,
@@ -47,7 +48,6 @@ export function IssueDetail({
       archiveIssue,
       updateIssueProject,
       updateIssueParent,
-      updateIssueStatus,
    } = useIssuesStore();
    const presentationIssue = useMemo(
       () => getIssueById(issueId) ?? initialIssue ?? null,
@@ -59,6 +59,7 @@ export function IssueDetail({
    const [newSubissueTitle, setNewSubissueTitle] = useState('');
    const [newSubissueDescription, setNewSubissueDescription] = useState('');
    const [creatingSubissue, setCreatingSubissue] = useState(false);
+   const newSubissueTitleRef = useRef<HTMLInputElement | null>(null);
 
    useEffect(() => {
       setTitle(presentationIssue?.title ?? '');
@@ -164,6 +165,7 @@ export function IssueDetail({
                status: statusOptions.find((item) => item.id === 'to-do')?.id ?? statusOptions[0].id,
                priority:
                   priorities.find((item) => item.id === 'no-priority')?.id ?? priorities[0].id,
+               assigneeId: currentUser.id,
                rank: getNextLexoRank(getAllIssues().map((issue) => issue.rank)),
                parentIssueId: presentationIssue.id,
                projectName: presentationIssue.project?.name ?? null,
@@ -173,7 +175,10 @@ export function IssueDetail({
          addIssue(toPresentationIssue(createdIssue as IssueListItem));
          setNewSubissueTitle('');
          setNewSubissueDescription('');
-         setSubissueComposerOpen(false);
+         setSubissueComposerOpen(true);
+         requestAnimationFrame(() => {
+            newSubissueTitleRef.current?.focus();
+         });
          toast.success('Subissue created');
       } catch (error) {
          console.error('Failed to create subissue.', error);
@@ -202,11 +207,6 @@ export function IssueDetail({
             </div>
 
             <div className="flex items-center gap-2">
-               <PrioritySelector
-                  priority={presentationIssue.priority}
-                  issueId={presentationIssue.id}
-               />
-               <StatusSelector status={presentationIssue.status} issueId={presentationIssue.id} />
                <Button variant="ghost" size="icon" className="size-7" onClick={handleArchive}>
                   <Archive className="size-4 text-muted-foreground" />
                </Button>
@@ -230,21 +230,25 @@ export function IssueDetail({
                   <PrioritySelector
                      priority={presentationIssue.priority}
                      issueId={presentationIssue.id}
+                     display="chip"
                   />
                   <StatusSelector
                      status={presentationIssue.status}
                      issueId={presentationIssue.id}
+                     display="chip"
                   />
                   <AssigneeUser user={presentationIssue.assignee} issueId={presentationIssue.id} />
                   <ProjectSelector
                      project={presentationIssue.project}
                      onChange={(project) => updateIssueProject(presentationIssue.id, project)}
+                     showShortcut={false}
+                     triggerClassName={issueChipClassName}
                   />
                   <LabelSelector issueId={presentationIssue.id} />
                   {presentationIssue.dueDate && (
-                     <span className="text-xs text-muted-foreground rounded-full border px-2.5 py-1 bg-background">
+                     <IssueChip>
                         Due {format(new Date(presentationIssue.dueDate), 'MMM dd')}
-                     </span>
+                     </IssueChip>
                   )}
                   {presentationIssue.parent ? (
                      <ParentIssueSelector
@@ -296,8 +300,8 @@ export function IssueDetail({
                   onBlur={persistDescription}
                   onKeyDown={(event) => handleEditorShortcuts(event, persistDescription)}
                   placeholder="Add a description..."
-                  rows={12}
-                  className="min-h-[260px] resize-none rounded-lg border bg-card px-4 py-4 text-sm leading-relaxed"
+                  rows={7}
+                  className="min-h-[156px] resize-none rounded-lg border bg-card px-4 py-4 text-sm leading-relaxed"
                />
             </div>
 
@@ -305,38 +309,45 @@ export function IssueDetail({
                <div className="space-y-3">
                   {presentationIssue.subissues.map((subissue) => {
                      const childIssue = getIssueById(subissue.id);
-                     const isDone =
-                        childIssue?.status.id === 'completed' ||
-                        childIssue?.status.id === 'archived';
+                     const subissueStatus = childIssue?.status ?? subissue.status;
+                     const subissuePriority = childIssue?.priority ?? subissue.priority;
+                     const subissueDescription = childIssue?.description.trim();
+                     const hasSubissueDescription = Boolean(subissueDescription);
 
                      return (
                         <div
                            key={subissue.id}
-                           className="flex items-start gap-3 rounded-lg px-1 py-1.5"
+                           className={cn(
+                              'flex gap-2 rounded-lg border border-border/70 bg-card/30 px-2.5 py-2',
+                              hasSubissueDescription ? 'items-start' : 'items-center'
+                           )}
                         >
-                           <Checkbox
-                              checked={isDone}
-                              onCheckedChange={(checked) => {
-                                 const nextStatus = statusOptions.find((item) =>
-                                    checked ? item.id === 'completed' : item.id === 'to-do'
-                                 );
-
-                                 if (childIssue && nextStatus) {
-                                    updateIssueStatus(childIssue.id, nextStatus);
-                                 }
-                              }}
-                              className="mt-1"
-                           />
+                           <div
+                              className={cn(
+                                 'flex items-center gap-0.5',
+                                 hasSubissueDescription && 'pt-0.5'
+                              )}
+                              onMouseDownCapture={(event) => event.stopPropagation()}
+                           >
+                              <PrioritySelector priority={subissuePriority} issueId={subissue.id} />
+                              <StatusSelector status={subissueStatus} issueId={subissue.id} />
+                           </div>
                            <Link
                               to="/issues/$issueIdentifier"
                               params={{ issueIdentifier: subissue.identifier }}
-                              className="min-w-0 flex-1"
+                              className={cn(
+                                 'min-w-0 flex-1',
+                                 hasSubissueDescription && 'space-y-0.5'
+                              )}
                            >
-                              <div
-                                 className={`text-base leading-6 ${isDone ? 'text-muted-foreground line-through' : 'text-foreground'}`}
-                              >
+                              <div className="text-sm font-medium leading-5 text-foreground">
                                  {subissue.title}
                               </div>
+                              {subissueDescription && (
+                                 <p className="line-clamp-2 text-xs text-muted-foreground">
+                                    {subissueDescription}
+                                 </p>
+                              )}
                            </Link>
                         </div>
                      );
@@ -351,8 +362,15 @@ export function IssueDetail({
                               </div>
                               <div className="flex-1 space-y-3">
                                  <Input
+                                    ref={newSubissueTitleRef}
                                     value={newSubissueTitle}
                                     onChange={(event) => setNewSubissueTitle(event.target.value)}
+                                    onKeyDown={(event) => {
+                                       if (event.key === 'Enter') {
+                                          event.preventDefault();
+                                          void handleCreateSubissue();
+                                       }
+                                    }}
                                     placeholder="Issue title"
                                     className="h-auto border-none bg-transparent px-0 py-0 text-base font-medium shadow-none focus-visible:ring-0"
                                  />
@@ -361,6 +379,15 @@ export function IssueDetail({
                                     onChange={(event) =>
                                        setNewSubissueDescription(event.target.value)
                                     }
+                                    onKeyDown={(event) => {
+                                       if (
+                                          (event.metaKey || event.ctrlKey) &&
+                                          event.key === 'Enter'
+                                       ) {
+                                          event.preventDefault();
+                                          void handleCreateSubissue();
+                                       }
+                                    }}
                                     placeholder="Add description..."
                                     rows={2}
                                     className="min-h-0 resize-none border-none bg-transparent px-0 py-0 text-sm shadow-none focus-visible:ring-0"

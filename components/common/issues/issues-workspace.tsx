@@ -1,6 +1,6 @@
 'use client';
 
-import { useLayoutEffect, useMemo } from 'react';
+import { useLayoutEffect, useMemo, useRef } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -29,6 +29,21 @@ interface IssuesWorkspaceProps {
    projectFilterId?: string;
 }
 
+const getIssuesHydrationKey = (issues: IssueListItem[]) =>
+   issues
+      .map((issue) =>
+         [
+            issue.id,
+            issue.status,
+            issue.priority,
+            issue.assigneeId ?? '',
+            issue.project?.id ?? '',
+            issue.parentIssueId ?? '',
+            issue.labels.map((label) => label.id).join(','),
+         ].join(':')
+      )
+      .join('|');
+
 export function IssuesWorkspace({
    initialIssues,
    initialStatuses,
@@ -41,19 +56,26 @@ export function IssuesWorkspace({
    const { filters, hasActiveFilters } = useFilterStore();
    const { showEmptyStatuses } = useViewStore();
    const navigate = useNavigate();
+   const lastHydrationKeyRef = useRef<string | null>(null);
 
    const hydratedIssues = useMemo(
       () => initialIssues.map((issue) => toPresentationIssue(issue, initialStatuses)),
       [initialIssues, initialStatuses]
    );
+   const hydrationKey = useMemo(() => getIssuesHydrationKey(initialIssues), [initialIssues]);
 
    useLayoutEffect(() => {
+      if (lastHydrationKeyRef.current === hydrationKey) {
+         return;
+      }
+
+      lastHydrationKeyRef.current = hydrationKey;
       replaceIssues(hydratedIssues);
-   }, [hydratedIssues, replaceIssues]);
+   }, [hydratedIssues, hydrationKey, replaceIssues]);
 
    const selectedIssue = useMemo(
-      () => hydratedIssues.find((issue) => issue.identifier === selectedIssueIdentifier),
-      [hydratedIssues, selectedIssueIdentifier]
+      () => issues.find((issue) => issue.identifier === selectedIssueIdentifier),
+      [issues, selectedIssueIdentifier]
    );
 
    const isSearching = isSearchOpen && searchQuery.trim() !== '';

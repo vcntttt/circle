@@ -16,13 +16,16 @@ import { CheckIcon } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 import { renderStatusIcon } from '@/lib/status-utils';
 import { useIssuesStatuses } from './issues-status-context';
+import { cn } from '@/lib/utils';
+import { issueChipClassName } from './issue-chip';
 
 interface StatusSelectorProps {
    status: Status;
    issueId: string;
+   display?: 'icon' | 'chip';
 }
 
-export function StatusSelector({ status, issueId }: StatusSelectorProps) {
+export function StatusSelector({ status, issueId, display = 'icon' }: StatusSelectorProps) {
    const id = useId();
    const [open, setOpen] = useState<boolean>(false);
    const [value, setValue] = useState<string>(status.id);
@@ -46,19 +49,28 @@ export function StatusSelector({ status, issueId }: StatusSelectorProps) {
       }
    };
 
+   const selectedItem = allStatus.find((item) => item.id === value) ?? status;
+
    return (
       <div className="*:not-first:mt-2">
          <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
                <Button
                   id={id}
-                  className="size-7 flex items-center justify-center"
-                  size="icon"
-                  variant="ghost"
+                  className={cn(
+                     display === 'icon'
+                        ? 'size-7 flex items-center justify-center'
+                        : issueChipClassName
+                  )}
+                  size={display === 'icon' ? 'icon' : 'xs'}
+                  variant={display === 'icon' ? 'ghost' : 'outline'}
                   role="combobox"
                   aria-expanded={open}
                >
                   {renderStatusIcon(value)}
+                  {display === 'chip' && (
+                     <span className="max-w-[160px] truncate">{selectedItem.name}</span>
+                  )}
                </Button>
             </PopoverTrigger>
             <PopoverContent
