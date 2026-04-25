@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverAnchor } from '@/components/ui/popover';
@@ -10,7 +10,6 @@ import { currentUser } from '@/lib/current-user';
 import { LexoRank } from '@/lib/utils';
 import { toPresentationIssue } from '@/lib/issues-presentation';
 import { Switch } from '@/components/ui/switch';
-import { RiEditLine } from '@remixicon/react';
 import { GitBranchPlus } from 'lucide-react';
 import {
    useState,
@@ -151,6 +150,7 @@ function renderTitlePreviewSegment(segment: TitlePreviewSegment, index: number):
 
 export function CreateNewIssue() {
    const [createMore, setCreateMore] = useState<boolean>(false);
+   const [isCreating, setIsCreating] = useState(false);
    const [projectSelectorOpen, setProjectSelectorOpen] = useState(false);
    const [labelSelectorOpen, setLabelSelectorOpen] = useState(false);
    const [titleFocused, setTitleFocused] = useState(false);
@@ -365,7 +365,11 @@ export function CreateNewIssue() {
       }
    };
 
-   const createIssue = async () => {
+   const createIssue = useCallback(async () => {
+      if (isCreating) {
+         return;
+      }
+
       const finalTitle = inlineDraft.title || addIssueForm.title.trim();
       const finalProject = inlineDraft.project ?? addIssueForm.project;
       const finalLabels = [...addIssueForm.labels, ...inlineDraft.labels].filter(
@@ -379,6 +383,7 @@ export function CreateNewIssue() {
       }
 
       try {
+         setIsCreating(true);
          const createdIssue = await createIssueMutation({
             data: {
                title: finalTitle,
@@ -409,16 +414,39 @@ export function CreateNewIssue() {
       } catch (error) {
          console.error('Failed to create issue.', error);
          toast.error('Issue could not be created');
+      } finally {
+         setIsCreating(false);
       }
-   };
+   }, [addIssue, addIssueForm, closeModal, createDefaultData, createMore, inlineDraft, isCreating]);
+
+   useEffect(() => {
+      if (!isOpen) {
+         return;
+      }
+
+      const handleSubmitShortcut = (event: globalThis.KeyboardEvent) => {
+         if (event.defaultPrevented || event.repeat) {
+            return;
+         }
+
+         if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) {
+            return;
+         }
+
+         if (event.key !== 'Enter') {
+            return;
+         }
+
+         event.preventDefault();
+         void createIssue();
+      };
+
+      window.addEventListener('keydown', handleSubmitShortcut);
+      return () => window.removeEventListener('keydown', handleSubmitShortcut);
+   }, [createIssue, isOpen]);
 
    return (
       <Dialog open={isOpen} onOpenChange={(value) => (value ? openModal() : closeModal())}>
-         <DialogTrigger asChild>
-            <Button className="size-8 shrink-0" variant="secondary" size="icon">
-               <RiEditLine />
-            </Button>
-         </DialogTrigger>
          <DialogContent className="w-full sm:max-w-[750px] p-0 shadow-xl top-[30%]">
             <div className="px-4 pt-4 pb-0 space-y-3 w-full">
                <Popover open={Boolean(inlineSuggestion)}>
@@ -559,6 +587,7 @@ export function CreateNewIssue() {
                </div>
                <Button
                   size="sm"
+                  disabled={isCreating}
                   onClick={() => {
                      void createIssue();
                   }}
