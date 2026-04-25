@@ -504,8 +504,14 @@ export function CreateNewIssue() {
 
                <div className="flex items-end gap-2">
                   <div className="space-y-1">
-                     <Label htmlFor="estimated-hours" className="text-xs text-muted-foreground">
-                        Estimated hours
+                     <Label
+                        htmlFor="estimated-hours"
+                        className="flex items-center gap-1 text-xs text-muted-foreground"
+                     >
+                        <span>Estimated hours</span>
+                        <span className="rounded-full border px-1.5 py-0.5 text-[10px] uppercase tracking-wide">
+                           Optional
+                        </span>
                      </Label>
                      <Input
                         id="estimated-hours"
@@ -514,7 +520,7 @@ export function CreateNewIssue() {
                         step="0.25"
                         inputMode="decimal"
                         className="w-36"
-                        placeholder="1.5"
+                        placeholder="Leave blank"
                         value={addIssueForm.estimatedHours ?? ''}
                         onChange={(event) => {
                            const nextValue = event.target.value;
