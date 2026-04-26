@@ -14,7 +14,6 @@ import { useIssuesStore } from '@/store/issues-store';
 import { type Status } from '@/lib/ui-catalog';
 import { CheckIcon } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
-import { renderStatusIcon } from '@/lib/status-utils';
 import { useIssuesStatuses } from './issues-status-context';
 import { cn } from '@/lib/utils';
 import { issueChipClassName } from './issue-chip';
@@ -50,6 +49,7 @@ export function StatusSelector({ status, issueId, display = 'icon' }: StatusSele
    };
 
    const selectedItem = allStatus.find((item) => item.id === value) ?? status;
+   const SelectedIcon = selectedItem.icon;
 
    return (
       <div className="*:not-first:mt-2">
@@ -67,7 +67,7 @@ export function StatusSelector({ status, issueId, display = 'icon' }: StatusSele
                   role="combobox"
                   aria-expanded={open}
                >
-                  {renderStatusIcon(value)}
+                  <SelectedIcon />
                   {display === 'chip' && (
                      <span className="max-w-[160px] truncate">{selectedItem.name}</span>
                   )}

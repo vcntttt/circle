@@ -7,6 +7,47 @@ import type { Status } from '@/lib/models';
 
 const IssuesStatusContext = createContext<Status[]>([]);
 const baseStatusById = Object.fromEntries(baseStatus.map((item) => [item.id, item]));
+const statusIconAliases: Record<string, string> = {
+   'review': 'technical-review',
+   'in-review': 'technical-review',
+   'tech-review': 'technical-review',
+   'done': 'completed',
+   'complete': 'completed',
+   'todo': 'to-do',
+};
+
+function toStatusKey(value: string): string {
+   return value
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+}
+
+function resolveStatusIcon(statusId: string, statusName: string): Status['icon'] {
+   const directMatch = baseStatusById[statusId];
+   if (directMatch) {
+      return directMatch.icon;
+   }
+
+   const normalizedId = toStatusKey(statusId);
+   const aliasedId = statusIconAliases[normalizedId];
+   if (aliasedId && baseStatusById[aliasedId]) {
+      return baseStatusById[aliasedId].icon;
+   }
+
+   const normalizedName = toStatusKey(statusName);
+   if (baseStatusById[normalizedName]) {
+      return baseStatusById[normalizedName].icon;
+   }
+
+   const aliasedNameId = statusIconAliases[normalizedName];
+   if (aliasedNameId && baseStatusById[aliasedNameId]) {
+      return baseStatusById[aliasedNameId].icon;
+   }
+
+   return archivedStatus.icon;
+}
 
 export function IssuesStatusProvider({
    statuses,
@@ -16,13 +57,11 @@ export function IssuesStatusProvider({
    children: React.ReactNode;
 }) {
    const issueStatuses: Status[] = statuses.map((item) => {
-      const fallback = baseStatusById[item.id] ?? archivedStatus;
-
       return {
          id: item.id,
          name: item.name,
          color: item.color,
-         icon: fallback.icon,
+         icon: resolveStatusIcon(item.id, item.name),
       };
    });
 
