@@ -39,7 +39,9 @@ export const Route = createFileRoute('/projects/$projectSlug')({
          getProjectsPage(),
          getIssuesPage(),
       ]);
-      const project = projectsResult.projects.find((item) => item.slug === params.projectSlug);
+      const project = projectsResult.projects.find(
+         (item) => item.slug === params.projectSlug || item.id === params.projectSlug
+      );
 
       return {
          project: project ?? null,
