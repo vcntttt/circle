@@ -1,18 +1,8 @@
-import { createFileRoute, notFound } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { IssuesWorkspace } from '@/components/common/issues/issues-workspace';
-import { getIssuesPage } from '@/src/server/issues';
+import { useIssuesPageData } from './issues';
 
 export const Route = createFileRoute('/issues/$issueIdentifier')({
-   loader: async ({ params }) => {
-      const result = await getIssuesPage();
-      const issue = result.issues.find((item) => item.identifier === params.issueIdentifier);
-
-      if (!issue) {
-         throw notFound();
-      }
-
-      return result;
-   },
    head: ({ params }) => ({
       meta: [{ title: `${params.issueIdentifier} | Triangle` }],
    }),
@@ -20,9 +10,11 @@ export const Route = createFileRoute('/issues/$issueIdentifier')({
 });
 
 function IssueDetailPage() {
-   const { issues, statusOptions, databaseError } = Route.useLoaderData();
+   const {
+      pageData: { issues, statusOptions, databaseError },
+      projectId,
+   } = useIssuesPageData();
    const { issueIdentifier } = Route.useParams();
-   const { projectId } = Route.useSearch();
    const filteredIssues = projectId
       ? issues.filter((issue) => issue.project?.id === projectId)
       : issues;

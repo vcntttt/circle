@@ -80,6 +80,7 @@ export interface UpdateProjectInput {
 
 export interface UpdateProjectDetailsInput {
    name?: string;
+   key?: string;
    description?: string | null;
    iconType?: string;
    iconValue?: string;
@@ -526,10 +527,27 @@ export async function updateProjectDetailsRecord(
       throw new Error('Database unavailable.');
    }
 
+   const key = input.key === undefined ? undefined : normalizeProjectKey(input.key);
+
+   if (key !== undefined) {
+      assertValidProjectKey(key);
+
+      const existingProject = await db
+         .select({ id: schema.projects.id, key: schema.projects.key })
+         .from(schema.projects)
+         .where(eq(schema.projects.key, key))
+         .limit(1);
+
+      if (existingProject[0] && existingProject[0].id !== projectId) {
+         throw new Error(`A project with the key "${key}" already exists. Choose a different key.`);
+      }
+   }
+
    await db
       .update(schema.projects)
       .set({
          ...(input.name !== undefined ? { name: input.name } : {}),
+         ...(key !== undefined ? { key } : {}),
          ...(input.description !== undefined ? { description: input.description } : {}),
          ...(input.iconType !== undefined ? { iconType: input.iconType } : {}),
          ...(input.iconValue !== undefined ? { iconValue: input.iconValue } : {}),

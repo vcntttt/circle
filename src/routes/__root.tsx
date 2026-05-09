@@ -9,6 +9,11 @@ import '@fontsource/inter/600.css';
 import '@fontsource/geist-mono';
 import globalsCss from '@/src/styles/globals.css?url';
 import { ThemeProvider } from '@/components/layout/theme-provider';
+import { AppSidebar } from '@/components/layout/sidebar/app-sidebar';
+import { CreateIssueModalProvider } from '@/components/common/issues/create-issue-modal-provider';
+import { GlobalShortcuts } from '@/components/common/shortcuts/global-shortcuts';
+import { ShortcutsHelpProvider } from '@/components/common/shortcuts/shortcuts-help-provider';
+import { SidebarProvider } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/sonner';
 
 export const Route = createRootRoute({
@@ -50,7 +55,13 @@ function RootDocument({ children }: { children: ReactNode }) {
          </head>
          <body className="antialiased bg-background">
             <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-               {children}
+               <SidebarProvider>
+                  <CreateIssueModalProvider />
+                  <ShortcutsHelpProvider />
+                  <GlobalShortcuts />
+                  <AppSidebar />
+                  {children}
+               </SidebarProvider>
                <Toaster />
             </ThemeProvider>
             <TanStackRouterDevtools position="bottom-right" />

@@ -27,6 +27,13 @@ interface IssuesWorkspaceProps {
    databaseError: string | null;
    selectedIssueIdentifier?: string;
    projectFilterId?: string;
+   onSelectIssue?: (issue: Issue) => void;
+   onClearSelectedIssue?: () => void;
+   onSelectAdjacentIssue?: (issue: Issue) => void;
+   emptyCopy?: {
+      title: string;
+      description: string;
+   };
 }
 
 const getIssuesHydrationKey = (issues: IssueListItem[]) =>
@@ -50,6 +57,10 @@ export function IssuesWorkspace({
    databaseError,
    selectedIssueIdentifier,
    projectFilterId,
+   onSelectIssue,
+   onClearSelectedIssue,
+   onSelectAdjacentIssue,
+   emptyCopy,
 }: IssuesWorkspaceProps) {
    const { replaceIssues, issues, filterIssues } = useIssuesStore();
    const { isSearchOpen, searchQuery } = useSearchStore();
@@ -101,9 +112,10 @@ export function IssuesWorkspace({
       return (
          <div className="w-full p-6">
             <div className="rounded-lg border bg-container p-6 max-w-2xl">
-               <h2 className="text-sm font-semibold">No issues yet</h2>
+               <h2 className="text-sm font-semibold">{emptyCopy?.title ?? 'No issues yet'}</h2>
                <p className="mt-2 text-sm text-muted-foreground">
-                  There are no issues yet. Create your first issue from the sidebar composer.
+                  {emptyCopy?.description ??
+                     'There are no issues yet. Create your first issue from the sidebar composer.'}
                </p>
             </div>
          </div>
@@ -132,6 +144,7 @@ export function IssuesWorkspace({
                         initialIssue={selectedIssue}
                         onDelete={handleDelete}
                         onArchive={handleArchive}
+                        onMobileBack={handleClearSelectedIssue}
                         mobileBack
                      />
                   ) : null}
@@ -179,12 +192,22 @@ export function IssuesWorkspace({
       const nextIssue = filteredIssues[currentIndex + 1] ?? filteredIssues[currentIndex - 1];
 
       if (nextIssue) {
+         if (onSelectAdjacentIssue) {
+            onSelectAdjacentIssue(nextIssue);
+            return;
+         }
+
          void navigate({
             to: '/issues/$issueIdentifier',
             params: { issueIdentifier: nextIssue.identifier },
             search: projectFilterId ? { projectId: projectFilterId } : {},
             replace: true,
          });
+         return;
+      }
+
+      if (onClearSelectedIssue) {
+         onClearSelectedIssue();
          return;
       }
 
@@ -195,9 +218,26 @@ export function IssuesWorkspace({
    }
 
    function handleSelectIssue(issue: Issue) {
+      if (onSelectIssue) {
+         onSelectIssue(issue);
+         return;
+      }
+
       void navigate({
          to: '/issues/$issueIdentifier',
          params: { issueIdentifier: issue.identifier },
+         search: projectFilterId ? { projectId: projectFilterId } : {},
+      });
+   }
+
+   function handleClearSelectedIssue() {
+      if (onClearSelectedIssue) {
+         onClearSelectedIssue();
+         return;
+      }
+
+      void navigate({
+         to: '/issues',
          search: projectFilterId ? { projectId: projectFilterId } : {},
       });
    }

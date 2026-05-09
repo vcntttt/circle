@@ -1,15 +1,16 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { IssuesWorkspace } from '@/components/common/issues/issues-workspace';
-import { getIssuesPage } from '@/src/server/issues';
+import { useIssuesPageData } from './issues';
 
 export const Route = createFileRoute('/issues/')({
-   loader: () => getIssuesPage(),
    component: IssuesIndexPage,
 });
 
 function IssuesIndexPage() {
-   const { issues, statusOptions, databaseError } = Route.useLoaderData();
-   const { projectId } = Route.useSearch();
+   const {
+      pageData: { issues, statusOptions, databaseError },
+      projectId,
+   } = useIssuesPageData();
    const filteredIssues = projectId
       ? issues.filter((issue) => issue.project?.id === projectId)
       : issues;

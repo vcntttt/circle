@@ -1,4 +1,4 @@
-import { Outlet, createFileRoute } from '@tanstack/react-router';
+import { Outlet, createFileRoute, useMatches } from '@tanstack/react-router';
 import { z } from 'zod';
 import { useEffect, useMemo } from 'react';
 import Header from '@/components/layout/headers/issues/header';
@@ -12,9 +12,11 @@ const issuesSearchSchema = z.object({
    projectId: z.string().optional(),
 });
 
+type IssuesPageData = Awaited<ReturnType<typeof getIssuesPage>>;
+
 export const Route = createFileRoute('/issues')({
-   loader: () => getIssuesPage(),
    validateSearch: (search) => issuesSearchSchema.parse(search),
+   loader: () => getIssuesPage(),
    head: () => ({
       meta: [
          { title: 'Issues | Triangle' },
@@ -25,7 +27,8 @@ export const Route = createFileRoute('/issues')({
 });
 
 function IssuesLayout() {
-   const { issues, isConnected } = Route.useLoaderData();
+   const pageData = Route.useLoaderData();
+   const { issues, isConnected } = pageData;
    const { projectId } = Route.useSearch();
    const projects = useProjectOptions();
    const { setDefaultProject } = useCreateIssueStore();
@@ -66,4 +69,26 @@ function IssuesLayout() {
          <Outlet />
       </MainLayout>
    );
+}
+
+export function useIssuesPageData() {
+   const data = useMatches({
+      select: (matches) => {
+         const match = matches.find((item) => item.routeId === '/issues');
+
+         return {
+            pageData: match?.loaderData as IssuesPageData | undefined,
+            projectId: (match?.search as { projectId?: string } | undefined)?.projectId,
+         };
+      },
+   });
+
+   if (!data.pageData) {
+      throw new Error('Issues route data is unavailable.');
+   }
+
+   return {
+      pageData: data.pageData,
+      projectId: data.projectId,
+   };
 }

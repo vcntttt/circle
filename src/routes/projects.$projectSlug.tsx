@@ -1,5 +1,5 @@
-import { createFileRoute, Link, useRouter } from '@tanstack/react-router';
-import { useMemo, useState } from 'react';
+import { createFileRoute, Link, useNavigate, useRouter } from '@tanstack/react-router';
+import { useEffect, useMemo, useState } from 'react';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import { FileText, MoreHorizontal, Pencil, Plus } from 'lucide-react';
@@ -15,7 +15,7 @@ import { PrioritySelector } from '@/components/common/projects/priority-selector
 import { StatusWithPercent } from '@/components/common/projects/status-with-percent';
 import { persistProjectUpdate } from '@/components/common/projects/project-update';
 import { currentUser } from '@/lib/current-user';
-import type { ProjectIconConfig, ProjectUpdate } from '@/lib/models';
+import type { Issue, ProjectIconConfig, ProjectUpdate } from '@/lib/models';
 import {
    type ProjectLike,
    type ProjectOptionLike,
@@ -25,9 +25,11 @@ import { cn } from '@/lib/utils';
 import type { IssueListItem } from '@/lib/db/issues';
 import { getIssuesPage } from '@/src/server/issues';
 import { getProjectsPage, updateProjectDetails } from '@/src/server/projects';
+import { useCreateIssueStore } from '@/store/create-issue-store';
 
 const projectSearchSchema = z.object({
    tab: z.enum(['overview', 'issues']).optional().catch('overview'),
+   issue: z.string().optional(),
 });
 
 export const Route = createFileRoute('/projects/$projectSlug')({
@@ -65,7 +67,7 @@ export const Route = createFileRoute('/projects/$projectSlug')({
 function ProjectPage() {
    const { project, statusOptions, priorityOptions, issues, databaseError, isConnected } =
       Route.useLoaderData();
-   const { tab = 'overview' } = Route.useSearch();
+   const { tab = 'overview', issue } = Route.useSearch();
 
    if (databaseError) {
       return (
@@ -106,6 +108,7 @@ function ProjectPage() {
             priorityOptions={priorityOptions}
             issues={issues}
             activeTab={tab}
+            selectedIssueIdentifier={issue}
             isConnected={isConnected}
          />
       </>
@@ -183,6 +186,7 @@ function ProjectOverview({
    priorityOptions,
    issues,
    activeTab,
+   selectedIssueIdentifier,
    isConnected,
 }: {
    initialProject: ProjectLike;
@@ -190,13 +194,13 @@ function ProjectOverview({
    priorityOptions: ProjectOptionLike[];
    issues: IssueListItem[];
    activeTab: 'overview' | 'issues';
+   selectedIssueIdentifier?: string;
    isConnected: boolean;
 }) {
    const router = useRouter();
+   const navigate = useNavigate();
+   const { setDefaultProject } = useCreateIssueStore();
    const [project, setProject] = useState<ProjectLike>(initialProject);
-   const [editingDetails, setEditingDetails] = useState(false);
-   const [name, setName] = useState(initialProject.name);
-   const [description, setDescription] = useState(initialProject.description ?? '');
    const [iconConfig, setIconConfig] = useState<ProjectIconConfig>({
       type: initialProject.iconType ?? 'lucide',
       value: initialProject.iconValue ?? 'box',
@@ -207,12 +211,27 @@ function ProjectOverview({
       [priorityOptions, project, statusOptions]
    );
 
-   const handleDetailsSave = async () => {
-      const trimmedName = name.trim();
+   const handleProjectFieldSave = async (
+      field: 'name' | 'key' | 'description',
+      rawValue: string
+   ) => {
+      const trimmedValue = rawValue.trim();
 
-      if (!trimmedName) {
+      if (field === 'name' && !trimmedValue) {
          toast.error('Project name is required');
-         return;
+         return project.name;
+      }
+
+      if (field === 'key' && !trimmedValue) {
+         toast.error('Project ID is required');
+         return project.key;
+      }
+
+      const nextValue = field === 'description' ? trimmedValue || null : trimmedValue;
+      const currentValue = field === 'description' ? project.description || null : project[field];
+
+      if (nextValue === currentValue) {
+         return nextValue ?? '';
       }
 
       setIsSavingDetails(true);
@@ -221,10 +240,7 @@ function ProjectOverview({
          const updated = await updateProjectDetails({
             data: {
                projectId: project.id,
-               name: trimmedName,
-               description: description.trim() || null,
-               iconType: iconConfig.type,
-               iconValue: iconConfig.value,
+               [field]: nextValue,
             },
          });
 
@@ -235,18 +251,18 @@ function ProjectOverview({
          setProject((current) => ({
             ...current,
             name: updated.name,
+            key: updated.key,
             description: updated.description,
-            iconType: updated.iconType,
-            iconValue: updated.iconValue,
             updatedAt: updated.updatedAt,
          }));
-         setIconConfig({ type: updated.iconType, value: updated.iconValue });
-         setEditingDetails(false);
          toast.success('Project updated');
          await router.invalidate();
+
+         return field === 'description' ? updated.description || '' : updated[field];
       } catch (error) {
          const message = error instanceof Error ? error.message : 'Project could not be updated.';
          toast.error(message);
+         return field === 'description' ? project.description || '' : project[field];
       } finally {
          setIsSavingDetails(false);
       }
@@ -334,16 +350,51 @@ function ProjectOverview({
       setProject((current) => ({ ...current, latestUpdate: update }));
    };
 
+   useEffect(() => {
+      if (activeTab === 'issues') {
+         setDefaultProject(presentationProject);
+      } else {
+         setDefaultProject(null);
+      }
+
+      return () => {
+         setDefaultProject(null);
+      };
+   }, [activeTab, presentationProject, setDefaultProject]);
+
+   const handleSelectIssue = (issue: Issue) => {
+      void navigate({
+         to: '/projects/$projectSlug',
+         params: { projectSlug: project.slug },
+         search: { tab: 'issues', issue: issue.identifier },
+      });
+   };
+
+   const handleClearSelectedIssue = () => {
+      void navigate({
+         to: '/projects/$projectSlug',
+         params: { projectSlug: project.slug },
+         search: { tab: 'issues' },
+         replace: true,
+      });
+   };
+
    return (
-      <div className="min-h-full bg-container">
+      <div className="flex h-full min-h-full flex-col bg-container">
          <ProjectToolbar title={project.name} project={project} activeTab={activeTab} />
 
          {activeTab === 'issues' ? (
-            <ProjectIssuesTab
-               project={presentationProject}
-               initialIssues={issues}
-               initialStatuses={statusOptions}
-            />
+            <div className="min-h-0 flex-1">
+               <ProjectIssuesTab
+                  project={presentationProject}
+                  initialIssues={issues}
+                  initialStatuses={statusOptions}
+                  selectedIssueIdentifier={selectedIssueIdentifier}
+                  onSelectIssue={handleSelectIssue}
+                  onClearSelectedIssue={handleClearSelectedIssue}
+                  onSelectAdjacentIssue={handleSelectIssue}
+               />
+            </div>
          ) : (
             <div className="mx-auto max-w-[1030px] px-6 py-16">
                <div className="flex items-start justify-between gap-6">
@@ -357,107 +408,77 @@ function ProjectOverview({
                         />
                      </div>
 
-                     {editingDetails ? (
-                        <div className="flex max-w-3xl flex-col gap-3">
-                           <div className="flex items-center gap-2">
-                              <ProjectIconPicker
-                                 value={iconConfig}
-                                 onChange={setIconConfig}
-                                 disabled={isSavingDetails}
-                              />
-                              <span className="text-sm text-muted-foreground">Project icon</span>
-                           </div>
-                           <Input
-                              value={name}
-                              onChange={(event) => setName(event.target.value)}
-                              className="h-10 max-w-xl text-2xl font-semibold"
-                              maxLength={120}
-                           />
-                           <Textarea
-                              value={description}
-                              onChange={(event) => setDescription(event.target.value)}
-                              className="min-h-24 max-w-3xl resize-none text-base"
-                              maxLength={500}
-                           />
-                           <div className="flex items-center gap-2">
-                              <Button
-                                 size="sm"
-                                 onClick={() => void handleDetailsSave()}
-                                 disabled={isSavingDetails}
-                              >
-                                 {isSavingDetails ? 'Saving...' : 'Save'}
-                              </Button>
-                              <Button
-                                 size="sm"
-                                 variant="outline"
-                                 onClick={() => {
-                                    setName(project.name);
-                                    setDescription(project.description ?? '');
-                                    setIconConfig({
-                                       type: project.iconType ?? 'lucide',
-                                       value: project.iconValue ?? 'box',
-                                    });
-                                    setEditingDetails(false);
-                                 }}
-                                 disabled={isSavingDetails}
-                              >
-                                 Cancel
-                              </Button>
-                           </div>
-                        </div>
-                     ) : (
-                        <>
-                           <h1 className="truncate text-3xl font-semibold tracking-normal">
-                              {project.name}
-                           </h1>
-                           <p className="mt-2 max-w-3xl text-lg text-muted-foreground">
-                              {project.description || 'No description yet.'}
-                           </p>
-                        </>
-                     )}
-                  </div>
+                     <InlineEditableText
+                        value={project.name}
+                        placeholder="Untitled project"
+                        maxLength={120}
+                        disabled={isSavingDetails}
+                        displayClassName="block max-w-3xl truncate text-3xl font-semibold tracking-normal hover:text-muted-foreground"
+                        inputClassName="h-11 max-w-3xl text-3xl font-semibold"
+                        onSave={(value) => handleProjectFieldSave('name', value)}
+                     />
 
-                  {!editingDetails ? (
-                     <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-1.5"
-                        onClick={() => setEditingDetails(true)}
-                     >
-                        <Pencil className="size-4" />
-                        Edit
-                     </Button>
-                  ) : null}
+                     <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+                        <span>Project ID</span>
+                        <InlineEditableText
+                           value={project.key}
+                           placeholder="ID"
+                           maxLength={10}
+                           disabled={isSavingDetails}
+                           transformValue={(value) =>
+                              value
+                                 .toUpperCase()
+                                 .replace(/[^A-Z0-9]+/g, '')
+                                 .slice(0, 10)
+                           }
+                           displayClassName="rounded px-1.5 py-0.5 font-medium text-foreground hover:bg-muted/60"
+                           inputClassName="h-7 w-28 px-2 text-sm font-medium uppercase"
+                           onSave={(value) => handleProjectFieldSave('key', value)}
+                        />
+                     </div>
+
+                     {/*
+                        Keep this visual description hidden for now. It duplicates the
+                        dedicated Description section below, but will be reused later.
+                        <p className="mt-2 max-w-3xl text-lg text-muted-foreground">
+                           {project.description || 'No description yet.'}
+                        </p>
+                     */}
+                  </div>
                </div>
 
-               <div className="mt-8 grid gap-4 text-sm md:grid-cols-[90px_1fr]">
-                  <div className="font-medium text-muted-foreground">Properties</div>
-                  <div className="flex flex-wrap items-center gap-3">
-                     <StatusWithPercent
-                        status={presentationProject.status}
-                        options={statusOptions}
-                        onStatusChange={(statusId) => void handleStatusChange(statusId)}
-                     />
-                     <div className="inline-flex items-center gap-2 text-muted-foreground">
-                        <Avatar className="size-5">
-                           <AvatarImage src={currentUser.avatarUrl} alt={currentUser.name} />
-                           <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <span>{currentUser.name}</span>
+               <div className="mt-8 space-y-4 text-sm">
+                  <div className="grid items-center gap-4 md:grid-cols-[116px_minmax(0,1fr)]">
+                     <div className="font-medium text-muted-foreground">Properties</div>
+                     <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
+                        <StatusWithPercent
+                           status={presentationProject.status}
+                           options={statusOptions}
+                           onStatusChange={(statusId) => void handleStatusChange(statusId)}
+                        />
+                        <div className="inline-flex items-center gap-2 text-muted-foreground">
+                           <Avatar className="size-5">
+                              <AvatarImage src={currentUser.avatarUrl} alt={currentUser.name} />
+                              <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
+                           </Avatar>
+                           <span>{currentUser.name}</span>
+                        </div>
+                        <PrioritySelector
+                           priority={presentationProject.priority}
+                           options={priorityOptions}
+                           onPriorityChange={(priorityId) => void handlePriorityChange(priorityId)}
+                        />
+                        <span className="text-muted-foreground">Target date</span>
                      </div>
-                     <PrioritySelector
-                        priority={presentationProject.priority}
-                        options={priorityOptions}
-                        onPriorityChange={(priorityId) => void handlePriorityChange(priorityId)}
-                     />
-                     <span className="text-muted-foreground">Target date</span>
                   </div>
 
-                  <div className="font-medium text-muted-foreground">Resources</div>
-                  <button className="inline-flex w-fit items-center gap-2 text-muted-foreground hover:text-foreground">
-                     <Plus className="size-4" />
-                     Add document or link...
-                  </button>
+                  <div className="grid items-center gap-4 md:grid-cols-[116px_minmax(0,1fr)]">
+                     <div className="font-medium text-muted-foreground">Resources</div>
+                     <button className="inline-flex h-6 w-fit items-center gap-2 text-muted-foreground hover:text-foreground">
+                        <Plus className="size-4" />
+                        Add document or link...
+                     </button>
+                  </div>
                </div>
 
                <div className="mt-8">
@@ -473,14 +494,137 @@ function ProjectOverview({
                      Description
                      <span className="text-xs">⌄</span>
                   </button>
-                  <p className="mt-3 max-w-3xl whitespace-pre-wrap text-sm leading-6 text-foreground">
-                     {project.description ||
-                        'Add a project description to capture scope, decisions, and links.'}
-                  </p>
+                  <div className="mt-3 max-w-3xl whitespace-pre-wrap text-sm leading-6 text-foreground">
+                     <InlineEditableText
+                        value={project.description || ''}
+                        placeholder="Add a project description to capture scope, decisions, and links."
+                        maxLength={500}
+                        disabled={isSavingDetails}
+                        multiline
+                        displayClassName="block min-h-6 max-w-3xl whitespace-pre-wrap rounded-sm hover:text-muted-foreground"
+                        inputClassName="min-h-28 max-w-3xl resize-none text-sm leading-6"
+                        onSave={(value) => handleProjectFieldSave('description', value)}
+                     />
+                  </div>
                </section>
             </div>
          )}
       </div>
+   );
+}
+
+function InlineEditableText({
+   value,
+   placeholder,
+   maxLength,
+   disabled,
+   multiline = false,
+   displayClassName,
+   inputClassName,
+   transformValue,
+   onSave,
+}: {
+   value: string;
+   placeholder: string;
+   maxLength: number;
+   disabled?: boolean;
+   multiline?: boolean;
+   displayClassName?: string;
+   inputClassName?: string;
+   transformValue?: (value: string) => string;
+   onSave: (value: string) => Promise<string>;
+}) {
+   const [isEditing, setIsEditing] = useState(false);
+   const [draft, setDraft] = useState(value);
+
+   useEffect(() => {
+      if (!isEditing) {
+         setDraft(value);
+      }
+   }, [isEditing, value]);
+
+   const commit = async () => {
+      const nextValue = transformValue ? transformValue(draft) : draft;
+      const persistedValue = await onSave(nextValue);
+
+      setDraft(persistedValue);
+      setIsEditing(false);
+   };
+
+   const cancel = () => {
+      setDraft(value);
+      setIsEditing(false);
+   };
+
+   if (isEditing) {
+      if (multiline) {
+         return (
+            <Textarea
+               autoFocus
+               value={draft}
+               maxLength={maxLength}
+               disabled={disabled}
+               className={inputClassName}
+               placeholder={placeholder}
+               onChange={(event) => setDraft(event.target.value)}
+               onBlur={() => void commit()}
+               onKeyDown={(event) => {
+                  if (event.key === 'Escape') {
+                     event.preventDefault();
+                     cancel();
+                  }
+
+                  if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+                     event.preventDefault();
+                     void commit();
+                  }
+               }}
+            />
+         );
+      }
+
+      return (
+         <Input
+            autoFocus
+            value={draft}
+            maxLength={maxLength}
+            disabled={disabled}
+            className={inputClassName}
+            placeholder={placeholder}
+            onChange={(event) => {
+               const nextValue = transformValue
+                  ? transformValue(event.target.value)
+                  : event.target.value;
+               setDraft(nextValue);
+            }}
+            onBlur={() => void commit()}
+            onKeyDown={(event) => {
+               if (event.key === 'Escape') {
+                  event.preventDefault();
+                  cancel();
+               }
+
+               if (event.key === 'Enter') {
+                  event.preventDefault();
+                  void commit();
+               }
+            }}
+         />
+      );
+   }
+
+   return (
+      <button
+         type="button"
+         disabled={disabled}
+         className={cn(
+            'cursor-text text-left transition-colors disabled:cursor-default disabled:opacity-70',
+            displayClassName
+         )}
+         onClick={() => setIsEditing(true)}
+      >
+         {value || placeholder}
+      </button>
    );
 }
 
@@ -538,17 +682,21 @@ function LatestUpdateCard({
                </p>
             </div>
          ) : (
-            <div className="mt-8 flex min-h-40 flex-col items-center justify-center text-center">
-               <FileText className="size-8 text-muted-foreground" />
-               <h3 className="mt-3 text-sm font-medium">No updates yet</h3>
-               <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-                  Post the first update to capture project health and recent progress.
-               </p>
+            <div className="mt-4 flex min-h-14 items-center justify-between gap-4">
+               <div className="flex min-w-0 items-center gap-3">
+                  <FileText className="size-5 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0">
+                     <h3 className="text-sm font-medium">No updates yet</h3>
+                     <p className="truncate text-sm text-muted-foreground">
+                        Post the first update to capture project health and recent progress.
+                     </p>
+                  </div>
+               </div>
                <CreateProjectUpdateDialog
                   project={project}
                   onProjectUpdate={onProjectUpdate}
                   trigger={
-                     <Button size="sm" className="mt-4" disabled={!isConnected}>
+                     <Button size="sm" disabled={!isConnected}>
                         New update
                      </Button>
                   }

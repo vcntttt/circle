@@ -30,12 +30,14 @@ export function IssueDetail({
    initialIssue,
    onDelete,
    onArchive,
+   onMobileBack,
    mobileBack = false,
 }: {
    issueId: string;
    initialIssue?: Issue;
    onDelete?: (issueId: string) => void;
    onArchive?: (issueId: string) => void;
+   onMobileBack?: () => void;
    mobileBack?: boolean;
 }) {
    const navigate = useNavigate();
@@ -136,14 +138,22 @@ export function IssueDetail({
 
       deleteIssue(issueId);
       toast.success('Issue deleted');
-      onDelete?.(issueId);
+      if (onDelete) {
+         onDelete(issueId);
+         return;
+      }
+
       void navigate({ to: '/issues', replace: true });
    };
 
    const handleArchive = () => {
       archiveIssue(issueId);
       toast.success('Issue archived');
-      onArchive?.(issueId);
+      if (onArchive) {
+         onArchive(issueId);
+         return;
+      }
+
       void navigate({ to: '/issues', replace: true });
    };
 
@@ -193,14 +203,20 @@ export function IssueDetail({
          <div className="flex items-center justify-between px-4 h-10 border-b border-border">
             <div className="flex items-center gap-3 min-w-0">
                <SidebarTrigger className="inline-flex lg:hidden" />
-               {mobileBack && (
-                  <Button variant="ghost" size="xs" asChild>
-                     <Link to="/issues">
+               {mobileBack &&
+                  (onMobileBack ? (
+                     <Button variant="ghost" size="xs" onClick={onMobileBack}>
                         <ArrowLeft className="size-4" />
                         Back
-                     </Link>
-                  </Button>
-               )}
+                     </Button>
+                  ) : (
+                     <Button variant="ghost" size="xs" asChild>
+                        <Link to="/issues">
+                           <ArrowLeft className="size-4" />
+                           Back
+                        </Link>
+                     </Button>
+                  ))}
                <span className="text-xs text-muted-foreground hidden sm:inline-block">
                   Created {format(new Date(presentationIssue.createdAt), 'MMM dd, yyyy')}
                </span>

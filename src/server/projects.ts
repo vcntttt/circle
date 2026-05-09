@@ -70,6 +70,7 @@ const updateProjectDetailsSchema = z
    .object({
       projectId: z.string().trim().min(1),
       name: z.string().trim().min(2).max(120).optional(),
+      key: z.string().trim().min(2).max(10).optional(),
       description: z.string().trim().max(500).nullable().optional(),
       iconType: z.enum(['lucide', 'emoji']).optional(),
       iconValue: z.string().trim().max(80).optional(),
@@ -77,6 +78,7 @@ const updateProjectDetailsSchema = z
    .refine(
       (value) =>
          value.name !== undefined ||
+         value.key !== undefined ||
          value.description !== undefined ||
          value.iconType !== undefined ||
          value.iconValue !== undefined,
