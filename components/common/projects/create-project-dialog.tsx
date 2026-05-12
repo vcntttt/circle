@@ -57,7 +57,7 @@ export function CreateProjectDialog({ disabled = false }: CreateProjectDialogPro
          .toUpperCase()
          .trim()
          .replace(/[^A-Z0-9]+/g, '')
-         .slice(0, 10);
+         .slice(0, 3);
 
    const createProjectKeyFromName = (name: string) => {
       const words = name
@@ -67,10 +67,16 @@ export function CreateProjectDialog({ disabled = false }: CreateProjectDialogPro
          .filter(Boolean);
       const acronym = words.map((word) => word[0]).join('');
 
-      return normalizeProjectKey(acronym.length >= 2 ? acronym : name);
+      const normalizedAcronym = normalizeProjectKey(acronym);
+
+      if (normalizedAcronym.length >= 3) {
+         return normalizedAcronym;
+      }
+
+      return normalizeProjectKey(name);
    };
 
-   const projectKeyIsValid = /^[A-Z][A-Z0-9]{1,9}$/.test(projectKey);
+   const projectKeyIsValid = /^[A-Z][A-Z0-9]{1,2}$/.test(projectKey);
 
    useEffect(() => {
       let isMounted = true;
@@ -169,7 +175,7 @@ export function CreateProjectDialog({ disabled = false }: CreateProjectDialogPro
                      name="key"
                      placeholder="APP"
                      value={projectKey}
-                     maxLength={10}
+                     maxLength={3}
                      required
                      onChange={(event) => {
                         setKeyTouched(true);
@@ -177,7 +183,7 @@ export function CreateProjectDialog({ disabled = false }: CreateProjectDialogPro
                      }}
                   />
                   <p className="text-xs text-muted-foreground">
-                     Use 2-10 uppercase letters or numbers. This prefixes issue IDs like{' '}
+                     Use 2-3 uppercase letters or numbers. This prefixes issue IDs like{' '}
                      {projectKeyIsValid ? `${projectKey}-1` : 'APP-1'}.
                   </p>
                </div>

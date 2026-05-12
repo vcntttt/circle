@@ -109,14 +109,14 @@ function toOptionId(value: string): string {
       .replace(/^-+|-+$/g, '');
 }
 
-const projectKeyPattern = /^[A-Z][A-Z0-9]{1,9}$/;
+const projectKeyPattern = /^[A-Z][A-Z0-9]{1,2}$/;
 
 export function normalizeProjectKey(value: string): string {
    return value
       .toUpperCase()
       .trim()
       .replace(/[^A-Z0-9]+/g, '')
-      .slice(0, 10);
+      .slice(0, 3);
 }
 
 export function createProjectKeyFromName(name: string): string {
@@ -128,13 +128,19 @@ export function createProjectKeyFromName(name: string): string {
    const acronym = words.map((word) => word[0]).join('');
    const candidate = acronym.length >= 2 ? acronym : normalizeProjectKey(name);
 
-   return candidate.slice(0, 10);
+   const normalizedCandidate = normalizeProjectKey(candidate);
+
+   if (normalizedCandidate.length >= 3) {
+      return normalizedCandidate;
+   }
+
+   return normalizeProjectKey(name);
 }
 
 function assertValidProjectKey(key: string): void {
    if (!projectKeyPattern.test(key)) {
       throw new Error(
-         'Project key must be 2-10 uppercase letters or numbers and start with a letter.'
+         'Project key must be 2-3 uppercase letters or numbers and start with a letter.'
       );
    }
 }
