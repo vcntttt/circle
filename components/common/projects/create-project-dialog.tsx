@@ -230,7 +230,7 @@ export function CreateProjectDialog({ disabled = false }: CreateProjectDialogPro
                   <Button
                      type="submit"
                      disabled={
-                        isPending ||
+                        isCreating ||
                         !projectKeyIsValid ||
                         statusOptions.length === 0 ||
                         priorityOptions.length === 0

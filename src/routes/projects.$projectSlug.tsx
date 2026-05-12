@@ -2,7 +2,7 @@ import { createFileRoute, Link, useRouter } from '@tanstack/react-router';
 import { useEffect, useMemo, useState } from 'react';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { FileText, MoreHorizontal, Pencil, Plus } from 'lucide-react';
+import { FileText, Pencil, Plus } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

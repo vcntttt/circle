@@ -24,7 +24,6 @@ import {
    useCallback,
    useMemo,
    useRef,
-   useEffectEvent,
    type KeyboardEvent as ReactKeyboardEvent,
    type ReactNode,
 } from 'react';
@@ -425,10 +424,6 @@ export function CreateNewIssue() {
       }
    }, [addIssue, addIssueForm, closeModal, createMore, createDefaultData, inlineDraft]);
 
-   const submitShortcutIssue = useEffectEvent(() => {
-      void createIssue();
-   });
-
    useEffect(() => {
       if (!isOpen) {
          return;
@@ -444,12 +439,12 @@ export function CreateNewIssue() {
          }
 
          event.preventDefault();
-         submitShortcutIssue();
+         void createIssue();
       };
 
       window.addEventListener('keydown', handleSubmitShortcut);
       return () => window.removeEventListener('keydown', handleSubmitShortcut);
-   }, [isOpen]);
+   }, [createIssue, isOpen]);
 
    return (
       <Dialog open={isOpen} onOpenChange={(value) => (value ? openModal() : closeModal())}>

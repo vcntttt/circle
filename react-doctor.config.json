@@ -15,6 +15,7 @@
             "rules": [
                "react-doctor/no-giant-component",
                "react-doctor/prefer-useReducer",
+               "react-doctor/prefer-use-effect-event",
                "react-doctor/no-cascading-set-state",
                "react-doctor/no-derived-state-effect",
                "react-doctor/rerender-state-only-in-handlers"

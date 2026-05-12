@@ -84,6 +84,31 @@ Accepted risk:
 Extra renders can occur on dialog state changes, but this is not currently a hot
 path.
 
+### `react-doctor/prefer-use-effect-event`
+
+Files:
+
+- `components/layout/sidebar/create-new-issue/index.tsx`
+
+Reason:
+
+React Doctor recommends `useEffectEvent` for the submit shortcut listener, but
+this app currently installs React `19.0.1`, whose CommonJS package does not
+provide `useEffectEvent` as a named export. Importing it causes Vite dev SSR to
+fail before the page renders.
+
+Future resolution:
+
+Remove this exception after upgrading React to a version that exposes
+`useEffectEvent` in the installed runtime package, then switch the shortcut
+listener back to an effect event.
+
+Accepted risk:
+
+The keydown listener re-subscribes when the memoized `createIssue` callback
+changes. This is preferable to a dev/runtime crash and is limited to the open
+composer dialog.
+
 ### `react-doctor/no-derived-state-effect`
 
 Files:
