@@ -24,6 +24,7 @@ import {
    useCallback,
    useMemo,
    useRef,
+   useEffectEvent,
    type KeyboardEvent as ReactKeyboardEvent,
    type ReactNode,
 } from 'react';
@@ -53,15 +54,18 @@ import { InlineTokenSuggestions } from './inline-token-suggestions';
 type TitlePreviewSegment =
    | {
         type: 'text';
+        key: string;
         value: string;
      }
    | {
         type: 'project';
+        key: string;
         value: string;
         project: Project;
      }
    | {
         type: 'label';
+        key: string;
         value: string;
         label: LabelInterface;
      };
@@ -82,13 +86,18 @@ function buildTitlePreviewSegments(
    );
    const labelLookup = new Map(labels.map((label) => [normalizeInlineToken(label.name), label]));
 
+   let cursor = 0;
+
    return title.split(/(\s+)/).flatMap((chunk) => {
       if (!chunk) {
          return [];
       }
 
+      const key = `${cursor}-${chunk}`;
+      cursor += chunk.length;
+
       if (/^\s+$/.test(chunk)) {
-         return [{ type: 'text', value: chunk } satisfies TitlePreviewSegment];
+         return [{ type: 'text', key, value: chunk } satisfies TitlePreviewSegment];
       }
 
       const cleanChunk = chunk.replace(trailingTokenPunctuation, '');
@@ -108,26 +117,36 @@ function buildTitlePreviewSegments(
                prefix === '@'
                   ? ({
                        type: 'project',
+                       key,
                        value: `@${displayToken}`,
                        project: matchedItem,
                     } satisfies TitlePreviewSegment)
                   : ({
                        type: 'label',
+                       key,
                        value: `#${displayToken}`,
                        label: matchedItem,
                     } satisfies TitlePreviewSegment),
-               ...(suffix ? [{ type: 'text', value: suffix } satisfies TitlePreviewSegment] : []),
+               ...(suffix
+                  ? [
+                       {
+                          type: 'text',
+                          key: `${key}-suffix`,
+                          value: suffix,
+                       } satisfies TitlePreviewSegment,
+                    ]
+                  : []),
             ];
          }
       }
 
-      return [{ type: 'text', value: chunk } satisfies TitlePreviewSegment];
+      return [{ type: 'text', key, value: chunk } satisfies TitlePreviewSegment];
    });
 }
 
-function renderTitlePreviewSegment(segment: TitlePreviewSegment, index: number): ReactNode {
+function renderTitlePreviewSegment(segment: TitlePreviewSegment): ReactNode {
    if (segment.type === 'text') {
-      return <span key={`text-${index}`}>{segment.value}</span>;
+      return <span key={segment.key}>{segment.value}</span>;
    }
 
    const accentColor =
@@ -141,7 +160,7 @@ function renderTitlePreviewSegment(segment: TitlePreviewSegment, index: number):
 
    return (
       <span
-         key={`${segment.type}-${segment.value}-${index}`}
+         key={segment.key}
          className="rounded-[0.65em] text-foreground"
          style={{
             backgroundColor: accentColor,
@@ -161,7 +180,6 @@ export function CreateNewIssue() {
    const [labelSelectorOpen, setLabelSelectorOpen] = useState(false);
    const [titleFocused, setTitleFocused] = useState(false);
    const [titleCaretPosition, setTitleCaretPosition] = useState(0);
-   const [pendingCaretPosition, setPendingCaretPosition] = useState<number | null>(null);
    const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
    const titleInputRef = useRef<HTMLInputElement | null>(null);
    const { isOpen, defaultStatus, defaultProject, defaultParentIssue, openModal, closeModal } =
@@ -193,7 +211,7 @@ export function CreateNewIssue() {
       };
    }, [defaultParentIssue, defaultProject, defaultStatus, getAllIssues]);
 
-   const [addIssueForm, setAddIssueForm] = useState<Issue>(createDefaultData());
+   const [addIssueForm, setAddIssueForm] = useState<Issue>(() => createDefaultData());
 
    useEffect(() => {
       setAddIssueForm(createDefaultData());
@@ -226,33 +244,28 @@ export function CreateNewIssue() {
       setActiveSuggestionIndex(0);
    }, [inlineSuggestion?.kind, inlineSuggestion?.query, inlineSuggestion?.tokenStart]);
 
-   useEffect(() => {
-      if (pendingCaretPosition === null) {
-         return;
-      }
-
+   const focusTitleAt = useCallback((position: number) => {
       const input = titleInputRef.current;
-      if (input) {
-         input.focus();
-         input.setSelectionRange(pendingCaretPosition, pendingCaretPosition);
-      }
+      if (!input) return;
 
-      setTitleCaretPosition(pendingCaretPosition);
-      setPendingCaretPosition(null);
-   }, [pendingCaretPosition]);
+      window.requestAnimationFrame(() => {
+         input.focus();
+         input.setSelectionRange(position, position);
+      });
+      setTitleCaretPosition(position);
+   }, []);
 
    useEffect(() => {
       if (!isOpen) {
          setProjectSelectorOpen(false);
          setLabelSelectorOpen(false);
          setTitleFocused(false);
-         setPendingCaretPosition(null);
          setActiveSuggestionIndex(0);
       }
    }, [isOpen]);
 
    useEffect(() => {
-      if (!isOpen || pendingCaretPosition !== null) {
+      if (!isOpen) {
          return;
       }
 
@@ -267,7 +280,7 @@ export function CreateNewIssue() {
       });
 
       return () => window.cancelAnimationFrame(frame);
-   }, [isOpen, pendingCaretPosition]);
+   }, [addIssueForm.title.length, isOpen]);
 
    useEffect(() => {
       if (!isOpen) {
@@ -328,7 +341,7 @@ export function CreateNewIssue() {
       );
 
       setAddIssueForm((current) => ({ ...current, title: next.title }));
-      setPendingCaretPosition(next.cursor);
+      focusTitleAt(next.cursor);
       setTitleFocused(true);
       setActiveSuggestionIndex(0);
    };
@@ -412,6 +425,10 @@ export function CreateNewIssue() {
       }
    }, [addIssue, addIssueForm, closeModal, createMore, createDefaultData, inlineDraft]);
 
+   const submitShortcutIssue = useEffectEvent(() => {
+      void createIssue();
+   });
+
    useEffect(() => {
       if (!isOpen) {
          return;
@@ -427,12 +444,12 @@ export function CreateNewIssue() {
          }
 
          event.preventDefault();
-         void createIssue();
+         submitShortcutIssue();
       };
 
       window.addEventListener('keydown', handleSubmitShortcut);
       return () => window.removeEventListener('keydown', handleSubmitShortcut);
-   }, [createIssue, isOpen]);
+   }, [isOpen]);
 
    return (
       <Dialog open={isOpen} onOpenChange={(value) => (value ? openModal() : closeModal())}>
@@ -525,7 +542,7 @@ export function CreateNewIssue() {
                   placeholder="Add description..."
                   value={addIssueForm.description}
                   onChange={(e) =>
-                     setAddIssueForm({ ...addIssueForm, description: e.target.value })
+                     setAddIssueForm((current) => ({ ...current, description: e.target.value }))
                   }
                />
 
@@ -533,7 +550,7 @@ export function CreateNewIssue() {
                   <ProjectSelector
                      project={addIssueForm.project}
                      onChange={(newProject) =>
-                        setAddIssueForm({ ...addIssueForm, project: newProject })
+                        setAddIssueForm((current) => ({ ...current, project: newProject }))
                      }
                      open={projectSelectorOpen}
                      onOpenChange={setProjectSelectorOpen}
@@ -541,7 +558,7 @@ export function CreateNewIssue() {
                   <LabelSelector
                      selectedLabels={addIssueForm.labels}
                      onChange={(newLabels) =>
-                        setAddIssueForm({ ...addIssueForm, labels: newLabels })
+                        setAddIssueForm((current) => ({ ...current, labels: newLabels }))
                      }
                      open={labelSelectorOpen}
                      onOpenChange={setLabelSelectorOpen}
@@ -549,32 +566,32 @@ export function CreateNewIssue() {
                   <StatusSelector
                      status={addIssueForm.status}
                      onChange={(newStatus) =>
-                        setAddIssueForm({ ...addIssueForm, status: newStatus })
+                        setAddIssueForm((current) => ({ ...current, status: newStatus }))
                      }
                   />
                   <PrioritySelector
                      priority={addIssueForm.priority}
                      onChange={(newPriority) =>
-                        setAddIssueForm({ ...addIssueForm, priority: newPriority })
+                        setAddIssueForm((current) => ({ ...current, priority: newPriority }))
                      }
                   />
                   <AssigneeSelector
                      assignee={addIssueForm.assignee}
                      onChange={(newAssignee) =>
-                        setAddIssueForm({ ...addIssueForm, assignee: newAssignee })
+                        setAddIssueForm((current) => ({ ...current, assignee: newAssignee }))
                      }
                   />
                   <EstimatedHoursSelector
                      estimatedHours={addIssueForm.estimatedHours}
                      onChange={(estimatedHours) =>
-                        setAddIssueForm({ ...addIssueForm, estimatedHours })
+                        setAddIssueForm((current) => ({ ...current, estimatedHours }))
                      }
                   />
                </div>
             </div>
             <div className="flex items-center justify-between py-2.5 px-4 w-full border-t">
                <div className="flex items-center gap-2">
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center gap-x-2">
                      <Switch
                         id="create-more"
                         checked={createMore}

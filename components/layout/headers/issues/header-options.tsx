@@ -45,7 +45,7 @@ export default function HeaderOptions() {
                   <SlidersHorizontal className="size-4 mr-1" />
                   Display
                   {viewType === 'grid' && (
-                     <span className="absolute right-0 top-0 w-2 h-2 bg-orange-500 rounded-full" />
+                     <span className="absolute right-0 top-0 size-2 bg-orange-500 rounded-full" />
                   )}
                </Button>
             </DropdownMenuTrigger>

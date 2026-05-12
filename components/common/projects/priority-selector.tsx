@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useState } from 'react';
+import { useId, useState } from 'react';
 import { CheckIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,22 +27,17 @@ const priorityIconMap: Record<string, Priority['icon']> = Object.fromEntries(
 
 export function PrioritySelector({ priority, options, onPriorityChange }: PrioritySelectorProps) {
    const id = useId();
+   const listId = `${id}-list`;
    const [open, setOpen] = useState<boolean>(false);
-   const [value, setValue] = useState<string>(priority.id);
-
-   useEffect(() => {
-      setValue(priority.id);
-   }, [priority.id]);
 
    const handlePriorityChange = (priorityId: string) => {
-      setValue(priorityId);
       setOpen(false);
 
       onPriorityChange?.(priorityId);
    };
 
-   const selectedOption = options.find((item) => item.id === value);
-   const SelectedIcon = priorityIconMap[value] ?? priorities[0].icon;
+   const selectedOption = options.find((item) => item.id === priority.id);
+   const SelectedIcon = priorityIconMap[priority.id] ?? priorities[0].icon;
 
    return (
       <Popover open={open} onOpenChange={setOpen}>
@@ -54,6 +49,7 @@ export function PrioritySelector({ priority, options, onPriorityChange }: Priori
                variant="ghost"
                role="combobox"
                aria-expanded={open}
+               aria-controls={listId}
             >
                {selectedOption ? (
                   <SelectedIcon className="text-muted-foreground size-4" />
@@ -65,7 +61,7 @@ export function PrioritySelector({ priority, options, onPriorityChange }: Priori
          <PopoverContent className="border-input w-56 p-0" align="start">
             <Command>
                <CommandInput placeholder="Set priority..." />
-               <CommandList>
+               <CommandList id={listId}>
                   <CommandEmpty>No priority found.</CommandEmpty>
                   <CommandGroup>
                      {options.map((item) => {
@@ -81,7 +77,9 @@ export function PrioritySelector({ priority, options, onPriorityChange }: Priori
                                  <Icon className="text-muted-foreground size-4" />
                                  <span className="text-xs">{item.name}</span>
                               </div>
-                              {value === item.id && <CheckIcon size={14} className="ml-auto" />}
+                              {priority.id === item.id && (
+                                 <CheckIcon size={14} className="ml-auto" />
+                              )}
                            </CommandItem>
                         );
                      })}

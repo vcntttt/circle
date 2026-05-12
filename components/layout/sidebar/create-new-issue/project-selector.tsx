@@ -15,7 +15,7 @@ import { Kbd } from '@/components/ui/kbd';
 import { useIssuesStore } from '@/store/issues-store';
 import type { Project } from '@/lib/models';
 import { Box, CheckIcon, FolderIcon } from 'lucide-react';
-import { useEffect, useId, useState } from 'react';
+import { useId, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { ProjectIconGlyph } from '@/components/common/projects/project-icon';
 
@@ -37,24 +37,20 @@ export function ProjectSelector({
    triggerClassName,
 }: ProjectSelectorProps) {
    const id = useId();
+   const listId = `${id}-list`;
    const [internalOpen, setInternalOpen] = useState<boolean>(false);
-   const [value, setValue] = useState<string | undefined>(project?.id);
    const projects = useProjectOptions();
 
    const { filterByProject } = useIssuesStore();
    const isOpen = open ?? internalOpen;
    const setOpen = onOpenChange ?? setInternalOpen;
 
-   useEffect(() => {
-      setValue(project?.id);
-   }, [project]);
+   const value = project?.id;
 
    const handleProjectChange = (projectId: string) => {
       if (projectId === 'no-project') {
-         setValue(undefined);
          onChange(undefined);
       } else {
-         setValue(projectId);
          const newProject = projects.find((p) => p.id === projectId);
          if (newProject) {
             onChange(newProject);
@@ -75,6 +71,7 @@ export function ProjectSelector({
                   role="combobox"
                   title={showShortcut ? 'Open project picker (Alt+P)' : 'Open project picker'}
                   aria-expanded={isOpen}
+                  aria-controls={listId}
                   aria-keyshortcuts={showShortcut ? 'Alt+P' : undefined}
                >
                   {value ? (
@@ -104,8 +101,8 @@ export function ProjectSelector({
                align="start"
             >
                <Command>
-                  <CommandInput autoFocus placeholder="Set project..." />
-                  <CommandList>
+                  <CommandInput placeholder="Set project..." />
+                  <CommandList id={listId}>
                      <CommandEmpty>No projects found.</CommandEmpty>
                      <CommandGroup>
                         <CommandItem

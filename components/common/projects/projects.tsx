@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import ProjectLine from '@/components/common/projects/project-line';
 import { ProjectBoard } from '@/components/common/projects/project-board';
 import {
@@ -27,23 +27,16 @@ export default function Projects({
 }: ProjectsProps) {
    const { viewType, visibleProperties } = useProjectsViewStore();
    const { filters, sort } = useProjectsFilterStore();
-   const [projectRows, setProjectRows] = useState(projects);
-
-   useEffect(() => {
-      setProjectRows(projects);
-   }, [projects]);
+   const [projectUpdates, setProjectUpdates] = useState<Record<string, ProjectUpdate>>({});
 
    const handleProjectUpdate = (projectId: string, update: ProjectUpdate) => {
-      setProjectRows((rows) =>
-         rows.map((project) =>
-            project.id === projectId ? { ...project, latestUpdate: update } : project
-         )
-      );
+      setProjectUpdates((updates) => ({ ...updates, [projectId]: update }));
    };
 
-   const presentationProjects = projectRows.map((project) =>
-      toPresentationProject(project, statusOptions, priorityOptions)
-   );
+   const presentationProjects = projects.map((project) => {
+      const latestUpdate = projectUpdates[project.id] ?? project.latestUpdate;
+      return toPresentationProject({ ...project, latestUpdate }, statusOptions, priorityOptions);
+   });
 
    const visibleProjects = presentationProjects
       .filter((project) => {
@@ -80,7 +73,7 @@ export default function Projects({
       );
    }
 
-   if (projectRows.length === 0) {
+   if (projects.length === 0) {
       return (
          <div className="w-full p-6">
             <div className="rounded-lg border bg-container p-6 max-w-2xl">

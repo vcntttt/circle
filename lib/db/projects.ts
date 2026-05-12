@@ -1,5 +1,5 @@
 import { asc, desc, eq, inArray, sql } from 'drizzle-orm';
-import { db, schema } from './index';
+import { db, schema } from './client';
 
 export type ProjectHealth = 'no-update' | 'off-track' | 'on-track' | 'at-risk';
 
@@ -765,12 +765,14 @@ export async function reorderProjectStatusOptions(
    }
 
    await db.transaction(async (tx) => {
-      for (let index = 0; index < input.ids.length; index += 1) {
-         await tx
-            .update(schema.projectStatuses)
-            .set({ position: index, updatedAt: new Date() })
-            .where(eq(schema.projectStatuses.id, input.ids[index]));
-      }
+      await Promise.all(
+         input.ids.map((id, index) =>
+            tx
+               .update(schema.projectStatuses)
+               .set({ position: index, updatedAt: new Date() })
+               .where(eq(schema.projectStatuses.id, id))
+         )
+      );
    });
 }
 

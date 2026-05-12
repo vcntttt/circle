@@ -13,7 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useIssuesStore } from '@/store/issues-store';
 import { priorities, type Priority } from '@/lib/ui-catalog';
 import { CheckIcon } from 'lucide-react';
-import { useEffect, useId, useState } from 'react';
+import { useId, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { issueChipClassName, issueChipIconClassName } from './issue-chip';
 
@@ -25,17 +25,12 @@ interface PrioritySelectorProps {
 
 export function PrioritySelector({ priority, issueId, display = 'icon' }: PrioritySelectorProps) {
    const id = useId();
+   const listId = `${id}-list`;
    const [open, setOpen] = useState<boolean>(false);
-   const [value, setValue] = useState<string>(priority.id);
 
    const { filterByPriority, updateIssuePriority } = useIssuesStore();
 
-   useEffect(() => {
-      setValue(priority.id);
-   }, [priority.id]);
-
    const handlePriorityChange = (priorityId: string) => {
-      setValue(priorityId);
       setOpen(false);
 
       if (issueId) {
@@ -46,7 +41,7 @@ export function PrioritySelector({ priority, issueId, display = 'icon' }: Priori
       }
    };
 
-   const selectedItem = priorities.find((item) => item.id === value);
+   const selectedItem = priorities.find((item) => item.id === priority.id);
    const SelectedIcon = selectedItem?.icon;
 
    return (
@@ -64,6 +59,7 @@ export function PrioritySelector({ priority, issueId, display = 'icon' }: Priori
                   variant={display === 'icon' ? 'ghost' : 'outline'}
                   role="combobox"
                   aria-expanded={open}
+                  aria-controls={listId}
                >
                   {SelectedIcon && (
                      <SelectedIcon
@@ -87,7 +83,7 @@ export function PrioritySelector({ priority, issueId, display = 'icon' }: Priori
             >
                <Command>
                   <CommandInput placeholder="Set priority..." />
-                  <CommandList>
+                  <CommandList id={listId}>
                      <CommandEmpty>No priority found.</CommandEmpty>
                      <CommandGroup>
                         {priorities.map((item) => (
@@ -101,7 +97,9 @@ export function PrioritySelector({ priority, issueId, display = 'icon' }: Priori
                                  <item.icon className="text-muted-foreground size-4" />
                                  {item.name}
                               </div>
-                              {value === item.id && <CheckIcon size={16} className="ml-auto" />}
+                              {priority.id === item.id && (
+                                 <CheckIcon size={16} className="ml-auto" />
+                              )}
                               <span className="text-muted-foreground text-xs">
                                  {filterByPriority(item.id).length}
                               </span>

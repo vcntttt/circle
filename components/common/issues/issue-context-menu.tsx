@@ -344,19 +344,19 @@ export function IssueContextMenu({ issueId }: IssueContextMenuProps) {
             </ContextMenuSub>
 
             <ContextMenuItem onClick={handleSetDueDate}>
-               <CalendarClock className="size-4" /> Set due date...
+               <CalendarClock className="size-4" /> Set due date…
                <ContextMenuShortcut>D</ContextMenuShortcut>
             </ContextMenuItem>
 
             <ContextMenuItem>
-               <Pencil className="size-4" /> Rename...
+               <Pencil className="size-4" /> Rename…
                <ContextMenuShortcut>R</ContextMenuShortcut>
             </ContextMenuItem>
 
             <ContextMenuSeparator />
 
             <ContextMenuItem onClick={handleAddLink}>
-               <LinkIcon className="size-4" /> Add link...
+               <LinkIcon className="size-4" /> Add link…
                <ContextMenuShortcut>Ctrl L</ContextMenuShortcut>
             </ContextMenuItem>
 
@@ -375,7 +375,7 @@ export function IssueContextMenu({ issueId }: IssueContextMenuProps) {
             </ContextMenuSub>
 
             <ContextMenuItem onClick={handleMakeCopy}>
-               <CopyIcon className="size-4" /> Make a copy...
+               <CopyIcon className="size-4" /> Make a copy…
             </ContextMenuItem>
          </ContextMenuGroup>
 
@@ -453,7 +453,7 @@ export function IssueContextMenu({ issueId }: IssueContextMenuProps) {
          </ContextMenuItem>
 
          <ContextMenuItem onClick={handleDelete} variant="destructive">
-            <Trash2 className="size-4" /> Delete...
+            <Trash2 className="size-4" /> Delete…
             <ContextMenuShortcut>⌘⌫</ContextMenuShortcut>
          </ContextMenuItem>
       </ContextMenuContent>

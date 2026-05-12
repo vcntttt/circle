@@ -13,7 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useIssuesStore } from '@/store/issues-store';
 import { type Status } from '@/lib/ui-catalog';
 import { CheckIcon } from 'lucide-react';
-import { useEffect, useId, useState } from 'react';
+import { useId, useState } from 'react';
 import { useIssuesStatuses } from './issues-status-context';
 import { cn } from '@/lib/utils';
 import { issueChipClassName } from './issue-chip';
@@ -26,18 +26,13 @@ interface StatusSelectorProps {
 
 export function StatusSelector({ status, issueId, display = 'icon' }: StatusSelectorProps) {
    const id = useId();
+   const listId = `${id}-list`;
    const [open, setOpen] = useState<boolean>(false);
-   const [value, setValue] = useState<string>(status.id);
    const allStatus = useIssuesStatuses();
 
    const { updateIssueStatus, filterByStatus } = useIssuesStore();
 
-   useEffect(() => {
-      setValue(status.id);
-   }, [status.id]);
-
    const handleStatusChange = (statusId: string) => {
-      setValue(statusId);
       setOpen(false);
 
       if (issueId) {
@@ -48,7 +43,7 @@ export function StatusSelector({ status, issueId, display = 'icon' }: StatusSele
       }
    };
 
-   const selectedItem = allStatus.find((item) => item.id === value) ?? status;
+   const selectedItem = allStatus.find((item) => item.id === status.id) ?? status;
    const SelectedIcon = selectedItem.icon;
 
    return (
@@ -66,6 +61,7 @@ export function StatusSelector({ status, issueId, display = 'icon' }: StatusSele
                   variant={display === 'icon' ? 'ghost' : 'outline'}
                   role="combobox"
                   aria-expanded={open}
+                  aria-controls={listId}
                >
                   <SelectedIcon />
                   {display === 'chip' && (
@@ -79,7 +75,7 @@ export function StatusSelector({ status, issueId, display = 'icon' }: StatusSele
             >
                <Command>
                   <CommandInput placeholder="Set status..." />
-                  <CommandList>
+                  <CommandList id={listId}>
                      <CommandEmpty>No status found.</CommandEmpty>
                      <CommandGroup>
                         {allStatus.map((item) => (
@@ -93,7 +89,7 @@ export function StatusSelector({ status, issueId, display = 'icon' }: StatusSele
                                  <item.icon />
                                  {item.name}
                               </div>
-                              {value === item.id && <CheckIcon size={16} className="ml-auto" />}
+                              {status.id === item.id && <CheckIcon size={16} className="ml-auto" />}
                               <span className="text-muted-foreground text-xs">
                                  {filterByStatus(item.id).length}
                               </span>

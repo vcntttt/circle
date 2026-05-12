@@ -23,11 +23,10 @@ interface LeadSelectorProps {
 
 export function LeadSelector({ lead, onLeadChange }: LeadSelectorProps) {
    const id = useId();
+   const listId = `${id}-list`;
    const [open, setOpen] = useState<boolean>(false);
-   const [value, setValue] = useState<string>(lead.id);
 
    const handleLeadChange = (userId: string) => {
-      setValue(userId);
       setOpen(false);
 
       if (onLeadChange) {
@@ -46,9 +45,10 @@ export function LeadSelector({ lead, onLeadChange }: LeadSelectorProps) {
                   variant="ghost"
                   role="combobox"
                   aria-expanded={open}
+                  aria-controls={listId}
                >
                   {(() => {
-                     const selectedUser = users.find((user) => user.id === value);
+                     const selectedUser = users.find((user) => user.id === lead.id);
                      if (selectedUser) {
                         return (
                            <>
@@ -70,7 +70,7 @@ export function LeadSelector({ lead, onLeadChange }: LeadSelectorProps) {
             <PopoverContent className="border-input w-48 p-0" align="start">
                <Command>
                   <CommandInput placeholder="Set lead..." />
-                  <CommandList>
+                  <CommandList id={listId}>
                      <CommandEmpty>No user found.</CommandEmpty>
                      <CommandGroup>
                         {users.map((user) => (
@@ -87,7 +87,7 @@ export function LeadSelector({ lead, onLeadChange }: LeadSelectorProps) {
                                  </Avatar>
                                  <span className="text-xs">{user.name}</span>
                               </div>
-                              {value === user.id && <CheckIcon size={14} className="ml-auto" />}
+                              {lead.id === user.id && <CheckIcon size={14} className="ml-auto" />}
                            </CommandItem>
                         ))}
                      </CommandGroup>

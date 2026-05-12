@@ -1,0 +1,24 @@
+{
+   "entry": ["src/client.tsx"],
+   "ignoreFiles": [
+      "components/ui/alert-dialog.tsx",
+      "components/ui/alert.tsx",
+      "components/ui/breadcrumb.tsx",
+      "components/ui/card.tsx",
+      "components/ui/checkbox.tsx",
+      "components/ui/collapsible.tsx",
+      "components/ui/form.tsx",
+      "components/ui/progress.tsx",
+      "components/ui/table.tsx",
+      "components/ui/toggle.tsx"
+   ],
+   "ignoreIssues": {
+      "components/ui/**": ["exports", "types"],
+      "src/server/**": ["exports", "types"],
+      "lib/db/**": ["exports", "types"],
+      "lib/utils.ts": ["exports", "types"],
+      "lib/ui-catalog.tsx": ["exports", "types"],
+      "store/projects-filter-store.ts": ["exports", "types"],
+      "lib/issue-inline-suggestions.ts": ["exports", "types"]
+   }
+}

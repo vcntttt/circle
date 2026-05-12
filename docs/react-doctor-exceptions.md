@@ -1,0 +1,127 @@
+# React Doctor Exceptions
+
+This project keeps a small React Doctor override file for architectural warnings
+that are intentionally out of scope for dead-code cleanup.
+
+## Why these exceptions exist
+
+The ignored rules do not represent immediate correctness or accessibility bugs in
+the current app. They point to larger refactors that should be handled as focused
+feature work, with UI regression review, rather than mixed into maintenance
+cleanup.
+
+## Exceptions
+
+### `react-doctor/no-giant-component`
+
+Files:
+
+- `components/common/issues/issue-detail.tsx`
+- `components/common/issues/issue-context-menu.tsx`
+- `components/layout/headers/issues/filter.tsx`
+- `components/layout/sidebar/create-new-issue/index.tsx`
+- `src/routes/projects.$projectSlug.tsx`
+
+Reason:
+
+These are large surfaces with coupled UI and state behavior. Splitting them is
+valid future work, but doing so safely requires behavior-level review and likely
+screenshots across issue/project workflows.
+
+Future resolution:
+
+Extract stable subcomponents around existing boundaries: header/actions,
+metadata selectors, destructive actions, issue composer sections, and route tab
+panels.
+
+Accepted risk:
+
+Maintenance cost remains higher in these files, but runtime behavior is unchanged.
+
+### `react-doctor/prefer-useReducer`
+
+Files:
+
+- `components/common/issues/issue-detail.tsx`
+- `components/common/projects/create-project-dialog.tsx`
+- `components/common/projects/create-project-update-dialog.tsx`
+- `components/common/settings/project-options-settings.tsx`
+- `components/layout/sidebar/create-new-issue/index.tsx`
+
+Reason:
+
+These components use multiple related `useState` calls for form/dialog state.
+Converting them to reducers is a structural refactor, not a dead-code cleanup.
+
+Future resolution:
+
+Introduce reducers per form/dialog with typed actions and reset semantics, then
+verify creation, cancel, edit, and failed-submit flows.
+
+Accepted risk:
+
+State transitions are more distributed than ideal, but current flows build and
+lint cleanly.
+
+### `react-doctor/no-cascading-set-state`
+
+Files:
+
+- `components/common/projects/create-project-update-dialog.tsx`
+- `components/layout/sidebar/create-new-issue/index.tsx`
+
+Reason:
+
+The flagged effects reset dialog/composer UI state on open/close or prop changes.
+Those resets are deliberate. A reducer can consolidate them later.
+
+Future resolution:
+
+Fold reset behavior into the same reducers described above.
+
+Accepted risk:
+
+Extra renders can occur on dialog state changes, but this is not currently a hot
+path.
+
+### `react-doctor/no-derived-state-effect`
+
+Files:
+
+- `components/layout/sidebar/create-new-issue/index.tsx`
+
+Reason:
+
+The remaining derived-state warning is tied to composer reset semantics. It
+should be fixed together with the composer reducer to avoid changing behavior in
+isolation.
+
+Future resolution:
+
+Move composer state initialization and reset into a reducer action keyed by the
+modal defaults.
+
+Accepted risk:
+
+The composer reset logic remains explicit and covered by build/lint checks.
+
+### `react-doctor/rerender-state-only-in-handlers`
+
+Files:
+
+- `src/routes/projects.$projectSlug.tsx`
+
+Reason:
+
+The inline editable field uses state to switch render branches between display
+and input modes. React Doctor reports this pattern conservatively.
+
+Future resolution:
+
+Extract `EditableTextField` into its own component and review whether the edit
+mode can be isolated more cleanly.
+
+Accepted risk:
+
+The state is local to a small editing widget and does not affect broader page
+state.

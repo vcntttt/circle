@@ -68,7 +68,6 @@ export function EstimatedHoursSelector({ estimatedHours, onChange }: EstimatedHo
             <div className="space-y-2">
                <div className="text-xs text-muted-foreground">Estimated hours</div>
                <Input
-                  autoFocus
                   type="number"
                   min="0"
                   step="0.25"

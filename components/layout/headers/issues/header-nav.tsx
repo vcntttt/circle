@@ -62,7 +62,7 @@ export default function HeaderNav({ count, isConnected, projectTitle, project }:
                   ref={searchContainerRef}
                   className="relative flex items-center justify-center w-64 transition-all duration-200 ease-in-out"
                >
-                  <SearchIcon className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <SearchIcon className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground size-4" />
                   <Input
                      type="search"
                      ref={searchInputRef}
@@ -100,10 +100,10 @@ export default function HeaderNav({ count, isConnected, projectTitle, project }:
                   variant="ghost"
                   size="icon"
                   onClick={toggleSearch}
-                  className="h-8 w-8"
+                  className="size-8"
                   aria-label="Search"
                >
-                  <SearchIcon className="h-4 w-4" />
+                  <SearchIcon className="size-4" />
                </Button>
             )}
          </div>

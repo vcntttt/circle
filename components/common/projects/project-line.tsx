@@ -35,6 +35,7 @@ export default function ProjectLine({
    const { pinnedProjectIds, togglePinnedProject } = usePinnedProjectsStore();
    const { currentStatus, currentPriority, handleStatusChange, handlePriorityChange } =
       useProjectFieldUpdates(project, statusOptions, priorityOptions);
+   const startDate = project.startDate ? new Date(project.startDate) : undefined;
 
    const handleOpenIssues = () => {
       void navigate({
@@ -92,9 +93,7 @@ export default function ProjectLine({
 
                {visibleProperties.targetDate && (
                   <div className="hidden xl:block xl:w-[13%] shrink-0">
-                     <DatePicker
-                        date={project.startDate ? new Date(project.startDate) : undefined}
-                     />
+                     <DatePicker date={startDate} />
                   </div>
                )}
 

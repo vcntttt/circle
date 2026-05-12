@@ -33,7 +33,7 @@ interface CreateProjectDialogProps {
 export function CreateProjectDialog({ disabled = false }: CreateProjectDialogProps) {
    const router = useRouter();
    const [open, setOpen] = useState(false);
-   const [isPending, setIsPending] = useState(false);
+   const [isCreating, setIsCreating] = useState(false);
    const [error, setError] = useState<string | null>(null);
    const [projectKey, setProjectKey] = useState('');
    const [keyTouched, setKeyTouched] = useState(false);
@@ -45,11 +45,12 @@ export function CreateProjectDialog({ disabled = false }: CreateProjectDialogPro
    const [priorityOptions, setPriorityOptions] = useState<ProjectOptionLike[]>([]);
    const formRef = useRef<HTMLFormElement>(null);
 
-   useEffect(() => {
-      if (open) {
+   const handleOpenChange = (nextOpen: boolean) => {
+      setOpen(nextOpen);
+      if (nextOpen) {
          setError(null);
       }
-   }, [open]);
+   };
 
    const normalizeProjectKey = (value: string) =>
       value
@@ -91,7 +92,7 @@ export function CreateProjectDialog({ disabled = false }: CreateProjectDialogPro
 
    const createProject = async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
-      setIsPending(true);
+      setIsCreating(true);
       setError(null);
 
       const formData = new FormData(event.currentTarget);
@@ -121,12 +122,12 @@ export function CreateProjectDialog({ disabled = false }: CreateProjectDialogPro
             createError instanceof Error ? createError.message : 'Failed to create project.';
          setError(message);
       } finally {
-         setIsPending(false);
+         setIsCreating(false);
       }
    };
 
    return (
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
          <DialogTrigger asChild>
             <Button className="relative" size="xs" variant="secondary" disabled={disabled}>
                <Plus className="size-4" />
@@ -235,7 +236,7 @@ export function CreateProjectDialog({ disabled = false }: CreateProjectDialogPro
                         priorityOptions.length === 0
                      }
                   >
-                     {isPending ? 'Creating...' : 'Create project'}
+                     {isCreating ? 'Creating...' : 'Create project'}
                   </Button>
                </DialogFooter>
             </form>

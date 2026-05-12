@@ -13,7 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useIssuesStore } from '@/store/issues-store';
 import { type Status } from '@/lib/ui-catalog';
 import { CheckIcon } from 'lucide-react';
-import { useEffect, useId, useState } from 'react';
+import { useId, useState } from 'react';
 import { useIssuesStatuses } from '@/components/common/issues/issues-status-context';
 
 interface StatusSelectorProps {
@@ -23,18 +23,13 @@ interface StatusSelectorProps {
 
 export function StatusSelector({ status, onChange }: StatusSelectorProps) {
    const id = useId();
+   const listId = `${id}-list`;
    const [open, setOpen] = useState<boolean>(false);
-   const [value, setValue] = useState<string>(status.id);
    const allStatus = useIssuesStatuses();
 
    const { filterByStatus } = useIssuesStore();
 
-   useEffect(() => {
-      setValue(status.id);
-   }, [status.id]);
-
    const handleStatusChange = (statusId: string) => {
-      setValue(statusId);
       setOpen(false);
 
       const newStatus = allStatus.find((s) => s.id === statusId);
@@ -54,16 +49,19 @@ export function StatusSelector({ status, onChange }: StatusSelectorProps) {
                   variant="secondary"
                   role="combobox"
                   aria-expanded={open}
+                  aria-controls={listId}
                >
                   {(() => {
-                     const selectedItem = allStatus.find((item) => item.id === value);
+                     const selectedItem = allStatus.find((item) => item.id === status.id);
                      if (selectedItem) {
                         const Icon = selectedItem.icon;
                         return <Icon />;
                      }
                      return null;
                   })()}
-                  <span>{value ? allStatus.find((s) => s.id === value)?.name : 'To do'}</span>
+                  <span>
+                     {status.id ? allStatus.find((s) => s.id === status.id)?.name : 'To do'}
+                  </span>
                </Button>
             </PopoverTrigger>
             <PopoverContent
@@ -72,7 +70,7 @@ export function StatusSelector({ status, onChange }: StatusSelectorProps) {
             >
                <Command>
                   <CommandInput placeholder="Set status..." />
-                  <CommandList>
+                  <CommandList id={listId}>
                      <CommandEmpty>No status found.</CommandEmpty>
                      <CommandGroup>
                         {allStatus.map((item) => (
@@ -86,7 +84,7 @@ export function StatusSelector({ status, onChange }: StatusSelectorProps) {
                                  <item.icon />
                                  {item.name}
                               </div>
-                              {value === item.id && <CheckIcon size={16} className="ml-auto" />}
+                              {status.id === item.id && <CheckIcon size={16} className="ml-auto" />}
                               <span className="text-muted-foreground text-xs">
                                  {filterByStatus(item.id).length}
                               </span>

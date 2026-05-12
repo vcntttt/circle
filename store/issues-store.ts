@@ -11,8 +11,7 @@ const createEmptyIssuesByStatus = () =>
 
 const isArchivedIssue = (issue: Issue) => issue.status.id === archivedStatus.id;
 
-const sortByRankDesc = (issues: Issue[]) =>
-   [...issues].sort((a, b) => b.rank.localeCompare(a.rank));
+const sortByRankDesc = (issues: Issue[]) => issues.toSorted((a, b) => b.rank.localeCompare(a.rank));
 const isDoneStatusId = (statusId: string) => statusId === 'completed' || statusId === 'archived';
 
 const groupIssuesByStatus = (issues: Issue[]) => {
@@ -140,7 +139,7 @@ function rebuildIssueHierarchy(issues: Issue[]): Issue[] {
    const nextIssues = sortByRankDesc(Array.from(issueMap.values()));
 
    nextIssues.forEach((issue) => {
-      issue.subissues = [...issue.subissues].sort((left, right) => {
+      issue.subissues = issue.subissues.toSorted((left, right) => {
          const leftIssue = issueMap.get(left.id);
          const rightIssue = issueMap.get(right.id);
          return (rightIssue?.rank ?? '').localeCompare(leftIssue?.rank ?? '');
@@ -190,13 +189,15 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
    deleteIssue: (id: string) => {
       set((state) => {
          const nextIssues = rebuildIssueHierarchy(
-            state.issues
-               .filter((issue) => issue.id !== id)
-               .map((issue) =>
-                  issue.parentIssueId === id
-                     ? { ...issue, parentIssueId: null, parent: null }
-                     : issue
-               )
+            state.issues.flatMap((issue) => {
+               if (issue.id === id) {
+                  return [];
+               }
+
+               return issue.parentIssueId === id
+                  ? [{ ...issue, parentIssueId: null, parent: null }]
+                  : [issue];
+            })
          );
 
          return {
@@ -324,11 +325,11 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
 
          const completedStatus = status.find((statusItem) => statusItem.id === 'completed');
          if (completedStatus) {
-            children
-               .filter((child) => !isDoneStatusId(child.status.id))
-               .forEach((child) => {
+            for (const child of children) {
+               if (!isDoneStatusId(child.status.id)) {
                   updates.set(child.id, completedStatus);
-               });
+               }
+            }
          }
       }
 

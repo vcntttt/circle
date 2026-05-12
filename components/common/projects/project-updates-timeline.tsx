@@ -89,7 +89,7 @@ export function ProjectUpdatesTimeline({
 
    const visibleUpdates = useMemo(() => {
       if (activeFilter === 'popular') {
-         return [...updates].sort((a, b) => a.project.name.localeCompare(b.project.name));
+         return updates.toSorted((a, b) => a.project.name.localeCompare(b.project.name));
       }
 
       return updates;

@@ -1,5 +1,5 @@
 import { asc } from 'drizzle-orm';
-import { db, schema } from './index';
+import { db, schema } from './client';
 
 export interface LabelListItem {
    id: string;

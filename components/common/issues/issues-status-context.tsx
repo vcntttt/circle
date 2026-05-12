@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext } from 'react';
+import { createContext, use } from 'react';
 import { archivedStatus, status as baseStatus } from '@/lib/ui-catalog';
 import type { ProjectOptionLike } from '@/lib/projects-presentation';
 import type { Status } from '@/lib/models';
@@ -73,6 +73,6 @@ export function IssuesStatusProvider({
 }
 
 export function useIssuesStatuses() {
-   const statuses = useContext(IssuesStatusContext);
+   const statuses = use(IssuesStatusContext);
    return statuses.length > 0 ? statuses : [archivedStatus];
 }

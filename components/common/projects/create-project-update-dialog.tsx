@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { useRouter } from '@tanstack/react-router';
 import { Activity, CheckIcon, CircleAlert, CircleHelp, Plus, Send } from 'lucide-react';
@@ -50,6 +50,8 @@ export function CreateProjectUpdateDialog({
    const [internalOpen, setInternalOpen] = useState(false);
    const [projectPickerOpen, setProjectPickerOpen] = useState(false);
    const [healthPickerOpen, setHealthPickerOpen] = useState(false);
+   const projectListId = useId();
+   const healthListId = useId();
    const [projectId, setProjectId] = useState(project?.id ?? '');
    const [selectedHealth, setSelectedHealth] = useState<Health['id']>(
       project?.health.id === 'no-update' || !project ? 'on-track' : project.health.id
@@ -162,6 +164,7 @@ export function CreateProjectUpdateDialog({
                                  className="gap-1.5"
                                  role="combobox"
                                  aria-expanded={projectPickerOpen}
+                                 aria-controls={projectListId}
                               >
                                  <Activity className="size-4" />
                                  <span className="max-w-[180px] truncate">
@@ -171,8 +174,8 @@ export function CreateProjectUpdateDialog({
                            </PopoverTrigger>
                            <PopoverContent className="w-72 p-0" align="start">
                               <Command>
-                                 <CommandInput autoFocus placeholder="Set project..." />
-                                 <CommandList>
+                                 <CommandInput placeholder="Set project..." />
+                                 <CommandList id={projectListId}>
                                     <CommandEmpty>No projects found.</CommandEmpty>
                                     <CommandGroup>
                                        {projects.map((item) => (
@@ -210,6 +213,7 @@ export function CreateProjectUpdateDialog({
                               className="gap-1.5"
                               role="combobox"
                               aria-expanded={healthPickerOpen}
+                              aria-controls={healthListId}
                            >
                               <HealthDot health={selectedHealth} />
                               {selectedHealthOption.name}
@@ -218,12 +222,13 @@ export function CreateProjectUpdateDialog({
                         <PopoverContent className="w-56 p-0" align="start">
                            <Command>
                               <CommandInput placeholder="Set health..." />
-                              <CommandList>
+                              <CommandList id={healthListId}>
                                  <CommandEmpty>No health found.</CommandEmpty>
                                  <CommandGroup>
-                                    {healthOptions
-                                       .filter((item) => item.id !== 'no-update')
-                                       .map((item) => (
+                                    {healthOptions.flatMap((item) =>
+                                       item.id === 'no-update' ? (
+                                          []
+                                       ) : (
                                           <CommandItem
                                              key={item.id}
                                              value={item.id}
@@ -241,7 +246,8 @@ export function CreateProjectUpdateDialog({
                                                 <CheckIcon className="ml-auto size-4" />
                                              )}
                                           </CommandItem>
-                                       ))}
+                                       )
+                                    )}
                                  </CommandGroup>
                               </CommandList>
                            </Command>

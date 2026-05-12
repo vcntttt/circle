@@ -11,7 +11,7 @@ import {
 import { currentUser, personalAssigneeOptions, statusUserColors } from '@/lib/current-user';
 import { useIssuesStore } from '@/store/issues-store';
 import { CheckIcon, CircleUserRound, UserIcon } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import type { User } from '@/lib/models';
 
 interface AssigneeUserProps {
@@ -19,82 +19,75 @@ interface AssigneeUserProps {
    issueId: string;
 }
 
+function AssigneeAvatar({ user }: { user: User | null }) {
+   if (!user) {
+      return (
+         <div className="size-6 flex items-center justify-center">
+            <CircleUserRound className="size-5 text-zinc-600" />
+         </div>
+      );
+   }
+
+   return (
+      <Avatar className="size-6 shrink-0">
+         <AvatarImage src={user.avatarUrl} alt={user.name} />
+         <AvatarFallback>{user.name[0]}</AvatarFallback>
+      </Avatar>
+   );
+}
+
 export function AssigneeUser({ user, issueId }: AssigneeUserProps) {
    const [open, setOpen] = useState(false);
-   const [currentAssignee, setCurrentAssignee] = useState<User | null>(user);
    const { updateIssueAssignee } = useIssuesStore();
-
-   useEffect(() => {
-      setCurrentAssignee(user);
-   }, [user]);
-
-   const renderAvatar = () => {
-      if (currentAssignee) {
-         return (
-            <Avatar className="size-6 shrink-0">
-               <AvatarImage src={currentAssignee.avatarUrl} alt={currentAssignee.name} />
-               <AvatarFallback>{currentAssignee.name[0]}</AvatarFallback>
-            </Avatar>
-         );
-      } else {
-         return (
-            <div className="size-6 flex items-center justify-center">
-               <CircleUserRound className="size-5 text-zinc-600" />
-            </div>
-         );
-      }
-   };
 
    return (
       <DropdownMenu open={open} onOpenChange={setOpen}>
          <DropdownMenuTrigger asChild>
             <button className="relative w-fit focus:outline-none">
-               {renderAvatar()}
-               {currentAssignee && (
+               <AssigneeAvatar user={user} />
+               {user && (
                   <span
                      className="border-background absolute -end-0.5 -bottom-0.5 size-2.5 rounded-full border-2"
-                     style={{ backgroundColor: statusUserColors[currentAssignee.status] }}
+                     style={{ backgroundColor: statusUserColors[user.status] }}
                   >
-                     <span className="sr-only">{currentAssignee.status}</span>
+                     <span className="sr-only">{user.status}</span>
                   </span>
                )}
             </button>
          </DropdownMenuTrigger>
          <DropdownMenuContent align="start" className="w-[206px]">
-            <DropdownMenuLabel>Assign to...</DropdownMenuLabel>
+            <DropdownMenuLabel>Assign to…</DropdownMenuLabel>
             <DropdownMenuItem
                onClick={(e) => {
                   e.stopPropagation();
-                  setCurrentAssignee(null);
                   updateIssueAssignee(issueId, null);
                   setOpen(false);
                }}
             >
                <div className="flex items-center gap-2">
-                  <UserIcon className="h-5 w-5" />
+                  <UserIcon className="size-5" />
                   <span>No assignee</span>
                </div>
-               {!currentAssignee && <CheckIcon className="ml-auto h-4 w-4" />}
+               {!user && <CheckIcon className="ml-auto size-4" />}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            {personalAssigneeOptions.map((user) => (
+            {personalAssigneeOptions.map((assigneeOption) => (
                <DropdownMenuItem
-                  key={user.id}
+                  key={assigneeOption.id}
                   onClick={(e) => {
                      e.stopPropagation();
-                     setCurrentAssignee(user);
-                     updateIssueAssignee(issueId, user);
+                     updateIssueAssignee(issueId, assigneeOption);
                      setOpen(false);
                   }}
                >
                   <div className="flex items-center gap-2">
-                     <Avatar className="h-5 w-5">
-                        <AvatarImage src={user.avatarUrl} alt={user.name} />
-                        <AvatarFallback>{user.name[0]}</AvatarFallback>
+                     <Avatar className="size-5">
+                        <AvatarImage src={assigneeOption.avatarUrl} alt={assigneeOption.name} />
+                        <AvatarFallback>{assigneeOption.name[0]}</AvatarFallback>
                      </Avatar>
-                     <span>{user.name}</span>
+                     <span>{assigneeOption.name}</span>
                   </div>
-                  {currentAssignee?.id === user.id && <CheckIcon className="ml-auto h-4 w-4" />}
+                  {user?.id === assigneeOption.id && <CheckIcon className="ml-auto size-4" />}
                </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />

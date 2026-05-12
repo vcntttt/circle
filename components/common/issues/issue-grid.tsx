@@ -2,7 +2,8 @@
 
 import type { Issue } from '@/lib/models';
 import { format } from 'date-fns';
-import { motion } from 'motion/react';
+import { LazyMotion, domAnimation } from 'motion/react';
+import * as m from 'motion/react-m';
 import { useEffect, useRef } from 'react';
 import { DragSourceMonitor, useDrag, useDragLayer, useDrop } from 'react-dnd';
 import { getEmptyImage } from 'react-dnd-html5-backend';
@@ -25,6 +26,8 @@ type IssueGridProps = {
 
 // Custom DragLayer component to render the drag preview
 function IssueDragPreview({ issue }: { issue: Issue }) {
+   const createdAtLabel = format(new Date(issue.createdAt), 'MMM dd');
+
    return (
       <div className="w-full p-3 bg-background rounded-md border border-border/50 overflow-hidden">
          <div className="flex items-center justify-between mb-2">
@@ -44,8 +47,8 @@ function IssueDragPreview({ issue }: { issue: Issue }) {
          </div>
 
          <div className="flex items-center justify-between mt-auto pt-2">
-            <span className="text-xs text-muted-foreground">
-               {format(new Date(issue.createdAt), 'MMM dd')}
+            <span className="text-xs text-muted-foreground" suppressHydrationWarning>
+               {createdAtLabel}
             </span>
             <AssigneeUser user={issue.assignee} issueId={issue.id} />
          </div>
@@ -82,6 +85,7 @@ export function CustomDragLayer() {
 export function IssueGrid({ issue, isSelected = false, onSelect }: IssueGridProps) {
    const ref = useRef<HTMLDivElement>(null);
    const { visibleProperties } = useViewStore();
+   const createdAtLabel = format(new Date(issue.createdAt), 'MMM dd');
 
    // Set up drag functionality.
    const [{ isDragging }, drag, preview] = useDrag(() => ({
@@ -106,66 +110,68 @@ export function IssueGrid({ issue, isSelected = false, onSelect }: IssueGridProp
    drag(drop(ref));
 
    return (
-      <ContextMenu>
-         <ContextMenuTrigger asChild>
-            <motion.div
-               ref={ref}
-               onClick={() => onSelect?.(issue)}
-               onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                     event.preventDefault();
-                     onSelect?.(issue);
-                  }
-               }}
-               role="button"
-               tabIndex={0}
-               className={cn(
-                  'w-full p-3 bg-background rounded-md shadow-xs border border-border/50 cursor-pointer',
-                  isSelected && 'border-primary/60 bg-accent/30'
-               )}
-               layoutId={`issue-grid-${issue.identifier}`}
-               style={{
-                  opacity: isDragging ? 0.5 : 1,
-                  cursor: isDragging ? 'grabbing' : 'default',
-               }}
-            >
-               <div className="flex items-center justify-between mb-2">
-                  <div
-                     className="flex items-center gap-1.5"
-                     onMouseDownCapture={(event) => event.stopPropagation()}
-                  >
-                     <PrioritySelector priority={issue.priority} issueId={issue.id} />
-                  </div>
-                  <div onMouseDownCapture={(event) => event.stopPropagation()}>
-                     <StatusSelector status={issue.status} issueId={issue.id} />
-                  </div>
-               </div>
-               <h3 className="text-sm font-semibold mb-3 line-clamp-2">{issue.title}</h3>
-               {(visibleProperties.labels || visibleProperties.project) && (
-                  <div className="flex flex-wrap gap-1.5 mb-3 min-h-[1.5rem]">
-                     {visibleProperties.labels && <LabelBadge label={issue.labels} />}
-                     {visibleProperties.project && issue.project && (
-                        <ProjectBadge project={issue.project} />
-                     )}
-                  </div>
-               )}
-               <div className="flex items-center justify-between mt-auto pt-2">
-                  {visibleProperties.createdAt ? (
-                     <span className="text-xs text-muted-foreground">
-                        {format(new Date(issue.createdAt), 'MMM dd')}
-                     </span>
-                  ) : (
-                     <span />
+      <LazyMotion features={domAnimation}>
+         <ContextMenu>
+            <ContextMenuTrigger asChild>
+               <m.div
+                  ref={ref}
+                  onClick={() => onSelect?.(issue)}
+                  onKeyDown={(event) => {
+                     if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        onSelect?.(issue);
+                     }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  className={cn(
+                     'w-full p-3 bg-background rounded-md shadow-xs border border-border/50 cursor-pointer',
+                     isSelected && 'border-primary/60 bg-accent/30'
                   )}
-                  {visibleProperties.assignee && (
+                  layoutId={`issue-grid-${issue.identifier}`}
+                  style={{
+                     opacity: isDragging ? 0.5 : 1,
+                     cursor: isDragging ? 'grabbing' : 'default',
+                  }}
+               >
+                  <div className="flex items-center justify-between mb-2">
+                     <div
+                        className="flex items-center gap-1.5"
+                        onMouseDownCapture={(event) => event.stopPropagation()}
+                     >
+                        <PrioritySelector priority={issue.priority} issueId={issue.id} />
+                     </div>
                      <div onMouseDownCapture={(event) => event.stopPropagation()}>
-                        <AssigneeUser user={issue.assignee} issueId={issue.id} />
+                        <StatusSelector status={issue.status} issueId={issue.id} />
+                     </div>
+                  </div>
+                  <h3 className="text-sm font-semibold mb-3 line-clamp-2">{issue.title}</h3>
+                  {(visibleProperties.labels || visibleProperties.project) && (
+                     <div className="flex flex-wrap gap-1.5 mb-3 min-h-[1.5rem]">
+                        {visibleProperties.labels && <LabelBadge label={issue.labels} />}
+                        {visibleProperties.project && issue.project && (
+                           <ProjectBadge project={issue.project} />
+                        )}
                      </div>
                   )}
-               </div>
-            </motion.div>
-         </ContextMenuTrigger>
-         <IssueContextMenu issueId={issue.id} />
-      </ContextMenu>
+                  <div className="flex items-center justify-between mt-auto pt-2">
+                     {visibleProperties.createdAt ? (
+                        <span className="text-xs text-muted-foreground" suppressHydrationWarning>
+                           {createdAtLabel}
+                        </span>
+                     ) : (
+                        <span />
+                     )}
+                     {visibleProperties.assignee && (
+                        <div onMouseDownCapture={(event) => event.stopPropagation()}>
+                           <AssigneeUser user={issue.assignee} issueId={issue.id} />
+                        </div>
+                     )}
+                  </div>
+               </m.div>
+            </ContextMenuTrigger>
+            <IssueContextMenu issueId={issue.id} />
+         </ContextMenu>
+      </LazyMotion>
    );
 }

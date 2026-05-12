@@ -85,7 +85,10 @@ export function ShortcutsHelpProvider() {
                      </div>
                      <KbdGroup>
                         {shortcut.keys.split(' + ').map((part, index, parts) => (
-                           <span key={`${part}-${index}`} className="flex items-center gap-1">
+                           <span
+                              key={`${shortcut.action}-${part}`}
+                              className="flex items-center gap-1"
+                           >
                               <Kbd>{part}</Kbd>
                               {index < parts.length - 1 && <span>+</span>}
                            </span>

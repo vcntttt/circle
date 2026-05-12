@@ -1,5 +1,5 @@
 import { asc, eq, inArray, sql } from 'drizzle-orm';
-import { db, schema } from './index';
+import { db, schema } from './client';
 import { getProjectStatusOptions } from './projects';
 
 export interface IssueSummary {

@@ -12,7 +12,8 @@ import { IssueDragType, IssueGrid } from './issue-grid';
 import { IssueLine } from './issue-line';
 import { useCreateIssueStore } from '@/store/create-issue-store';
 import { sortIssuesByPriority } from '@/lib/ui-catalog';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, LazyMotion, domAnimation } from 'motion/react';
+import * as m from 'motion/react-m';
 import { useMemo } from 'react';
 
 interface GroupIssuesProps {
@@ -196,26 +197,28 @@ const IssueGridList: FC<{
          ref={ref}
          className="flex-1 h-full overflow-y-auto p-2 space-y-2 bg-zinc-50/50 dark:bg-zinc-900/50 relative"
       >
-         <AnimatePresence>
-            {isOver && (
-               <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.1 }}
-                  className="fixed top-0 left-0 right-0 bottom-0 z-10 flex items-center justify-center pointer-events-none bg-background/90"
-                  style={{
-                     width: ref.current?.getBoundingClientRect().width || '100%',
-                     height: ref.current?.getBoundingClientRect().height || '100%',
-                     transform: `translate(${ref.current?.getBoundingClientRect().left || 0}px, ${ref.current?.getBoundingClientRect().top || 0}px)`,
-                  }}
-               >
-                  <div className="bg-background border border-border rounded-md p-3 shadow-md max-w-[90%]">
-                     <p className="text-sm font-medium text-center">Board ordered by priority</p>
-                  </div>
-               </motion.div>
-            )}
-         </AnimatePresence>
+         <LazyMotion features={domAnimation}>
+            <AnimatePresence>
+               {isOver && (
+                  <m.div
+                     initial={{ opacity: 0 }}
+                     animate={{ opacity: 1 }}
+                     exit={{ opacity: 0 }}
+                     transition={{ duration: 0.1 }}
+                     className="fixed top-0 left-0 right-0 bottom-0 z-10 flex items-center justify-center pointer-events-none bg-background/90"
+                     style={{
+                        width: ref.current?.getBoundingClientRect().width || '100%',
+                        height: ref.current?.getBoundingClientRect().height || '100%',
+                        transform: `translate(${ref.current?.getBoundingClientRect().left || 0}px, ${ref.current?.getBoundingClientRect().top || 0}px)`,
+                     }}
+                  >
+                     <div className="bg-background border border-border rounded-md p-3 shadow-md max-w-[90%]">
+                        <p className="text-sm font-medium text-center">Board ordered by priority</p>
+                     </div>
+                  </m.div>
+               )}
+            </AnimatePresence>
+         </LazyMotion>
          {sortedIssues.map((issue) => (
             <IssueGrid
                key={issue.id}

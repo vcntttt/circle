@@ -55,6 +55,12 @@ export function IssueDetail({
       () => getIssueById(issueId) ?? initialIssue ?? null,
       [getIssueById, issueId, initialIssue]
    );
+   const createdAtLabel = presentationIssue
+      ? format(new Date(presentationIssue.createdAt), 'MMM dd, yyyy')
+      : '';
+   const dueDateLabel = presentationIssue?.dueDate
+      ? format(new Date(presentationIssue.dueDate), 'MMM dd')
+      : null;
    const [title, setTitle] = useState(presentationIssue?.title ?? '');
    const [description, setDescription] = useState(presentationIssue?.description ?? '');
    const [subissueComposerOpen, setSubissueComposerOpen] = useState(false);
@@ -217,8 +223,11 @@ export function IssueDetail({
                         </Link>
                      </Button>
                   ))}
-               <span className="text-xs text-muted-foreground hidden sm:inline-block">
-                  Created {format(new Date(presentationIssue.createdAt), 'MMM dd, yyyy')}
+               <span
+                  className="text-xs text-muted-foreground hidden sm:inline-block"
+                  suppressHydrationWarning
+               >
+                  Created {createdAtLabel}
                </span>
             </div>
 
@@ -262,9 +271,7 @@ export function IssueDetail({
                   />
                   <LabelSelector issueId={presentationIssue.id} />
                   {presentationIssue.dueDate && (
-                     <IssueChip>
-                        Due {format(new Date(presentationIssue.dueDate), 'MMM dd')}
-                     </IssueChip>
+                     <IssueChip suppressHydrationWarning>Due {dueDateLabel}</IssueChip>
                   )}
                   {presentationIssue.parent ? (
                      <ParentIssueSelector
@@ -317,7 +324,7 @@ export function IssueDetail({
                   onKeyDown={(event) => handleEditorShortcuts(event, persistDescription)}
                   placeholder="Add a description..."
                   rows={7}
-                  className="min-h-[156px] resize-none rounded-lg border bg-card px-4 py-4 text-sm leading-relaxed"
+                  className="min-h-[156px] resize-none rounded-lg border bg-card p-4 text-sm leading-relaxed"
                />
             </div>
 
@@ -388,7 +395,7 @@ export function IssueDetail({
                                        }
                                     }}
                                     placeholder="Issue title"
-                                    className="h-auto border-none bg-transparent px-0 py-0 text-base font-medium shadow-none focus-visible:ring-0"
+                                    className="h-auto border-none bg-transparent p-0 text-base font-medium shadow-none focus-visible:ring-0"
                                  />
                                  <Textarea
                                     value={newSubissueDescription}
@@ -406,7 +413,7 @@ export function IssueDetail({
                                     }}
                                     placeholder="Add description..."
                                     rows={2}
-                                    className="min-h-0 resize-none border-none bg-transparent px-0 py-0 text-sm shadow-none focus-visible:ring-0"
+                                    className="min-h-0 resize-none border-none bg-transparent p-0 text-sm shadow-none focus-visible:ring-0"
                                  />
                               </div>
                            </div>

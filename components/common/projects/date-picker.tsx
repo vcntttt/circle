@@ -13,11 +13,9 @@ interface DatePickerProps {
 }
 
 export function DatePicker({ date, onDateChange }: DatePickerProps) {
-   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(date);
    const [open, setOpen] = React.useState<boolean>(false);
 
    const handleDateSelect = (date: Date | undefined) => {
-      setSelectedDate(date);
       if (onDateChange) {
          onDateChange(date);
       }
@@ -32,10 +30,10 @@ export function DatePicker({ date, onDateChange }: DatePickerProps) {
                className="h-7 px-2 justify-start text-left font-normal"
                size="sm"
             >
-               <CalendarIcon className="h-4 w-4 md:mr-0.5" />
-               {selectedDate ? (
+               <CalendarIcon className="size-4 md:mr-0.5" />
+               {date ? (
                   <span className="text-xs hidden xl:inline mt-[1px]">
-                     {format(selectedDate, 'MMM dd, yyyy')}
+                     {format(date, 'MMM dd, yyyy')}
                   </span>
                ) : (
                   <span className="text-xs text-muted-foreground hidden xl:inline mt-[1px]">
@@ -45,12 +43,7 @@ export function DatePicker({ date, onDateChange }: DatePickerProps) {
             </Button>
          </PopoverTrigger>
          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-               mode="single"
-               selected={selectedDate}
-               onSelect={handleDateSelect}
-               initialFocus
-            />
+            <Calendar mode="single" selected={date} onSelect={handleDateSelect} initialFocus />
          </PopoverContent>
       </Popover>
    );

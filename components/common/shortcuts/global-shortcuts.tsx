@@ -39,8 +39,9 @@ export function GlobalShortcuts() {
          const search = location.search as { tab?: string };
          const isIssuesRoute = pathname === '/issues' || pathname.startsWith('/issues/');
          const isProjectIssuesRoute = pathname.startsWith('/projects/') && search.tab === 'issues';
+         const isProjectDetailRoute = pathname.startsWith('/projects/');
 
-         if (!isIssuesRoute && !isProjectIssuesRoute) {
+         if (!isIssuesRoute && !isProjectDetailRoute) {
             return;
          }
 
@@ -77,7 +78,7 @@ export function GlobalShortcuts() {
             return;
          }
 
-         if (event.key === '/') {
+         if (event.key === '/' && (isIssuesRoute || isProjectIssuesRoute)) {
             event.preventDefault();
             openSearch();
          }

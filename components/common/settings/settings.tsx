@@ -163,7 +163,7 @@ const FeatureCard = ({ feature }: { feature: Feature }) => {
          <div className="mt-auto flex items-center gap-3">
             {feature.activated && (
                <div className="flex items-center text-xs text-muted-foreground gap-1">
-                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                  <div className="size-2 rounded-full bg-green-500"></div>
                   <span>Ready</span>
                </div>
             )}
@@ -182,7 +182,7 @@ const IntegrationCard = ({ integration }: { integration: Integration }) => {
    return (
       <div className="flex items-start gap-4 mb-3">
          <div className="text-card-foreground">{integration.icon}</div>
-         <div className="space-y-2 h-full flex flex-col">
+         <div className="flex h-full flex-col gap-y-2">
             <div className="flex-1">
                <h3 className="font-medium text-card-foreground">{integration.title}</h3>
                <p className="text-sm text-muted-foreground mt-1">{integration.description}</p>
@@ -226,7 +226,7 @@ export default function Settings({
    initialProjectPriorities,
 }: SettingsProps) {
    return (
-      <div className="w-full max-w-7xl mx-auto px-8 py-8">
+      <div className="w-full max-w-7xl mx-auto p-8">
          <div className="mb-10">
             <h1 className="text-2xl font-semibold mb-1">Workspace</h1>
             <p className="text-muted-foreground">
@@ -251,8 +251,8 @@ export default function Settings({
                <ThemeToggle />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-               {features.map((feature, index) => (
-                  <FeatureCard key={index} feature={feature} />
+               {features.map((feature) => (
+                  <FeatureCard key={feature.title} feature={feature} />
                ))}
             </div>
          </div>
@@ -265,8 +265,8 @@ export default function Settings({
                </Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-               {integrations.map((integration, index) => (
-                  <IntegrationCard key={index} integration={integration} />
+               {integrations.map((integration) => (
+                  <IntegrationCard key={integration.name} integration={integration} />
                ))}
             </div>
          </div>
@@ -276,8 +276,8 @@ export default function Settings({
                <h2 className="text-xl font-semibold">Guidance</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-               {guides.map((guide, index) => (
-                  <GuideCard key={index} guide={guide} />
+               {guides.map((guide) => (
+                  <GuideCard key={guide.title} guide={guide} />
                ))}
             </div>
          </div>

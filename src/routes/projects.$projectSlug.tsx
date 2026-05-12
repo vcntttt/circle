@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate, useRouter } from '@tanstack/react-router';
+import { createFileRoute, Link, useRouter } from '@tanstack/react-router';
 import { useEffect, useMemo, useState } from 'react';
 import { z } from 'zod';
 import { toast } from 'sonner';
@@ -174,9 +174,6 @@ function ProjectToolbar({
                   </Button>
                </div>
             ) : null}
-            <Button size="icon" variant="ghost" className="size-7">
-               <MoreHorizontal className="size-4" />
-            </Button>
          </div>
       </div>
    );
@@ -200,13 +197,12 @@ function ProjectOverview({
    isConnected: boolean;
 }) {
    const router = useRouter();
-   const navigate = useNavigate();
    const { setDefaultProject } = useCreateIssueStore();
-   const [project, setProject] = useState<ProjectLike>(initialProject);
-   const [iconConfig, setIconConfig] = useState<ProjectIconConfig>({
+   const [project, setProject] = useState<ProjectLike>(() => initialProject);
+   const [iconConfig, setIconConfig] = useState<ProjectIconConfig>(() => ({
       type: initialProject.iconType ?? 'lucide',
       value: initialProject.iconValue ?? 'box',
-   });
+   }));
    const [isSavingDetails, setIsSavingDetails] = useState(false);
    const presentationProject = useMemo(
       () => toPresentationProject(project, statusOptions, priorityOptions),
@@ -353,19 +349,15 @@ function ProjectOverview({
    };
 
    useEffect(() => {
-      if (activeTab === 'issues') {
-         setDefaultProject(presentationProject);
-      } else {
-         setDefaultProject(null);
-      }
+      setDefaultProject(presentationProject);
 
       return () => {
          setDefaultProject(null);
       };
-   }, [activeTab, presentationProject, setDefaultProject]);
+   }, [presentationProject, setDefaultProject]);
 
    const handleSelectIssue = (issue: Issue) => {
-      void navigate({
+      void router.navigate({
          to: '/projects/$projectSlug',
          params: { projectSlug: project.slug },
          search: { tab: 'issues', issue: issue.identifier },
@@ -373,7 +365,7 @@ function ProjectOverview({
    };
 
    const handleClearSelectedIssue = () => {
-      void navigate({
+      void router.navigate({
          to: '/projects/$projectSlug',
          params: { projectSlug: project.slug },
          search: { tab: 'issues' },
@@ -478,7 +470,7 @@ function ProjectOverview({
                      <div className="font-medium text-muted-foreground">Resources</div>
                      <button className="inline-flex h-6 w-fit items-center gap-2 text-muted-foreground hover:text-foreground">
                         <Plus className="size-4" />
-                        Add document or link...
+                        Add document or link…
                      </button>
                   </div>
                </div>
@@ -537,13 +529,7 @@ function InlineEditableText({
    onSave: (value: string) => Promise<string>;
 }) {
    const [isEditing, setIsEditing] = useState(false);
-   const [draft, setDraft] = useState(value);
-
-   useEffect(() => {
-      if (!isEditing) {
-         setDraft(value);
-      }
-   }, [isEditing, value]);
+   const [draft, setDraft] = useState('');
 
    const commit = async () => {
       const nextValue = transformValue ? transformValue(draft) : draft;
@@ -562,7 +548,6 @@ function InlineEditableText({
       if (multiline) {
          return (
             <Textarea
-               autoFocus
                value={draft}
                maxLength={maxLength}
                disabled={disabled}
@@ -587,7 +572,6 @@ function InlineEditableText({
 
       return (
          <Input
-            autoFocus
             value={draft}
             maxLength={maxLength}
             disabled={disabled}
@@ -623,7 +607,10 @@ function InlineEditableText({
             'cursor-text text-left transition-colors disabled:cursor-default disabled:opacity-70',
             displayClassName
          )}
-         onClick={() => setIsEditing(true)}
+         onClick={() => {
+            setDraft(value);
+            setIsEditing(true);
+         }}
       >
          {value || placeholder}
       </button>

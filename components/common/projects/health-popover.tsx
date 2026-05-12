@@ -164,16 +164,18 @@ export function HealthPopover({ project, onProjectUpdate }: HealthPopoverProps) 
                            <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                           {healthOptions
-                              .filter((item) => item.id !== 'no-update')
-                              .map((item) => (
+                           {healthOptions.flatMap((item) =>
+                              item.id === 'no-update' ? (
+                                 []
+                              ) : (
                                  <SelectItem key={item.id} value={item.id}>
                                     <span className="flex items-center gap-2">
                                        {getHealthIcon(item.id)}
                                        {item.name}
                                     </span>
                                  </SelectItem>
-                              ))}
+                              )
+                           )}
                         </SelectContent>
                      </Select>
                      <Textarea

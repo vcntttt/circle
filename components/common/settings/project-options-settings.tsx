@@ -54,19 +54,16 @@ export function ProjectOptionsSettings({
    initialStatuses,
    initialPriorities,
 }: ProjectOptionsSettingsProps) {
-   const [statuses, setStatuses] = useState(initialStatuses);
-   const [priorities, setPriorities] = useState(initialPriorities);
+   const [statuses, setStatuses] = useState(() => initialStatuses);
+   const [priorities, setPriorities] = useState(() => initialPriorities);
    const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
    const [draggedStatusId, setDraggedStatusId] = useState<string | null>(null);
    const [isSaving, setIsSaving] = useState(false);
    const [sheetState, setSheetState] = useState<SheetState>(initialSheetState);
 
-   const currentItems = useMemo(
-      () => (sheetState.type === 'status' ? statuses : priorities),
-      [sheetState.type, statuses, priorities]
-   );
+   const currentItems = sheetState.type === 'status' ? statuses : priorities;
    const orderedStatuses = useMemo(
-      () => [...statuses].sort((a, b) => (a.position ?? 0) - (b.position ?? 0)),
+      () => statuses.toSorted((a, b) => (a.position ?? 0) - (b.position ?? 0)),
       [statuses]
    );
 

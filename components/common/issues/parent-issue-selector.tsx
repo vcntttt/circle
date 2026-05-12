@@ -32,6 +32,7 @@ export function ParentIssueSelector({
    emptyLabel = 'Set parent',
 }: ParentIssueSelectorProps) {
    const id = useId();
+   const listId = `${id}-list`;
    const [open, setOpen] = useState(false);
    const [value, setValue] = useState(parent?.id ?? 'no-parent');
    const { getAllIssues, getSubissues } = useIssuesStore();
@@ -84,6 +85,7 @@ export function ParentIssueSelector({
                variant={compact ? 'ghost' : 'secondary'}
                role="combobox"
                aria-expanded={open}
+               aria-controls={listId}
                className={compact ? issueChipClassName : 'max-w-full justify-start gap-1.5'}
             >
                <GitBranchPlus className={compact ? issueChipIconClassName : 'size-4'} />
@@ -95,7 +97,7 @@ export function ParentIssueSelector({
          <PopoverContent className="border-input w-[320px] p-0" align="start">
             <Command>
                <CommandInput placeholder="Set parent issue..." />
-               <CommandList>
+               <CommandList id={listId}>
                   <CommandEmpty>No issues available.</CommandEmpty>
                   <CommandGroup>
                      <CommandItem

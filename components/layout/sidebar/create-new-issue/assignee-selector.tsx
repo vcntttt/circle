@@ -14,7 +14,7 @@ import { currentUser, personalAssigneeOptions } from '@/lib/current-user';
 import { useIssuesStore } from '@/store/issues-store';
 import type { User } from '@/lib/models';
 import { CheckIcon, UserCircle } from 'lucide-react';
-import { useEffect, useId, useState } from 'react';
+import { useId, useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface AssigneeSelectorProps {
@@ -24,21 +24,16 @@ interface AssigneeSelectorProps {
 
 export function AssigneeSelector({ assignee, onChange }: AssigneeSelectorProps) {
    const id = useId();
+   const listId = `${id}-list`;
    const [open, setOpen] = useState<boolean>(false);
-   const [value, setValue] = useState<string | null>(assignee?.id || null);
 
    const { filterByAssignee } = useIssuesStore();
-
-   useEffect(() => {
-      setValue(assignee?.id || null);
-   }, [assignee]);
+   const value = assignee?.id ?? null;
 
    const handleAssigneeChange = (userId: string) => {
       if (userId === 'unassigned') {
-         setValue(null);
          onChange(null);
       } else {
-         setValue(userId);
          const newAssignee = personalAssigneeOptions.find((u) => u.id === userId);
          if (newAssignee) {
             onChange(newAssignee);
@@ -58,6 +53,7 @@ export function AssigneeSelector({ assignee, onChange }: AssigneeSelectorProps) 
                   variant="secondary"
                   role="combobox"
                   aria-expanded={open}
+                  aria-controls={listId}
                >
                   {value ? (
                      (() => {
@@ -89,7 +85,7 @@ export function AssigneeSelector({ assignee, onChange }: AssigneeSelectorProps) 
             >
                <Command>
                   <CommandInput placeholder="Assign to..." />
-                  <CommandList>
+                  <CommandList id={listId}>
                      <CommandEmpty>No users found.</CommandEmpty>
                      <CommandGroup>
                         <CommandItem

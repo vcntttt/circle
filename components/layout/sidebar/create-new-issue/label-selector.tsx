@@ -68,7 +68,7 @@ export function LabelSelector({
                >
                   <TagIcon className="size-4" />
                   {selectedLabels.length > 0 && (
-                     <div className="flex -space-x-0.5">
+                     <div className="flex gap-x-0.5">
                         {selectedLabels.map((label) => (
                            <div
                               key={label.id}
@@ -92,7 +92,7 @@ export function LabelSelector({
                align="start"
             >
                <Command>
-                  <CommandInput autoFocus placeholder="Search labels..." />
+                  <CommandInput placeholder="Search labels..." />
                   <CommandList>
                      <CommandEmpty>No labels found.</CommandEmpty>
                      <CommandGroup>

@@ -13,7 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useIssuesStore } from '@/store/issues-store';
 import { priorities, type Priority } from '@/lib/ui-catalog';
 import { CheckIcon } from 'lucide-react';
-import { useEffect, useId, useState } from 'react';
+import { useId, useState } from 'react';
 
 interface PrioritySelectorProps {
    priority: Priority;
@@ -22,17 +22,12 @@ interface PrioritySelectorProps {
 
 export function PrioritySelector({ priority, onChange }: PrioritySelectorProps) {
    const id = useId();
+   const listId = `${id}-list`;
    const [open, setOpen] = useState<boolean>(false);
-   const [value, setValue] = useState<string>(priority.id);
 
    const { filterByPriority } = useIssuesStore();
 
-   useEffect(() => {
-      setValue(priority.id);
-   }, [priority.id]);
-
    const handlePriorityChange = (priorityId: string) => {
-      setValue(priorityId);
       setOpen(false);
 
       const newPriority = priorities.find((p) => p.id === priorityId);
@@ -52,9 +47,10 @@ export function PrioritySelector({ priority, onChange }: PrioritySelectorProps) 
                   variant="secondary"
                   role="combobox"
                   aria-expanded={open}
+                  aria-controls={listId}
                >
                   {(() => {
-                     const selectedItem = priorities.find((item) => item.id === value);
+                     const selectedItem = priorities.find((item) => item.id === priority.id);
                      if (selectedItem) {
                         const Icon = selectedItem.icon;
                         return <Icon className="text-muted-foreground size-4" />;
@@ -62,7 +58,9 @@ export function PrioritySelector({ priority, onChange }: PrioritySelectorProps) 
                      return null;
                   })()}
                   <span>
-                     {value ? priorities.find((p) => p.id === value)?.name : 'No priority'}
+                     {priority.id
+                        ? priorities.find((p) => p.id === priority.id)?.name
+                        : 'No priority'}
                   </span>
                </Button>
             </PopoverTrigger>
@@ -72,7 +70,7 @@ export function PrioritySelector({ priority, onChange }: PrioritySelectorProps) 
             >
                <Command>
                   <CommandInput placeholder="Set priority..." />
-                  <CommandList>
+                  <CommandList id={listId}>
                      <CommandEmpty>No priority found.</CommandEmpty>
                      <CommandGroup>
                         {priorities.map((item) => (
@@ -86,7 +84,9 @@ export function PrioritySelector({ priority, onChange }: PrioritySelectorProps) 
                                  <item.icon className="text-muted-foreground size-4" />
                                  {item.name}
                               </div>
-                              {value === item.id && <CheckIcon size={16} className="ml-auto" />}
+                              {priority.id === item.id && (
+                                 <CheckIcon size={16} className="ml-auto" />
+                              )}
                               <span className="text-muted-foreground text-xs">
                                  {filterByPriority(item.id).length}
                               </span>

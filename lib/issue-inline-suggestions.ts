@@ -56,17 +56,16 @@ function filterSuggestions<T extends { name: string }>(
    const normalizedQuery = normalizeInlineToken(query);
 
    return items
-      .map((item) => ({
-         ...item,
-         token: buildSuggestionToken(item.name),
-      }))
-      .filter((item) => {
+      .flatMap((item) => {
+         const token = buildSuggestionToken(item.name);
          if (!normalizedQuery) {
-            return true;
+            return [{ ...item, token }];
          }
 
          const normalizedName = normalizeInlineToken(item.name);
-         return normalizedName.includes(normalizedQuery) || item.token.includes(normalizedQuery);
+         return normalizedName.includes(normalizedQuery) || token.includes(normalizedQuery)
+            ? [{ ...item, token }]
+            : [];
       })
       .sort((a, b) => {
          const aName = normalizeInlineToken(a.name);

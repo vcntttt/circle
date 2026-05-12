@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useState } from 'react';
+import { useId, useState } from 'react';
 import { CheckIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,21 +27,16 @@ const statusIconMap: Record<string, Status['icon']> = Object.fromEntries(
 
 export function StatusWithPercent({ status, options, onStatusChange }: StatusWithPercentProps) {
    const id = useId();
+   const listId = `${id}-list`;
    const [open, setOpen] = useState<boolean>(false);
-   const [value, setValue] = useState<string>(status.id);
-
-   useEffect(() => {
-      setValue(status.id);
-   }, [status.id]);
 
    const handleStatusChange = (statusId: string) => {
-      setValue(statusId);
       setOpen(false);
       onStatusChange?.(statusId);
    };
 
-   const selectedOption = options.find((item) => item.id === value);
-   const SelectedIcon = statusIconMap[value] ?? allStatus[allStatus.length - 1].icon;
+   const selectedOption = options.find((item) => item.id === status.id);
+   const SelectedIcon = statusIconMap[status.id] ?? allStatus[allStatus.length - 1].icon;
 
    return (
       <Popover open={open} onOpenChange={setOpen}>
@@ -53,6 +48,7 @@ export function StatusWithPercent({ status, options, onStatusChange }: StatusWit
                variant="ghost"
                role="combobox"
                aria-expanded={open}
+               aria-controls={listId}
             >
                <SelectedIcon />
                <span className="text-xs font-medium mt-[1px]">
@@ -63,7 +59,7 @@ export function StatusWithPercent({ status, options, onStatusChange }: StatusWit
          <PopoverContent className="border-input w-56 p-0" align="start">
             <Command>
                <CommandInput placeholder="Set status..." />
-               <CommandList>
+               <CommandList id={listId}>
                   <CommandEmpty>No status found.</CommandEmpty>
                   <CommandGroup>
                      {options.map((item) => {
@@ -80,7 +76,7 @@ export function StatusWithPercent({ status, options, onStatusChange }: StatusWit
                                  <Icon />
                                  <span className="text-xs">{item.name}</span>
                               </div>
-                              {value === item.id && <CheckIcon size={14} className="ml-auto" />}
+                              {status.id === item.id && <CheckIcon size={14} className="ml-auto" />}
                            </CommandItem>
                         );
                      })}

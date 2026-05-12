@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useDrag } from 'react-dnd';
 import { getEmptyImage } from 'react-dnd-html5-backend';
 import { format } from 'date-fns';
-import { motion } from 'motion/react';
+import * as m from 'motion/react-m';
 import { CheckCircle2, CircleAlert, CircleDashed, CircleHelp, ExternalLink } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ContextMenu, ContextMenuTrigger } from '@/components/ui/context-menu';
@@ -58,6 +58,7 @@ export function ProjectBoardCard({
    const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
    const isPinned = pinnedProjectIds.includes(project.id);
    const isReadOnly = groupBy === 'health';
+   const startDateLabel = format(new Date(project.startDate), 'MMM dd, yyyy');
 
    const [{ isDragging }, drag, preview] = useDrag(() => ({
       type: ProjectDragType,
@@ -75,7 +76,7 @@ export function ProjectBoardCard({
    return (
       <ContextMenu>
          <ContextMenuTrigger asChild>
-            <motion.div
+            <m.div
                ref={drag}
                role="button"
                tabIndex={0}
@@ -181,7 +182,7 @@ export function ProjectBoardCard({
 
                   {visibleProperties.targetDate && (
                      <div className="inline-flex items-center gap-1.5 rounded-md border border-border/50 px-2 py-1 text-xs text-muted-foreground">
-                        <span>{format(new Date(project.startDate), 'MMM dd, yyyy')}</span>
+                        <span suppressHydrationWarning>{startDateLabel}</span>
                      </div>
                   )}
                </div>
@@ -191,7 +192,7 @@ export function ProjectBoardCard({
                      Health is set by project updates, so this board is read only.
                   </p>
                )}
-            </motion.div>
+            </m.div>
          </ContextMenuTrigger>
          <ProjectContextMenu
             isPinned={isPinned}

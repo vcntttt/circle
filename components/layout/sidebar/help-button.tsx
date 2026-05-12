@@ -29,14 +29,14 @@ export function HelpButton() {
          <DropdownMenuContent align="end" className="w-60">
             <div className="p-2">
                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
                   <Input type="search" placeholder="Search for help..." className="pl-8" />
                </div>
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuLabel>Shortcuts</DropdownMenuLabel>
             <DropdownMenuItem onSelect={() => open()}>
-               <Keyboard className="mr-2 h-4 w-4" />
+               <Keyboard className="mr-2 size-4" />
                <span>Keyboard shortcuts</span>
                <span className="ml-auto text-xs text-muted-foreground">?</span>
             </DropdownMenuItem>
@@ -49,9 +49,9 @@ export function HelpButton() {
                   rel="noopener noreferrer"
                   className="flex items-center"
                >
-                  <RiGithubLine className="mr-2 h-4 w-4" />
+                  <RiGithubLine className="mr-2 size-4" />
                   <span>GitHub</span>
-                  <ExternalLink className="ml-2 h-3 w-3 text-muted-foreground" />
+                  <ExternalLink className="ml-2 size-3 text-muted-foreground" />
                </a>
             </DropdownMenuItem>
          </DropdownMenuContent>

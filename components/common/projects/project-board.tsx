@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ComponentType } from 'react';
+import { useMemo, useState, type ComponentType } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { DndProvider, useDragLayer } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { motion } from 'motion/react';
+import { LazyMotion, domAnimation } from 'motion/react';
+import * as m from 'motion/react-m';
 import { toast } from 'sonner';
 import type { Project, ProjectUpdate } from '@/lib/models';
 import type { ProjectOptionLike } from '@/lib/projects-presentation';
@@ -41,11 +42,11 @@ const healthIconMap = {
 export function ProjectBoard({ projects, statusOptions, priorityOptions }: ProjectBoardProps) {
    const { groupBy, showEmptyGroups, visibleProperties } = useProjectsViewStore();
    const navigate = useNavigate();
-   const [boardProjects, setBoardProjects] = useState(projects);
-
-   useEffect(() => {
-      setBoardProjects(projects);
-   }, [projects]);
+   const [projectOverrides, setProjectOverrides] = useState<Record<string, Partial<Project>>>({});
+   const boardProjects = useMemo(
+      () => projects.map((project) => ({ ...project, ...projectOverrides[project.id] })),
+      [projectOverrides, projects]
+   );
 
    const groups = useMemo(() => {
       const definitions = getGroupDefinitions(groupBy, statusOptions, priorityOptions);
@@ -65,12 +66,10 @@ export function ProjectBoard({ projects, statusOptions, priorityOptions }: Proje
          grouped.set(targetGroupId, [project]);
       }
 
-      return definitions
-         .map((group) => ({
-            ...group,
-            projects: grouped.get(group.id) ?? [],
-         }))
-         .filter((group) => showEmptyGroups || group.projects.length > 0);
+      return definitions.flatMap((group) => {
+         const projects = grouped.get(group.id) ?? [];
+         return showEmptyGroups || projects.length > 0 ? [{ ...group, projects }] : [];
+      });
    }, [boardProjects, groupBy, priorityOptions, showEmptyGroups, statusOptions]);
 
    const handleStatusChange = async (projectId: string, statusId: string) => {
@@ -84,13 +83,14 @@ export function ProjectBoard({ projects, statusOptions, priorityOptions }: Proje
    const handleProjectUpdate = (projectId: string, update: ProjectUpdate) => {
       const nextHealth = allHealth.find((item) => item.id === update.health) ?? allHealth[0];
 
-      setBoardProjects((currentProjects) =>
-         currentProjects.map((project) =>
-            project.id === projectId
-               ? { ...project, latestUpdate: update, health: nextHealth }
-               : project
-         )
-      );
+      setProjectOverrides((overrides) => ({
+         ...overrides,
+         [projectId]: {
+            ...overrides[projectId],
+            latestUpdate: update,
+            health: nextHealth,
+         },
+      }));
    };
 
    const handleMoveProject = async (projectId: string, targetGroupId: string) => {
@@ -124,44 +124,37 @@ export function ProjectBoard({ projects, statusOptions, priorityOptions }: Proje
       value: string,
       successMessage: string
    ) {
-      const previousProjects = boardProjects;
-      const nextProjects = boardProjects.map((project) => {
-         if (project.id !== projectId) {
-            return project;
-         }
+      const previousOverride = projectOverrides[projectId];
+      const project = boardProjects.find((item) => item.id === projectId);
+      if (!project) {
+         return;
+      }
 
-         if (field === 'status') {
-            const nextStatus = statusOptions.find((option) => option.id === value);
-            if (!nextStatus) {
-               return project;
-            }
+      const nextOverride: Partial<Project> =
+         field === 'status'
+            ? {
+                 status: {
+                    ...project.status,
+                    id: value,
+                    name:
+                       statusOptions.find((option) => option.id === value)?.name ??
+                       project.status.name,
+                 },
+              }
+            : {
+                 priority: {
+                    ...project.priority,
+                    id: value,
+                    name:
+                       priorityOptions.find((option) => option.id === value)?.name ??
+                       project.priority.name,
+                 },
+              };
 
-            return {
-               ...project,
-               status: {
-                  ...project.status,
-                  id: value,
-                  name: nextStatus.name,
-               },
-            };
-         }
-
-         const nextPriority = priorityOptions.find((option) => option.id === value);
-         if (!nextPriority) {
-            return project;
-         }
-
-         return {
-            ...project,
-            priority: {
-               ...project.priority,
-               id: value,
-               name: nextPriority.name,
-            },
-         };
-      });
-
-      setBoardProjects(nextProjects);
+      setProjectOverrides((overrides) => ({
+         ...overrides,
+         [projectId]: { ...overrides[projectId], ...nextOverride },
+      }));
 
       try {
          await persistProjectUpdate(
@@ -171,36 +164,41 @@ export function ProjectBoard({ projects, statusOptions, priorityOptions }: Proje
          toast.success(successMessage);
       } catch (error) {
          console.error(`Failed to update project ${field}.`, error);
-         setBoardProjects(previousProjects);
+         setProjectOverrides((overrides) => ({
+            ...overrides,
+            [projectId]: previousOverride ?? {},
+         }));
          toast.error(`Project ${field} could not be updated`);
       }
    }
 
    return (
-      <DndProvider backend={HTML5Backend}>
-         <ProjectBoardDragLayer groupBy={groupBy} visibleProperties={visibleProperties} />
-         <div className="h-full w-full overflow-auto">
-            <div className="flex h-full min-w-max gap-3 px-3 py-3">
-               {groups.map((group) => (
-                  <ProjectBoardColumn
-                     key={group.id}
-                     group={group}
-                     projects={group.projects}
-                     groupBy={groupBy}
-                     visibleProperties={visibleProperties}
-                     statusOptions={statusOptions}
-                     priorityOptions={priorityOptions}
-                     isReadOnly={groupBy === 'health'}
-                     onOpenIssues={handleOpenIssues}
-                     onStatusChange={handleStatusChange}
-                     onPriorityChange={handlePriorityChange}
-                     onProjectUpdate={handleProjectUpdate}
-                     onMoveProject={handleMoveProject}
-                  />
-               ))}
+      <LazyMotion features={domAnimation}>
+         <DndProvider backend={HTML5Backend}>
+            <ProjectBoardDragLayer groupBy={groupBy} visibleProperties={visibleProperties} />
+            <div className="h-full w-full overflow-auto">
+               <div className="flex h-full min-w-max gap-3 p-3">
+                  {groups.map((group) => (
+                     <ProjectBoardColumn
+                        key={group.id}
+                        group={group}
+                        projects={group.projects}
+                        groupBy={groupBy}
+                        visibleProperties={visibleProperties}
+                        statusOptions={statusOptions}
+                        priorityOptions={priorityOptions}
+                        isReadOnly={groupBy === 'health'}
+                        onOpenIssues={handleOpenIssues}
+                        onStatusChange={handleStatusChange}
+                        onPriorityChange={handlePriorityChange}
+                        onProjectUpdate={handleProjectUpdate}
+                        onMoveProject={handleMoveProject}
+                     />
+                  ))}
+               </div>
             </div>
-         </div>
-      </DndProvider>
+         </DndProvider>
+      </LazyMotion>
    );
 
    function handleOpenIssues(project: Project) {
@@ -230,7 +228,7 @@ function ProjectBoardDragLayer({
    }
 
    return (
-      <motion.div
+      <m.div
          className="fixed left-0 top-0 z-50 pointer-events-none"
          style={{
             transform: `translate(${currentOffset.x}px, ${currentOffset.y}px)`,
@@ -242,7 +240,7 @@ function ProjectBoardDragLayer({
             groupBy={groupBy}
             visibleProperties={visibleProperties}
          />
-      </motion.div>
+      </m.div>
    );
 }
 
