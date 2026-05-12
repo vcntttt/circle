@@ -76,6 +76,30 @@ export function IssueDetail({
 
    useEffect(() => {
       if (!presentationIssue) return;
+      const trimmed = title.trim();
+      if (trimmed === presentationIssue.title.trim() || !trimmed) return;
+
+      const timeout = setTimeout(() => {
+         updateIssueContent(issueId, { title: trimmed });
+      }, 1000);
+
+      return () => clearTimeout(timeout);
+   }, [title, presentationIssue?.title, issueId, updateIssueContent]);
+
+   useEffect(() => {
+      if (!presentationIssue) return;
+      const trimmed = description.trim();
+      if (trimmed === presentationIssue.description.trim()) return;
+
+      const timeout = setTimeout(() => {
+         updateIssueContent(issueId, { description: trimmed });
+      }, 1000);
+
+      return () => clearTimeout(timeout);
+   }, [description, presentationIssue?.description, issueId, updateIssueContent]);
+
+   useEffect(() => {
+      if (!presentationIssue) return;
       if (getIssueById(issueId)) return;
       addIssue(presentationIssue);
    }, [addIssue, getIssueById, issueId, presentationIssue]);
@@ -104,7 +128,6 @@ export function IssueDetail({
       }
 
       updateIssueContent(issueId, { title: nextTitle });
-      toast.success('Title updated');
    };
 
    const persistDescription = () => {
@@ -116,19 +139,9 @@ export function IssueDetail({
       }
 
       updateIssueContent(issueId, { description: nextDescription });
-      toast.success('Description updated');
    };
 
-   const handleEditorShortcuts = (
-      event: React.KeyboardEvent<HTMLTextAreaElement>,
-      callback: () => void
-   ) => {
-      if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
-         event.preventDefault();
-         callback();
-         return;
-      }
-
+   const handleEditorShortcuts = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (event.key === 'Escape') {
          event.preventDefault();
          setTitle(presentationIssue.title);
@@ -243,14 +256,47 @@ export function IssueDetail({
 
          <div className="pt-8 pb-6 px-5 space-y-6 w-full max-w-4xl mx-auto overflow-y-auto h-full">
             <div className="space-y-3">
+               <div className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+                  {presentationIssue.identifier}
+               </div>
                <Textarea
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                   onBlur={persistTitle}
-                  onKeyDown={(event) => handleEditorShortcuts(event, persistTitle)}
+                  onKeyDown={(event) => {
+                     if (event.key === 'Enter') {
+                        event.preventDefault();
+                        event.currentTarget.blur();
+                     }
+                     handleEditorShortcuts(event);
+                  }}
                   rows={1}
                   className="min-h-0 resize-none border-none bg-transparent px-0 text-[26px] font-semibold leading-tight shadow-none focus-visible:ring-0"
                />
+               {presentationIssue.parent && (
+                  <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
+                     <span>Sub-issue of</span>
+                     <Link
+                        to="/issues/$issueIdentifier"
+                        params={{ issueIdentifier: presentationIssue.parent.identifier }}
+                        className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
+                     >
+                        {(() => {
+                           const parent = getIssueById(presentationIssue.parent!.id);
+                           return parent ? (
+                              <span
+                                 className="inline-block size-2 rounded-full"
+                                 style={{ backgroundColor: parent.status.color }}
+                              />
+                           ) : null;
+                        })()}
+                        <span className="font-medium text-foreground">
+                           {presentationIssue.parent.identifier}
+                        </span>
+                        <span>{presentationIssue.parent.title}</span>
+                     </Link>
+                  </div>
+               )}
                <div className="flex flex-wrap items-center gap-2">
                   <PrioritySelector
                      priority={presentationIssue.priority}
@@ -268,29 +314,14 @@ export function IssueDetail({
                      onChange={(project) => updateIssueProject(presentationIssue.id, project)}
                      showShortcut={false}
                      triggerClassName={issueChipClassName}
+                     variant="ghost"
+                     size="sm"
                   />
                   <LabelSelector issueId={presentationIssue.id} />
                   {presentationIssue.dueDate && (
                      <IssueChip suppressHydrationWarning>Due {dueDateLabel}</IssueChip>
                   )}
-                  {presentationIssue.parent ? (
-                     <ParentIssueSelector
-                        issueId={presentationIssue.id}
-                        parent={presentationIssue.parent}
-                        onChange={(parent) => {
-                           if (!canBecomeSubissue && parent) {
-                              toast.error('Issues with subissues cannot become subissues');
-                              return;
-                           }
-
-                           updateIssueParent(presentationIssue.id, parent);
-                           toast.success(
-                              parent ? `Parent set to ${parent.identifier}` : 'Parent removed'
-                           );
-                        }}
-                        compact
-                     />
-                  ) : (
+                  {!presentationIssue.parent && (
                      <ParentIssueSelector
                         issueId={presentationIssue.id}
                         parent={null}
@@ -315,13 +346,18 @@ export function IssueDetail({
             <div className="prose prose-sm max-w-none">
                <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
                   <span>Description</span>
-                  <span>Save with Cmd/Ctrl+Enter</span>
                </div>
                <Textarea
                   value={description}
                   onChange={(event) => setDescription(event.target.value)}
                   onBlur={persistDescription}
-                  onKeyDown={(event) => handleEditorShortcuts(event, persistDescription)}
+                  onKeyDown={(event) => {
+                     if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+                        event.preventDefault();
+                        event.currentTarget.blur();
+                     }
+                     handleEditorShortcuts(event);
+                  }}
                   placeholder="Add a description..."
                   rows={7}
                   className="min-h-[156px] resize-none rounded-lg border bg-card p-4 text-sm leading-relaxed"
