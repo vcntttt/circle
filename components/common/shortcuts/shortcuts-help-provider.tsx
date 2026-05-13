@@ -32,6 +32,41 @@ const shortcuts = [
       context: 'Issues',
    },
    {
+      action: 'Move down',
+      keys: '↓ / J',
+      context: 'Issues',
+   },
+   {
+      action: 'Move up',
+      keys: '↑ / K',
+      context: 'Issues',
+   },
+   {
+      action: 'Toggle issue selection',
+      keys: 'X',
+      context: 'Issues',
+   },
+   {
+      action: 'Clear issue selection',
+      keys: 'Esc',
+      context: 'Issues',
+   },
+   {
+      action: 'Set status',
+      keys: 'S',
+      context: 'Issues',
+   },
+   {
+      action: 'Set labels',
+      keys: 'L',
+      context: 'Issues',
+   },
+   {
+      action: 'Set project',
+      keys: 'Shift + P',
+      context: 'Issues',
+   },
+   {
       action: 'Open shortcuts help',
       keys: '?',
       context: 'Issues',
