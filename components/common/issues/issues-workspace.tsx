@@ -1,12 +1,12 @@
 'use client';
 
-import { useLayoutEffect, useMemo, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { IssueListItem } from '@/lib/db/issues';
 import { toPresentationIssue } from '@/lib/issues-presentation';
-import { type Issue, archivedStatus } from '@/lib/ui-catalog';
+import { type Issue, archivedStatus, sortIssuesByPriority } from '@/lib/ui-catalog';
 import { cn } from '@/lib/utils';
 import { useFilterStore } from '@/store/filter-store';
 import { useIssuesStore } from '@/store/issues-store';
@@ -14,12 +14,17 @@ import { useSearchStore } from '@/store/search-store';
 import { useViewStore } from '@/store/view-store';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { CustomDragLayer } from './issue-grid';
-import { GroupIssues } from './group-issues';
+import { getIssueListRows, GroupIssues } from './group-issues';
+import { IssueActionCommand, type IssueActionKind } from './issue-action-command';
 import { IssueDetail } from './issue-detail';
 import { SearchIssues } from './search-issues';
 import { IssuesStatusProvider, useIssuesStatuses } from './issues-status-context';
 import type { ProjectOptionLike } from '@/lib/projects-presentation';
 import { groupIssuesForDisplayByStatus } from '@/lib/issue-status-groups';
+import {
+   hasOpenKeyboardBlockingLayer,
+   isEditableTarget,
+} from '@/components/common/shortcuts/keyboard-utils';
 
 interface IssuesWorkspaceProps {
    initialIssues: IssueListItem[];
@@ -51,6 +56,136 @@ const getIssuesHydrationKey = (issues: IssueListItem[]) =>
       )
       .join('|');
 
+function useIssueWorkspaceShortcuts({
+   selectedIssue,
+   visibleNavigationIssues,
+   selectedIssueCount,
+   actionTargetIssuesCount,
+   onSelectIssue,
+   onToggleIssueSelection,
+   onClearIssueSelection,
+   onOpenIssueActionPicker,
+}: {
+   selectedIssue?: Issue;
+   visibleNavigationIssues: Issue[];
+   selectedIssueCount: number;
+   actionTargetIssuesCount: number;
+   onSelectIssue: (issue: Issue) => void;
+   onToggleIssueSelection: (issueId: string) => void;
+   onClearIssueSelection: () => void;
+   onOpenIssueActionPicker: (action: IssueActionKind) => void;
+}) {
+   useEffect(() => {
+      const handleKeyDown = (event: KeyboardEvent) => {
+         if (event.metaKey || event.ctrlKey || event.altKey) {
+            return;
+         }
+
+         if (isEditableTarget(event.target) || hasOpenKeyboardBlockingLayer()) {
+            return;
+         }
+
+         const normalizedKey = event.key.toLowerCase();
+         const isMoveDown = event.key === 'ArrowDown' || normalizedKey === 'j';
+         const isMoveUp = event.key === 'ArrowUp' || normalizedKey === 'k';
+
+         if (isMoveDown || isMoveUp) {
+            event.preventDefault();
+
+            if (visibleNavigationIssues.length === 0) {
+               return;
+            }
+
+            const direction = isMoveDown ? 1 : -1;
+            const currentIndex = selectedIssue
+               ? visibleNavigationIssues.findIndex((issue) => issue.id === selectedIssue.id)
+               : -1;
+            const nextIndex =
+               currentIndex === -1
+                  ? direction === 1
+                     ? 0
+                     : visibleNavigationIssues.length - 1
+                  : Math.min(
+                       Math.max(currentIndex + direction, 0),
+                       visibleNavigationIssues.length - 1
+                    );
+            const nextIssue = visibleNavigationIssues[nextIndex];
+
+            if (nextIssue) {
+               onSelectIssue(nextIssue);
+            }
+
+            return;
+         }
+
+         if (event.repeat) {
+            return;
+         }
+
+         if (event.key === 'Escape') {
+            if (selectedIssueCount === 0) {
+               return;
+            }
+
+            event.preventDefault();
+            onClearIssueSelection();
+            return;
+         }
+
+         if (!event.shiftKey && normalizedKey === 'x') {
+            if (!selectedIssue) {
+               return;
+            }
+
+            event.preventDefault();
+            onToggleIssueSelection(selectedIssue.id);
+            return;
+         }
+
+         if (!event.shiftKey && normalizedKey === 's') {
+            if (actionTargetIssuesCount === 0) {
+               return;
+            }
+
+            event.preventDefault();
+            onOpenIssueActionPicker('status');
+            return;
+         }
+
+         if (!event.shiftKey && normalizedKey === 'l') {
+            if (actionTargetIssuesCount === 0) {
+               return;
+            }
+
+            event.preventDefault();
+            onOpenIssueActionPicker('label');
+            return;
+         }
+
+         if (event.shiftKey && normalizedKey === 'p') {
+            if (actionTargetIssuesCount === 0) {
+               return;
+            }
+
+            event.preventDefault();
+            onOpenIssueActionPicker('project');
+         }
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+   }, [
+      actionTargetIssuesCount,
+      onClearIssueSelection,
+      onOpenIssueActionPicker,
+      onSelectIssue,
+      onToggleIssueSelection,
+      selectedIssue,
+      selectedIssueCount,
+      visibleNavigationIssues,
+   ]);
+}
+
 export function IssuesWorkspace({
    initialIssues,
    initialStatuses,
@@ -65,9 +200,11 @@ export function IssuesWorkspace({
    const { replaceIssues, issues, filterIssues } = useIssuesStore();
    const { isSearchOpen, searchQuery } = useSearchStore();
    const { filters, hasActiveFilters } = useFilterStore();
-   const { showEmptyStatuses } = useViewStore();
+   const { hideCompletedIssues, showEmptyStatuses, viewType } = useViewStore();
    const navigate = useNavigate();
    const lastHydrationKeyRef = useRef<string | null>(null);
+   const [selectedIssueIds, setSelectedIssueIds] = useState<Set<string>>(() => new Set());
+   const [issueAction, setIssueAction] = useState<IssueActionKind | null>(null);
 
    const hydratedIssues = useMemo(
       () => initialIssues.map((issue) => toPresentationIssue(issue, initialStatuses)),
@@ -96,6 +233,77 @@ export function IssuesWorkspace({
    const filteredIssues = projectFilterId
       ? storeFilteredIssues.filter((issue) => issue.project?.id === projectFilterId)
       : storeFilteredIssues;
+   const displayIssues = useMemo(
+      () =>
+         hideCompletedIssues
+            ? filteredIssues.filter((issue) => issue.status.id !== 'completed')
+            : filteredIssues,
+      [filteredIssues, hideCompletedIssues]
+   );
+   const searchResults = useMemo(() => {
+      const normalizedQuery = searchQuery.trim().toLowerCase();
+
+      if (!normalizedQuery) {
+         return [];
+      }
+
+      return displayIssues.filter(
+         (issue) =>
+            issue.title.toLowerCase().includes(normalizedQuery) ||
+            issue.identifier.toLowerCase().includes(normalizedQuery)
+      );
+   }, [displayIssues, searchQuery]);
+   const visibleNavigationIssues = useMemo(() => {
+      if (isSearching) {
+         return searchResults;
+      }
+
+      const issuesByStatus = groupIssuesForDisplayByStatus(displayIssues);
+      const statusIds: string[] = [];
+
+      for (const status of initialStatuses) {
+         if (showEmptyStatuses || (issuesByStatus[status.id] ?? []).length > 0) {
+            statusIds.push(status.id);
+         }
+      }
+
+      return statusIds.flatMap((statusId) => {
+         const statusIssues = issuesByStatus[statusId] ?? [];
+
+         if (viewType === 'grid') {
+            return sortIssuesByPriority(statusIssues);
+         }
+
+         return getIssueListRows(statusIssues).map((row) => row.issue);
+      });
+   }, [displayIssues, initialStatuses, isSearching, searchResults, showEmptyStatuses, viewType]);
+   const actionTargetIssues = useMemo(() => {
+      if (selectedIssueIds.size > 0) {
+         return issues.filter((issue) => selectedIssueIds.has(issue.id));
+      }
+
+      return selectedIssue ? [selectedIssue] : [];
+   }, [issues, selectedIssue, selectedIssueIds]);
+
+   useEffect(() => {
+      setSelectedIssueIds((current) => {
+         const validIssueIds = new Set(issues.map((issue) => issue.id));
+         const next = new Set([...current].filter((issueId) => validIssueIds.has(issueId)));
+
+         return next.size === current.size ? current : next;
+      });
+   }, [issues]);
+
+   useIssueWorkspaceShortcuts({
+      selectedIssue,
+      visibleNavigationIssues,
+      selectedIssueCount: selectedIssueIds.size,
+      actionTargetIssuesCount: actionTargetIssues.length,
+      onSelectIssue: handleSelectIssue,
+      onToggleIssueSelection: toggleIssueSelection,
+      onClearIssueSelection: () => setSelectedIssueIds(new Set()),
+      onOpenIssueActionPicker: openIssueActionPicker,
+   });
 
    if (databaseError) {
       return (
@@ -126,14 +334,27 @@ export function IssuesWorkspace({
       <IssuesStatusProvider statuses={initialStatuses}>
          <DndProvider backend={HTML5Backend}>
             <CustomDragLayer />
+            <IssueActionCommand
+               open={issueAction !== null}
+               action={issueAction}
+               targetIssues={actionTargetIssues}
+               onOpenChange={(open) => {
+                  if (!open) {
+                     setIssueAction(null);
+                  }
+               }}
+            />
             <div className="h-full w-full">
                <div className={cn('h-full lg:hidden', selectedIssue ? 'hidden' : 'block')}>
                   <IssuesListPanel
                      issues={filteredIssues}
                      showEmptyStatuses={showEmptyStatuses}
                      isSearching={isSearching}
+                     searchIssues={displayIssues}
                      selectedIssueIdentifier={selectedIssueIdentifier}
+                     selectedIssueIds={selectedIssueIds}
                      onSelectIssue={handleSelectIssue}
+                     onToggleIssueSelection={handleToggleIssueSelection}
                   />
                </div>
 
@@ -142,8 +363,8 @@ export function IssuesWorkspace({
                      <IssueDetail
                         issueId={selectedIssue.id}
                         initialIssue={selectedIssue}
-                        onDelete={handleDelete}
-                        onArchive={handleArchive}
+                        onDelete={navigateToAdjacentIssue}
+                        onArchive={navigateToAdjacentIssue}
                         onMobileBack={handleClearSelectedIssue}
                         mobileBack
                      />
@@ -156,8 +377,11 @@ export function IssuesWorkspace({
                         issues={filteredIssues}
                         showEmptyStatuses={showEmptyStatuses}
                         isSearching={isSearching}
+                        searchIssues={displayIssues}
                         selectedIssueIdentifier={selectedIssueIdentifier}
+                        selectedIssueIds={selectedIssueIds}
                         onSelectIssue={handleSelectIssue}
+                        onToggleIssueSelection={handleToggleIssueSelection}
                      />
                   </ResizablePanel>
                   <ResizableHandle withHandle />
@@ -166,8 +390,8 @@ export function IssuesWorkspace({
                         <IssueDetail
                            issueId={selectedIssue.id}
                            initialIssue={selectedIssue}
-                           onDelete={handleDelete}
-                           onArchive={handleArchive}
+                           onDelete={navigateToAdjacentIssue}
+                           onArchive={navigateToAdjacentIssue}
                         />
                      ) : (
                         <EmptyPreview />
@@ -179,12 +403,30 @@ export function IssuesWorkspace({
       </IssuesStatusProvider>
    );
 
-   function handleDelete(deletedIssueId: string) {
-      navigateToAdjacentIssue(deletedIssueId);
+   function toggleIssueSelection(issueId: string) {
+      setSelectedIssueIds((current) => {
+         const next = new Set(current);
+
+         if (next.has(issueId)) {
+            next.delete(issueId);
+         } else {
+            next.add(issueId);
+         }
+
+         return next;
+      });
    }
 
-   function handleArchive(archivedIssueId: string) {
-      navigateToAdjacentIssue(archivedIssueId);
+   function handleToggleIssueSelection(issue: Issue) {
+      toggleIssueSelection(issue.id);
+   }
+
+   function openIssueActionPicker(action: IssueActionKind) {
+      if (actionTargetIssues.length === 0) {
+         return;
+      }
+
+      setIssueAction(action);
    }
 
    function navigateToAdjacentIssue(issueId: string) {
@@ -247,14 +489,20 @@ function IssuesListPanel({
    issues,
    showEmptyStatuses,
    isSearching,
+   searchIssues,
    selectedIssueIdentifier,
+   selectedIssueIds,
    onSelectIssue,
+   onToggleIssueSelection,
 }: {
    issues: ReturnType<typeof useIssuesStore.getState>['issues'];
    showEmptyStatuses: boolean;
    isSearching: boolean;
+   searchIssues: ReturnType<typeof useIssuesStore.getState>['issues'];
    selectedIssueIdentifier?: string;
+   selectedIssueIds: Set<string>;
    onSelectIssue: (issue: Issue) => void;
+   onToggleIssueSelection: (issue: Issue) => void;
 }) {
    const { viewType } = useViewStore();
    const isViewTypeGrid = viewType === 'grid';
@@ -294,8 +542,11 @@ function IssuesListPanel({
          {isSearching ? (
             <div className="px-6 pb-6 overflow-y-auto h-full">
                <SearchIssues
+                  issues={searchIssues}
                   selectedIssueIdentifier={selectedIssueIdentifier}
+                  selectedIssueIds={selectedIssueIds}
                   onSelectIssue={onSelectIssue}
+                  onToggleIssueSelection={onToggleIssueSelection}
                />
             </div>
          ) : (
@@ -311,7 +562,9 @@ function IssuesListPanel({
                            issues={statusIssues}
                            count={statusIssues.length}
                            selectedIssueIdentifier={selectedIssueIdentifier}
+                           selectedIssueIds={selectedIssueIds}
                            onSelectIssue={onSelectIssue}
+                           onToggleIssueSelection={onToggleIssueSelection}
                         />
                      );
                   })}

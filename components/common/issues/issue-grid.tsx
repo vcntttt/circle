@@ -20,8 +20,10 @@ import { useViewStore } from '@/store/view-store';
 export const IssueDragType = 'ISSUE';
 type IssueGridProps = {
    issue: Issue;
-   isSelected?: boolean;
+   isActive?: boolean;
+   isBulkSelected?: boolean;
    onSelect?: (issue: Issue) => void;
+   onToggleSelection?: (issue: Issue) => void;
 };
 
 // Custom DragLayer component to render the drag preview
@@ -83,7 +85,13 @@ export function CustomDragLayer() {
    );
 }
 
-export function IssueGrid({ issue, isSelected = false, onSelect }: IssueGridProps) {
+export function IssueGrid({
+   issue,
+   isActive = false,
+   isBulkSelected = false,
+   onSelect,
+   onToggleSelection,
+}: IssueGridProps) {
    const ref = useRef<HTMLDivElement>(null);
    const { visibleProperties } = useViewStore();
    const createdAtLabel = format(new Date(issue.createdAt), 'MMM dd');
@@ -116,7 +124,15 @@ export function IssueGrid({ issue, isSelected = false, onSelect }: IssueGridProp
             <ContextMenuTrigger asChild>
                <m.div
                   ref={ref}
-                  onClick={() => onSelect?.(issue)}
+                  onClick={(event) => {
+                     if (event.shiftKey) {
+                        event.preventDefault();
+                        onToggleSelection?.(issue);
+                        return;
+                     }
+
+                     onSelect?.(issue);
+                  }}
                   onKeyDown={(event) => {
                      if (event.key === 'Enter' || event.key === ' ') {
                         event.preventDefault();
@@ -127,7 +143,9 @@ export function IssueGrid({ issue, isSelected = false, onSelect }: IssueGridProp
                   tabIndex={0}
                   className={cn(
                      'w-full p-3 bg-background rounded-md shadow-xs border border-border/50 cursor-pointer',
-                     isSelected && 'border-primary/60 bg-accent/30'
+                     isBulkSelected && 'border-primary/50 bg-primary/5',
+                     isActive && 'border-primary/60 bg-accent/30',
+                     isActive && isBulkSelected && 'border-primary bg-accent/40'
                   )}
                   layoutId={`issue-grid-${issue.identifier}`}
                   style={{

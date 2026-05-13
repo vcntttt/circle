@@ -16,12 +16,78 @@ import { AnimatePresence, LazyMotion, domAnimation } from 'motion/react';
 import * as m from 'motion/react-m';
 import { useMemo } from 'react';
 
+export type IssueListRow = {
+   issue: Issue;
+   nestingLevel: number;
+   childrenCount: number;
+   completedChildrenCount: number;
+};
+
+export function getIssueListRows(issues: Issue[]): IssueListRow[] {
+   const sortedIssues = sortIssuesByPriority(issues);
+   const issueMap = new Map(sortedIssues.map((issue) => [issue.id, issue]));
+   const rows: IssueListRow[] = [];
+   const seen = new Set<string>();
+
+   for (const issue of sortedIssues) {
+      if (seen.has(issue.id)) {
+         continue;
+      }
+
+      const visibleParent = issue.parentIssueId ? issueMap.get(issue.parentIssueId) : null;
+      if (visibleParent) {
+         continue;
+      }
+
+      const visibleChildren = sortedIssues.filter(
+         (candidate) => candidate.parentIssueId === issue.id
+      );
+
+      rows.push({
+         issue,
+         nestingLevel: 0,
+         childrenCount: visibleChildren.length,
+         completedChildrenCount: visibleChildren.filter(
+            (child) => child.status.id === 'completed' || child.status.id === 'archived'
+         ).length,
+      });
+      seen.add(issue.id);
+
+      for (const child of visibleChildren) {
+         rows.push({
+            issue: child,
+            nestingLevel: 1,
+            childrenCount: 0,
+            completedChildrenCount: 0,
+         });
+         seen.add(child.id);
+      }
+   }
+
+   for (const issue of sortedIssues) {
+      if (seen.has(issue.id)) {
+         continue;
+      }
+
+      rows.push({
+         issue,
+         nestingLevel: 0,
+         childrenCount: 0,
+         completedChildrenCount: 0,
+      });
+   }
+
+   return rows;
+}
+
 interface GroupIssuesProps {
    status: Status;
    issues: Issue[];
    count: number;
    selectedIssueIdentifier?: string;
+   selectedIssueIds?: Set<string>;
    onSelectIssue?: (issue: Issue) => void;
+   onToggleIssueSelection?: (issue: Issue) => void;
 }
 
 export function GroupIssues({
@@ -29,72 +95,14 @@ export function GroupIssues({
    issues,
    count,
    selectedIssueIdentifier,
+   selectedIssueIds,
    onSelectIssue,
+   onToggleIssueSelection,
 }: GroupIssuesProps) {
    const { viewType } = useViewStore();
    const isViewTypeGrid = viewType === 'grid';
    const { openModal } = useCreateIssueStore();
-   const sortedIssues = sortIssuesByPriority(issues);
-   const listRows = useMemo(() => {
-      const issueMap = new Map(sortedIssues.map((issue) => [issue.id, issue]));
-      const rows: Array<{
-         issue: Issue;
-         nestingLevel: number;
-         childrenCount: number;
-         completedChildrenCount: number;
-      }> = [];
-      const seen = new Set<string>();
-
-      for (const issue of sortedIssues) {
-         if (seen.has(issue.id)) {
-            continue;
-         }
-
-         const visibleParent = issue.parentIssueId ? issueMap.get(issue.parentIssueId) : null;
-         if (visibleParent) {
-            continue;
-         }
-
-         const visibleChildren = sortedIssues.filter(
-            (candidate) => candidate.parentIssueId === issue.id
-         );
-
-         rows.push({
-            issue,
-            nestingLevel: 0,
-            childrenCount: visibleChildren.length,
-            completedChildrenCount: visibleChildren.filter(
-               (child) => child.status.id === 'completed' || child.status.id === 'archived'
-            ).length,
-         });
-         seen.add(issue.id);
-
-         for (const child of visibleChildren) {
-            rows.push({
-               issue: child,
-               nestingLevel: 1,
-               childrenCount: 0,
-               completedChildrenCount: 0,
-            });
-            seen.add(child.id);
-         }
-      }
-
-      for (const issue of sortedIssues) {
-         if (seen.has(issue.id)) {
-            continue;
-         }
-
-         rows.push({
-            issue,
-            nestingLevel: 0,
-            childrenCount: 0,
-            completedChildrenCount: 0,
-         });
-      }
-
-      return rows;
-   }, [sortedIssues]);
+   const listRows = useMemo(() => getIssueListRows(issues), [issues]);
 
    return (
       <div
@@ -147,11 +155,13 @@ export function GroupIssues({
                      key={issue.id}
                      issue={issue}
                      layoutId={true}
-                     isSelected={selectedIssueIdentifier === issue.identifier}
+                     isActive={selectedIssueIdentifier === issue.identifier}
+                     isBulkSelected={selectedIssueIds?.has(issue.id) ?? false}
                      nestingLevel={nestingLevel}
                      childrenCount={childrenCount}
                      completedChildrenCount={completedChildrenCount}
                      onSelect={onSelectIssue}
+                     onToggleSelection={onToggleIssueSelection}
                   />
                ))}
             </div>
@@ -160,7 +170,9 @@ export function GroupIssues({
                issues={issues}
                status={status}
                selectedIssueIdentifier={selectedIssueIdentifier}
+               selectedIssueIds={selectedIssueIds}
                onSelectIssue={onSelectIssue}
+               onToggleIssueSelection={onToggleIssueSelection}
             />
          )}
       </div>
@@ -171,8 +183,17 @@ const IssueGridList: FC<{
    issues: Issue[];
    status: Status;
    selectedIssueIdentifier?: string;
+   selectedIssueIds?: Set<string>;
    onSelectIssue?: (issue: Issue) => void;
-}> = ({ issues, status, selectedIssueIdentifier, onSelectIssue }) => {
+   onToggleIssueSelection?: (issue: Issue) => void;
+}> = ({
+   issues,
+   status,
+   selectedIssueIdentifier,
+   selectedIssueIds,
+   onSelectIssue,
+   onToggleIssueSelection,
+}) => {
    const ref = useRef<HTMLDivElement>(null);
    const { updateIssueStatus } = useIssuesStore();
 
@@ -223,8 +244,10 @@ const IssueGridList: FC<{
             <IssueGrid
                key={issue.id}
                issue={issue}
-               isSelected={selectedIssueIdentifier === issue.identifier}
+               isActive={selectedIssueIdentifier === issue.identifier}
+               isBulkSelected={selectedIssueIds?.has(issue.id) ?? false}
                onSelect={onSelectIssue}
+               onToggleSelection={onToggleIssueSelection}
             />
          ))}
       </div>

@@ -30,19 +30,23 @@ const formatEstimatedHours = (estimatedHours?: number) => {
 export function IssueLine({
    issue,
    layoutId = false,
-   isSelected = false,
+   isActive = false,
+   isBulkSelected = false,
    nestingLevel = 0,
    childrenCount = 0,
    completedChildrenCount = 0,
    onSelect,
+   onToggleSelection,
 }: {
    issue: Issue;
    layoutId?: boolean;
-   isSelected?: boolean;
+   isActive?: boolean;
+   isBulkSelected?: boolean;
    nestingLevel?: number;
    childrenCount?: number;
    completedChildrenCount?: number;
    onSelect?: (issue: Issue) => void;
+   onToggleSelection?: (issue: Issue) => void;
 }) {
    const { visibleProperties } = useViewStore();
    const createdAtLabel = format(new Date(issue.createdAt), 'MMM dd');
@@ -53,7 +57,15 @@ export function IssueLine({
             <ContextMenuTrigger asChild>
                <m.div
                   {...(layoutId && { layoutId: `issue-line-${issue.identifier}` })}
-                  onClick={() => onSelect?.(issue)}
+                  onClick={(event) => {
+                     if (event.shiftKey) {
+                        event.preventDefault();
+                        onToggleSelection?.(issue);
+                        return;
+                     }
+
+                     onSelect?.(issue);
+                  }}
                   onKeyDown={(event) => {
                      if (event.key === 'Enter' || event.key === ' ') {
                         event.preventDefault();
@@ -63,8 +75,12 @@ export function IssueLine({
                   role="button"
                   tabIndex={0}
                   className={cn(
-                     'w-full flex items-center justify-start min-h-10 px-6 py-1 hover:bg-sidebar/50 cursor-pointer',
-                     isSelected && 'bg-accent/70 hover:bg-accent/70'
+                     'w-full flex items-center justify-start min-h-10 px-6 py-1 hover:bg-sidebar/50 cursor-pointer border-l-2 border-transparent',
+                     isBulkSelected && 'border-l-primary bg-primary/5 hover:bg-primary/10',
+                     isActive && 'bg-accent/70 hover:bg-accent/70',
+                     isActive &&
+                        isBulkSelected &&
+                        'border-l-primary bg-accent/80 hover:bg-accent/80'
                   )}
                   style={{
                      paddingLeft: `${24 + nestingLevel * 22}px`,

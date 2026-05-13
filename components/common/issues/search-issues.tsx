@@ -7,11 +7,17 @@ import { IssueLine } from './issue-line';
 import type { Issue } from '@/lib/models';
 
 export function SearchIssues({
+   issues,
    selectedIssueIdentifier,
+   selectedIssueIds,
    onSelectIssue,
+   onToggleIssueSelection,
 }: {
+   issues?: ReturnType<typeof useIssuesStore.getState>['issues'];
    selectedIssueIdentifier?: string;
+   selectedIssueIds?: Set<string>;
    onSelectIssue?: (issue: Issue) => void;
+   onToggleIssueSelection?: (issue: Issue) => void;
 }) {
    const [searchResults, setSearchResults] = useState<
       ReturnType<typeof useIssuesStore.getState>['issues']
@@ -25,9 +31,16 @@ export function SearchIssues({
          return;
       }
 
-      const results = searchIssues(searchQuery);
+      const normalizedQuery = searchQuery.toLowerCase();
+      const results = issues
+         ? issues.filter(
+              (issue) =>
+                 issue.title.toLowerCase().includes(normalizedQuery) ||
+                 issue.identifier.toLowerCase().includes(normalizedQuery)
+           )
+         : searchIssues(searchQuery);
       setSearchResults(results);
-   }, [searchQuery, searchIssues]);
+   }, [issues, searchIssues, searchQuery]);
 
    if (!isSearchOpen) {
       return null;
@@ -48,8 +61,10 @@ export function SearchIssues({
                               key={issue.id}
                               issue={issue}
                               layoutId={false}
-                              isSelected={selectedIssueIdentifier === issue.identifier}
+                              isActive={selectedIssueIdentifier === issue.identifier}
+                              isBulkSelected={selectedIssueIds?.has(issue.id) ?? false}
                               onSelect={onSelectIssue}
+                              onToggleSelection={onToggleIssueSelection}
                            />
                         ))}
                      </div>
